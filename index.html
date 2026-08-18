@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Web 2؛ فروشگاه نمایشی تجهیزات گیمینگ با تجربه خرید مدرن">
+    <meta name="theme-color" content="#050816">
+    <meta name="color-scheme" content="dark light">
+    <title>Web 2 | فروشگاه گیمینگ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="home">
+    <a class="skip-link" href="#main-content">رفتن به محتوای اصلی</a>
+
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand" href="index.html" aria-label="صفحه اصلی Web 2">
+                <span class="brand-icon"><i class="fa-solid fa-gamepad" aria-hidden="true"></i></span>
+                <span><strong>WEB 2</strong><small>GAMING STORE</small></span>
+            </a>
+
+            <button class="menu-toggle" id="menuToggle" type="button" aria-label="باز کردن منو" aria-controls="mainNav" aria-expanded="false">
+                <span></span><span></span><span></span>
+            </button>
+
+            <nav class="main-nav" id="mainNav" aria-label="ناوبری اصلی">
+                <a class="active" href="index.html" aria-current="page">خانه</a>
+                <a href="#products">محصولات</a>
+                <a href="cart.html">سبد خرید</a>
+                <a href="#about">درباره ما</a>
+                <a href="#contact">تماس با ما</a>
+                <div class="nav-actions">
+                    <button class="icon-button" id="themeBtn" type="button" aria-label="فعال کردن تم روشن" title="تغییر تم">
+                        <i class="fa-solid fa-sun" aria-hidden="true"></i>
+                    </button>
+                    <a class="cart-button" href="cart.html" aria-label="مشاهده سبد خرید">
+                        <i class="fa-solid fa-cart-shopping" aria-hidden="true"></i>
+                        <span class="cart-label">سبد</span>
+                        <span class="cart-count" id="cart-count" aria-live="polite">۰</span>
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <section class="hero">
+            <div class="hero-glow hero-glow-one"></div>
+            <div class="hero-glow hero-glow-two"></div>
+            <div class="container hero-layout">
+                <div class="hero-content">
+                    <span class="eyebrow"><i class="fa-solid fa-bolt" aria-hidden="true"></i> تجهیزات حرفه‌ای برای بازی حرفه‌ای</span>
+                    <h1>مرزهای بازی را با <span>قدرت واقعی</span> جابه‌جا کن.</h1>
+                    <p>منتخبی از جذاب‌ترین تجهیزات گیمینگ؛ برای ساختن ستاپی سریع، دقیق و فراموش‌نشدنی.</p>
+                    <div class="hero-actions">
+                        <a class="primary-button" href="#products">مشاهده محصولات <i class="fa-solid fa-arrow-down" aria-hidden="true"></i></a>
+                        <a class="secondary-button" href="#about">داستان Web 2</a>
+                    </div>
+                    <div class="hero-stats" aria-label="ویژگی‌های فروشگاه">
+                        <div><strong id="homeProductCount">۸</strong><span>محصول منتخب</span></div>
+                        <div><strong>۲۴/۷</strong><span>تجربه آنلاین</span></div>
+                        <div><strong>۱۰۰٪</strong><span>خرید نمایشی امن</span></div>
+                    </div>
+                </div>
+
+                <div class="hero-visual" aria-hidden="true">
+                    <div class="visual-orbit orbit-one"></div>
+                    <div class="visual-orbit orbit-two"></div>
+                    <div class="controller-card">
+                        <span class="visual-badge"><i class="fa-solid fa-signal"></i> ONLINE</span>
+                        <i class="fa-solid fa-gamepad controller-icon"></i>
+                        <div class="visual-info">
+                            <span>LEVEL UP</span>
+                            <strong>YOUR SETUP</strong>
+                        </div>
+                    </div>
+                    <div class="floating-chip chip-one"><i class="fa-solid fa-headphones"></i></div>
+                    <div class="floating-chip chip-two"><i class="fa-solid fa-keyboard"></i></div>
+                    <div class="floating-chip chip-three"><i class="fa-solid fa-computer-mouse"></i></div>
+                </div>
+            </div>
+            <a class="scroll-hint" href="#products" aria-label="اسکرول به محصولات"><span></span></a>
+        </section>
+
+        <section class="section products-section" id="products">
+            <div class="container">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">GEAR COLLECTION</span>
+                        <h2>تجهیزات منتخب گیمینگ</h2>
+                    </div>
+                    <p>هر چیزی که برای ارتقای تجربه بازی و تکمیل ستاپ خود نیاز دارید.</p>
+                </div>
+                <div class="product-grid" id="productGrid" aria-live="polite"></div>
+            </div>
+        </section>
+
+        <section class="section about-section" id="about">
+            <div class="container about-layout">
+                <div class="about-visual" aria-hidden="true">
+                    <div class="about-grid"></div>
+                    <div class="about-logo"><i class="fa-solid fa-shield-halved"></i><span>WEB 2</span></div>
+                </div>
+                <div class="about-content">
+                    <span class="eyebrow">ABOUT THE STORE</span>
+                    <h2>ساخته‌شده برای گیمرهایی که به جزئیات اهمیت می‌دهند.</h2>
+                    <p>Web 2 یک فروشگاه نمایشی مدرن برای ارائه تجهیزات گیمینگ است. این پروژه با تمرکز بر تجربه کاربری سریع، طراحی حرفه‌ای و یک جریان خرید ساده ساخته شده است.</p>
+                    <div class="feature-list">
+                        <div><i class="fa-solid fa-wand-magic-sparkles"></i><span><strong>انتخاب هوشمند</strong>محصولات کاربردی برای هر نوع ستاپ</span></div>
+                        <div><i class="fa-solid fa-gauge-high"></i><span><strong>تجربه سریع</strong>رابط روان و بهینه در تمام دستگاه‌ها</span></div>
+                        <div><i class="fa-solid fa-lock"></i><span><strong>پرداخت نمایشی</strong>جریان کامل خرید بدون تراکنش واقعی</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section contact-section" id="contact">
+            <div class="container contact-layout">
+                <div class="contact-copy">
+                    <span class="eyebrow">CONTACT US</span>
+                    <h2>برای یک گفت‌وگوی تازه آماده‌ایم.</h2>
+                    <p>نظر، پیشنهاد یا پرسشی دارید؟ پیام خود را بفرستید تا تیم Web 2 پاسخ‌گو باشد.</p>
+                    <div class="contact-items">
+                        <a href="mailto:hello@web2.game"><i class="fa-solid fa-envelope"></i><span>hello@web2.game</span></a>
+                        <span><i class="fa-solid fa-location-dot"></i><span>تهران، ایران</span></span>
+                    </div>
+                </div>
+                <form class="glass-panel contact-form" id="contactForm" autocomplete="on">
+                    <div class="field-row">
+                        <label class="field"><span>نام شما</span><input type="text" name="name" autocomplete="name" minlength="2" maxlength="60" placeholder="مثلاً آرمان" required></label>
+                        <label class="field"><span>ایمیل</span><input type="email" name="email" autocomplete="email" maxlength="100" placeholder="name@example.com" dir="ltr" required></label>
+                    </div>
+                    <label class="field"><span>موضوع</span><input type="text" name="subject" minlength="3" maxlength="100" placeholder="موضوع پیام" required></label>
+                    <label class="field"><span>پیام شما</span><textarea name="message" rows="5" minlength="10" maxlength="1000" placeholder="پیام خود را بنویسید..." required></textarea></label>
+                    <button class="primary-button" type="submit">ارسال پیام <i class="fa-solid fa-paper-plane"></i></button>
+                    <p class="form-storage-note"><i class="fa-solid fa-database"></i> پیام شما به‌صورت محلی در همین مرورگر ثبت می‌شود.</p>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <a class="brand footer-brand" href="index.html">
+                <span class="brand-icon"><i class="fa-solid fa-gamepad"></i></span>
+                <span><strong>WEB 2</strong><small>GAMING STORE</small></span>
+            </a>
+            <p>© ۲۰۲۶ Web 2 — طراحی‌شده برای یک تجربه گیمینگ متفاوت.</p>
+            <div class="social-links" aria-label="شبکه‌های اجتماعی">
+                <a href="admin.html" aria-label="پنل مدیریت"><i class="fa-solid fa-user-shield"></i></a>
+                <a href="#" aria-label="اینستاگرام"><i class="fa-brands fa-instagram"></i></a>
+                <a href="#" aria-label="دیسکورد"><i class="fa-brands fa-discord"></i></a>
+                <a href="#" aria-label="تلگرام"><i class="fa-brands fa-telegram"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+    <script src="script.js"></script>
+</body>
+</html>

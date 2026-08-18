@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="پنل مدیریت محلی فروشگاه گیمینگ Web 2">
+    <meta name="theme-color" content="#050816">
+    <title>پنل مدیریت | Web 2</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="admin" class="admin-page">
+    <a class="skip-link" href="#main-content">رفتن به محتوای اصلی</a>
+
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand" href="index.html" aria-label="بازگشت به فروشگاه Web 2">
+                <span class="brand-icon"><i class="fa-solid fa-gamepad" aria-hidden="true"></i></span>
+                <span><strong>WEB 2</strong><small>ADMIN PANEL</small></span>
+            </a>
+            <div class="admin-header-actions">
+                <a class="secondary-button admin-store-link" href="index.html"><i class="fa-solid fa-store"></i> مشاهده فروشگاه</a>
+                <button class="icon-button" id="themeBtn" type="button" aria-label="فعال کردن تم روشن" title="تغییر تم">
+                    <i class="fa-solid fa-sun" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content" class="admin-main">
+        <section class="admin-login-view" id="adminLoginView">
+            <div class="admin-login-card glass-panel">
+                <div class="admin-login-icon"><i class="fa-solid fa-user-shield"></i></div>
+                <span class="eyebrow">SECURE AREA</span>
+                <h1>ورود به پنل مدیریت</h1>
+                <p>برای مدیریت محصولات و مشاهده پیام‌های کاربران، رمز عبور را وارد کنید.</p>
+                <form id="adminLoginForm">
+                    <label class="field">
+                        <span>رمز عبور</span>
+                        <input id="adminPassword" name="password" type="password" inputmode="numeric" autocomplete="current-password" placeholder="رمز عبور مدیریت" required autofocus>
+                    </label>
+                    <button class="primary-button" type="submit"><i class="fa-solid fa-arrow-right-to-bracket"></i> ورود به پنل</button>
+                </form>
+                <small class="admin-security-note"><i class="fa-solid fa-circle-info"></i> این ورود صرفاً نمایشی و مبتنی بر مرورگر است.</small>
+            </div>
+        </section>
+
+        <div class="container admin-dashboard" id="adminDashboard" hidden>
+            <section class="admin-welcome">
+                <div>
+                    <span class="eyebrow">CONTROL CENTER</span>
+                    <h1>داشبورد مدیریت فروشگاه</h1>
+                    <p>محصولات فروشگاه و پیام‌های ثبت‌شده در مرورگر را از اینجا مدیریت کنید.</p>
+                </div>
+                <button class="admin-logout-button" id="adminLogout" type="button"><i class="fa-solid fa-right-from-bracket"></i> خروج</button>
+            </section>
+
+            <div class="admin-stats">
+                <article class="admin-stat-card">
+                    <span><i class="fa-solid fa-boxes-stacked"></i></span>
+                    <div><strong id="adminProductCount">۰</strong><small>محصول فعال</small></div>
+                </article>
+                <article class="admin-stat-card">
+                    <span><i class="fa-solid fa-envelope"></i></span>
+                    <div><strong id="adminMessageCount">۰</strong><small>پیام دریافتی</small></div>
+                </article>
+                <article class="admin-stat-card">
+                    <span><i class="fa-solid fa-database"></i></span>
+                    <div><strong>Local</strong><small>محل ذخیره داده</small></div>
+                </article>
+            </div>
+
+            <section class="admin-grid">
+                <div class="glass-panel admin-form-panel">
+                    <div class="admin-panel-heading">
+                        <span class="admin-heading-icon"><i class="fa-solid fa-plus"></i></span>
+                        <div><h2>افزودن محصول جدید</h2><p>محصول بلافاصله در فروشگاه نمایش داده می‌شود.</p></div>
+                    </div>
+                    <form id="adminProductForm">
+                        <label class="field">
+                            <span>نام محصول</span>
+                            <input type="text" name="name" minlength="2" maxlength="80" placeholder="مثلاً مانیتور گیمینگ UltraView" required>
+                        </label>
+                        <div class="field-row">
+                            <label class="field">
+                                <span>قیمت (تومان)</span>
+                                <input type="number" name="price" min="1" step="1000" inputmode="numeric" placeholder="12500000" required>
+                            </label>
+                            <label class="field">
+                                <span>آیکون FontAwesome</span>
+                                <input type="text" name="icon" pattern="fa-[a-zA-Z0-9-]+" placeholder="fa-display" dir="ltr" required>
+                            </label>
+                        </div>
+                        <label class="field">
+                            <span>توضیحات محصول</span>
+                            <textarea name="description" minlength="5" maxlength="500" rows="5" placeholder="توضیح کوتاه و کاربردی درباره محصول..." required></textarea>
+                        </label>
+                        <button class="primary-button" type="submit"><i class="fa-solid fa-floppy-disk"></i> ذخیره محصول</button>
+                    </form>
+                </div>
+
+                <div class="glass-panel admin-products-panel">
+                    <div class="admin-panel-heading">
+                        <span class="admin-heading-icon"><i class="fa-solid fa-list"></i></span>
+                        <div><h2>محصولات فعلی</h2><p>حذف محصول روی همه صفحات فروشگاه اعمال می‌شود.</p></div>
+                    </div>
+                    <div class="admin-table-wrap">
+                        <div id="product-list" class="admin-product-list" aria-live="polite"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="glass-panel admin-messages-panel">
+                <div class="admin-panel-heading">
+                    <span class="admin-heading-icon"><i class="fa-solid fa-inbox"></i></span>
+                    <div><h2>پیام‌های فرم تماس</h2><p>جدیدترین پیام‌ها در ابتدای فهرست قرار می‌گیرند.</p></div>
+                </div>
+                <div class="admin-messages-grid" id="adminMessages"></div>
+            </section>
+        </div>
+    </main>
+
+    <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+    <script src="script.js"></script>
+</body>
+</html>

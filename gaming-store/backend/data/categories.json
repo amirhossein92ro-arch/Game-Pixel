@@ -1,0 +1,8 @@
+[
+  { "id": 1, "name": "RPG", "description": "Role-playing games with deep stories and character progression", "image": "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&h=400&fit=crop" },
+  { "id": 2, "name": "FPS", "description": "First-person shooters for fast-paced competitive action", "image": "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=600&h=400&fit=crop" },
+  { "id": 3, "name": "Sports", "description": "Realistic sports simulations and arcade gameplay", "image": "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=600&h=400&fit=crop" },
+  { "id": 4, "name": "Adventure", "description": "Epic journeys and exploration in vast worlds", "image": "https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=600&h=400&fit=crop" },
+  { "id": 5, "name": "Horror", "description": "Terrifying experiences that will keep you up at night", "image": "https://images.unsplash.com/photo-1614294149010-950b698f72c0?w=600&h=400&fit=crop" },
+  { "id": 6, "name": "Action", "description": "Non-stop thrills and adrenaline-pumping gameplay", "image": "https://images.unsplash.com/photo-1542751110-97427bbecf20?w=600&h=400&fit=crop" }
+]
