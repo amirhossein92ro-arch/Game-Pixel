@@ -26,7 +26,7 @@ app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: false, limit: "100kb" }));
 
 // مسیرهای پایه
-app.get("/", (_req, res) => res.json({ message: "Gaming Store API is running" }));
+app.get("/", (_req, res) => res.json({ status: "ok", message: "Gaming Store Server Online" }));
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
 // مسیرهای ماژول‌ها
