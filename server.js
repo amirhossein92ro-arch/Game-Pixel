@@ -96,6 +96,15 @@ app.get("/api/products", async (req, res, next) => {
     }
 });
 
+app.get("/api/admin/products", async (req, res, next) => {
+    try {
+        const data = await readData();
+        res.json(data.products);
+    } catch (error) {
+        next(error);
+    }
+});
+
 app.post("/api/products", async (req, res, next) => {
     try {
         const input = validateProduct(req.body);
@@ -132,6 +141,38 @@ app.post("/api/products", async (req, res, next) => {
     }
 });
 
+app.post("/api/admin/products", async (req, res, next) => {
+    try {
+        const input = validateProduct(req.body);
+        const product = await updateData((data) => {
+            const nextId = data.products.reduce((maxId, item) => Math.max(maxId, Number(item.id) || 0), 0) + 1;
+            const newProduct = {
+                id: nextId,
+                name: input.name,
+                brand: "WEB 2 CUSTOM",
+                icon: input.icon,
+                image: cleanText(req.body.image, 500),
+                accent: "#00d4ff",
+                tag: "جدید",
+                price: input.price,
+                stock: Number.isFinite(Number(req.body.stock)) ? Math.max(0, Number(req.body.stock)) : 50,
+                rating: 5,
+                reviews: 0,
+                shortDescription: input.description,
+                description: input.description,
+                features: [],
+                guarantee: "ضمانت فروشگاه",
+                category: cleanText(req.body.category, 80) || "محصول سفارشی"
+            };
+            data.products.push(newProduct);
+            return newProduct;
+        });
+        res.status(201).json(product);
+    } catch (error) {
+        next(error);
+    }
+});
+
 app.delete("/api/products/:id", async (req, res, next) => {
     try {
         const productId = Number(req.params.id);
@@ -145,6 +186,44 @@ app.delete("/api/products/:id", async (req, res, next) => {
             return data.products.splice(productIndex, 1)[0];
         });
 
+        res.json({ message: "محصول با موفقیت حذف شد.", product: deletedProduct });
+    } catch (error) {
+        next(error);
+    }
+});
+
+app.put("/api/admin/products/:id", async (req, res, next) => {
+    try {
+        const productId = Number(req.params.id);
+        const input = validateProduct(req.body);
+        const product = await updateData((data) => {
+            const item = data.products.find((entry) => Number(entry.id) === productId);
+            if (!item) throw createHttpError(404, "محصول موردنظر پیدا نشد.");
+            Object.assign(item, {
+                name: input.name,
+                price: input.price,
+                description: input.description,
+                shortDescription: input.description,
+                category: cleanText(req.body.category, 80) || item.category,
+                stock: Number.isFinite(Number(req.body.stock)) ? Math.max(0, Number(req.body.stock)) : item.stock,
+                image: cleanText(req.body.image, 500)
+            });
+            return item;
+        });
+        res.json(product);
+    } catch (error) {
+        next(error);
+    }
+});
+
+app.delete("/api/admin/products/:id", async (req, res, next) => {
+    try {
+        const productId = Number(req.params.id);
+        const deletedProduct = await updateData((data) => {
+            const index = data.products.findIndex((entry) => Number(entry.id) === productId);
+            if (index < 0) throw createHttpError(404, "محصول موردنظر پیدا نشد.");
+            return data.products.splice(index, 1)[0];
+        });
         res.json({ message: "محصول با موفقیت حذف شد.", product: deletedProduct });
     } catch (error) {
         next(error);
@@ -205,6 +284,11 @@ app.use(express.static(ROOT_DIR, {
     extensions: ["html"],
     maxAge: 0
 }));
+
+// Live Server-style URLs should resolve to the existing static admin page.
+app.get("/admin", (req, res) => {
+    res.sendFile(path.join(ROOT_DIR, "admin.html"));
+});
 
 app.use("/api", (req, res) => {
     res.status(404).json({ message: "مسیر API موردنظر پیدا نشد." });

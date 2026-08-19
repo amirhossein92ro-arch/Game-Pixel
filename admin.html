@@ -22,7 +22,7 @@
                 <span><strong>WEB 2</strong><small>ADMIN PANEL</small></span>
             </a>
             <div class="admin-header-actions">
-                <a class="secondary-button admin-store-link" href="index.html"><i class="fa-solid fa-store"></i> مشاهده فروشگاه</a>
+                <a class="secondary-button admin-store-link" href="/"><i class="fa-solid fa-store"></i> مشاهده فروشگاه</a>
                 <button class="icon-button" id="themeBtn" type="button" aria-label="فعال کردن تم روشن" title="تغییر تم">
                     <i class="fa-solid fa-sun" aria-hidden="true"></i>
                 </button>
@@ -90,8 +90,18 @@
                                 <input type="number" name="price" min="1" step="1000" inputmode="numeric" placeholder="12500000" required>
                             </label>
                             <label class="field">
-                                <span>آیکون FontAwesome</span>
-                                <input type="text" name="icon" pattern="fa-[a-zA-Z0-9-]+" placeholder="fa-display" dir="ltr" required>
+                                <span>دسته‌بندی</span>
+                                <input type="text" name="category" maxlength="80" placeholder="مثلاً مانیتور" required>
+                            </label>
+                        </div>
+                        <div class="field-row">
+                            <label class="field">
+                                <span>موجودی</span>
+                                <input type="number" name="stock" min="0" step="1" inputmode="numeric" placeholder="50" required>
+                            </label>
+                            <label class="field">
+                                <span>تصویر (URL)</span>
+                                <input type="url" name="image" placeholder="https://..." dir="ltr">
                             </label>
                         </div>
                         <label class="field">
@@ -105,7 +115,7 @@
                 <div class="glass-panel admin-products-panel">
                     <div class="admin-panel-heading">
                         <span class="admin-heading-icon"><i class="fa-solid fa-list"></i></span>
-                        <div><h2>محصولات فعلی</h2><p>حذف محصول روی همه صفحات فروشگاه اعمال می‌شود.</p></div>
+                    <div><h2>محصولات فعلی</h2><p>مدیریت محصولات مستقیماً از طریق API فروشگاه انجام می‌شود.</p></div>
                     </div>
                     <div class="admin-table-wrap">
                         <div id="product-list" class="admin-product-list" aria-live="polite"></div>

@@ -10,9 +10,11 @@ function start() {
     console.log(`Gaming Store API running at http://localhost:${PORT}`);
   });
 
-  connectDB().catch((error) => {
-    console.error("[db] MongoDB connection failed:", error.message);
-  });
+  Promise.resolve()
+    .then(() => connectDB())
+    .catch((error) => {
+      console.error("[db] MongoDB connection failed:", error && error.message ? error.message : error);
+    });
 }
 
 start();

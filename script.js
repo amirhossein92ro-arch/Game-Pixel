@@ -143,7 +143,7 @@ const PRODUCTS_KEY = "gaming_store_products";
 const MESSAGES_KEY = "gaming_store_messages";
 const LEGACY_PRODUCT_KEYS = ["products", "store_products", "web2_products"];
 const ADMIN_SESSION_KEY = "web2_admin_authenticated";
-const ADMIN_PASSWORD = "1234";
+const ADMIN_PASSWORD = "GamePixel2026!";
 const CART_KEY = "web2_cart";
 const THEME_KEY = "web2_theme";
 const numberFormatter = new Intl.NumberFormat("fa-IR");
@@ -153,6 +153,8 @@ const dateFormatter = new Intl.DateTimeFormat("fa-IR", {
 });
 
 let products = [];
+let adminApiMode = false;
+const ADMIN_API_BASE = "/api/admin/products";
 
 function escapeHTML(value) {
     const element = document.createElement("div");
@@ -928,6 +930,17 @@ function renderAdminProducts() {
     `).join("");
 }
 
+async function loadAdminProductsFromApi() {
+    const response = await fetch(ADMIN_API_BASE);
+    if (!response.ok) throw new Error("دریافت محصولات از سرور ناموفق بود.");
+    const payload = await response.json();
+    const list = Array.isArray(payload) ? payload : payload.items;
+    if (!Array.isArray(list)) throw new Error("پاسخ نامعتبر از سرور دریافت شد.");
+    products = list.map(normalizeProduct).filter(Boolean);
+    adminApiMode = true;
+    renderAdminProducts();
+}
+
 function renderAdminMessages() {
     const messagesContainer = document.getElementById("adminMessages");
     const messageCount = document.getElementById("adminMessageCount");
@@ -971,6 +984,10 @@ function unlockAdminPanel() {
     if (dashboard) dashboard.hidden = false;
     renderAdminProducts();
     renderAdminMessages();
+    loadAdminProductsFromApi().catch(() => {
+        adminApiMode = false;
+        showToast("اتصال به API مدیریت برقرار نشد؛ حالت محلی فعال است.", "error");
+    });
 }
 
 function setupAdminPanel() {
@@ -1003,7 +1020,7 @@ function setupAdminPanel() {
         window.location.reload();
     });
 
-    productForm?.addEventListener("submit", (event) => {
+    productForm?.addEventListener("submit", async (event) => {
         event.preventDefault();
         if (!productForm.checkValidity()) {
             productForm.reportValidity();
@@ -1012,12 +1029,29 @@ function setupAdminPanel() {
 
         const formData = new FormData(productForm);
         try {
-            const product = createProduct({
+            const payload = {
                 name: formData.get("name"),
                 price: formData.get("price"),
                 description: formData.get("description"),
-                icon: formData.get("icon")
-            });
+                category: formData.get("category"),
+                stock: formData.get("stock"),
+                image: formData.get("image")
+            };
+            if (adminApiMode) {
+                const response = await fetch(ADMIN_API_BASE, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) throw new Error("ثبت محصول در سرور ناموفق بود.");
+                const product = normalizeProduct(await response.json());
+                products.push(product);
+                renderAdminProducts();
+                productForm.reset();
+                showToast(`${product.name} به فروشگاه اضافه شد.`);
+                return;
+            }
+            const product = createProduct(payload);
             productForm.reset();
             renderAdminProducts();
             showToast(`${product.name} به فروشگاه اضافه شد.`);
@@ -1033,6 +1067,17 @@ function setupAdminPanel() {
         const product = getProduct(deleteButton.dataset.deleteProduct);
         if (!product || !window.confirm(`محصول «${product.name}» حذف شود؟`)) return;
 
+        if (adminApiMode) {
+            fetch(`${ADMIN_API_BASE}/${encodeURIComponent(product.id)}`, { method: "DELETE" })
+                .then((response) => {
+                    if (!response.ok) throw new Error("حذف محصول در سرور ناموفق بود.");
+                    products = products.filter((item) => String(item.id) !== String(product.id));
+                    renderAdminProducts();
+                    showToast(`${product.name} حذف شد.`);
+                })
+                .catch((error) => showToast(error.message, "error"));
+            return;
+        }
         deleteProduct(product.id);
         renderAdminProducts();
         showToast(`${product.name} حذف شد.`);

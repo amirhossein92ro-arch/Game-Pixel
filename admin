@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="0; url=/admin.html">
+    <title>پنل مدیریت | Web 2</title>
+</head>
+<body>
+    <p><a href="/admin.html">ورود به پنل مدیریت</a></p>
+</body>
+</html>
