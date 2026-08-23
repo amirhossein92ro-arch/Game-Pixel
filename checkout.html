@@ -58,6 +58,7 @@
                 <div class="checkout-items" id="checkoutItems" aria-live="polite" aria-busy="true"></div>
                 <div class="summary-line"><span>تعداد اقلام</span><strong id="checkoutItemCount">۰</strong></div>
                 <div class="summary-line"><span>ارسال</span><strong class="free-label">رایگان</strong></div>
+                <div class="summary-line discount-line" id="checkoutDiscountLine" hidden><span>تخفیف WEB2</span><strong id="checkoutDiscount">۰ تومان</strong></div>
                 <div class="summary-total"><span>مبلغ نهایی</span><strong id="checkoutTotal">۰ تومان</strong></div>
             </aside>
         </section>
@@ -66,8 +67,26 @@
             <div class="success-ring"><i class="fa-solid fa-check"></i></div>
             <span class="eyebrow">PAYMENT COMPLETE</span>
             <h1>پرداخت نمایشی با موفقیت انجام شد!</h1>
-            <p>سفارش شما با کد <strong id="orderCode"></strong> ثبت شد. این عملیات صرفاً نمایشی بوده و هیچ مبلغی پرداخت نشده است.</p>
-            <a class="primary-button" href="index.html">بازگشت به سایت <i class="fa-solid fa-house"></i></a>
+            <p>سفارش شما با موفقیت ثبت شد. جزئیات رسید را می‌توانید در ادامه مشاهده و دانلود کنید.</p>
+            <div class="payment-receipt glass-panel" id="paymentReceipt">
+                <div class="receipt-heading">
+                    <div><span>WEB 2</span><strong>رسید پرداخت</strong></div>
+                    <span class="receipt-status"><i class="fa-solid fa-circle-check"></i> پرداخت موفق</span>
+                </div>
+                <dl class="receipt-details">
+                    <div><dt>شماره سفارش</dt><dd id="orderCode"></dd></div>
+                    <div><dt>تاریخ</dt><dd id="receiptDate"></dd></div>
+                    <div><dt>مبلغ</dt><dd id="receiptAmount"></dd></div>
+                </dl>
+                <div class="receipt-products">
+                    <span>محصولات</span>
+                    <ul id="receiptProducts"></ul>
+                </div>
+            </div>
+            <div class="receipt-actions">
+                <button class="primary-button" id="downloadReceipt" type="button"><i class="fa-solid fa-download"></i> دانلود رسید</button>
+                <a class="secondary-button" href="index.html">بازگشت به سایت <i class="fa-solid fa-house"></i></a>
+            </div>
         </section>
     </main>
 

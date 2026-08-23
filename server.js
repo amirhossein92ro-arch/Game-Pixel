@@ -278,17 +278,16 @@ app.use((req, res, next) => {
     next();
 });
 
+app.get("/admin", (req, res) => {
+    res.sendFile(path.join(ROOT_DIR, "admin.html"));
+});
+
 app.use(express.static(ROOT_DIR, {
     dotfiles: "deny",
     index: "index.html",
     extensions: ["html"],
     maxAge: 0
 }));
-
-// Live Server-style URLs should resolve to the existing static admin page.
-app.get("/admin", (req, res) => {
-    res.sendFile(path.join(ROOT_DIR, "admin.html"));
-});
 
 app.use("/api", (req, res) => {
     res.status(404).json({ message: "مسیر API موردنظر پیدا نشد." });

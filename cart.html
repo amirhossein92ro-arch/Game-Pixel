@@ -47,6 +47,12 @@
                 <div class="summary-line"><span>تعداد اقلام</span><strong id="totalItems">۰</strong></div>
                 <div class="summary-line"><span>جمع محصولات</span><strong id="subtotalPrice">۰ تومان</strong></div>
                 <div class="summary-line"><span>هزینه ارسال</span><strong class="free-label">رایگان</strong></div>
+                <form class="discount-form" id="discountForm">
+                    <label for="discountCode">کد تخفیف آزمایشی</label>
+                    <div><input id="discountCode" type="text" placeholder="WEB2" autocomplete="off" dir="ltr"><button type="submit">اعمال</button></div>
+                    <small id="discountHint">برای ۱۰٪ تخفیف از کد WEB2 استفاده کنید.</small>
+                </form>
+                <div class="summary-line discount-line" id="discountLine" hidden><span>تخفیف</span><strong id="discountAmount">۰ تومان</strong></div>
                 <div class="summary-total"><span>مبلغ نهایی</span><strong id="totalPrice">۰ تومان</strong></div>
                 <a class="primary-button checkout-link" id="checkoutBtn" href="checkout.html">ادامه به پرداخت <i class="fa-solid fa-arrow-left"></i></a>
                 <p class="secure-note"><i class="fa-solid fa-shield-halved"></i> این فرایند صرفاً نمایشی است و تراکنش واقعی انجام نمی‌شود.</p>

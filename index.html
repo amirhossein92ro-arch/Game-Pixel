@@ -86,6 +86,41 @@
             <a class="scroll-hint" href="#products" aria-label="اسکرول به محصولات"><span></span></a>
         </section>
 
+        <section class="section categories-section" id="categories">
+            <div class="container">
+                <div class="section-heading compact-heading">
+                    <div>
+                        <span class="eyebrow">CHOOSE YOUR GEAR</span>
+                        <h2>دسته‌بندی‌های محبوب</h2>
+                    </div>
+                    <p>سریع‌تر به تجهیزات موردنیاز ستاپ خود برسید.</p>
+                </div>
+                <div class="category-grid" id="categoryGrid" aria-label="دسته‌بندی محصولات"></div>
+            </div>
+        </section>
+
+        <section class="section spotlight-section" id="featured">
+            <div class="container">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">FEATURED LOADOUT</span>
+                        <h2>محصولات ویژه و پرفروش‌ترین‌ها</h2>
+                    </div>
+                    <p>انتخاب‌هایی با امتیاز بالا، محبوبیت بیشتر و کیفیت مناسب برای ارتقای ستاپ.</p>
+                </div>
+                <div class="spotlight-grid" id="featuredGrid" aria-live="polite"></div>
+            </div>
+        </section>
+
+        <section class="container promo-banner" aria-label="تخفیف ویژه">
+            <div class="promo-copy">
+                <span class="promo-kicker"><i class="fa-solid fa-bolt"></i> NEON DROP</span>
+                <h2>ارتقای ستاپ با تخفیف آزمایشی</h2>
+                <p>کد <strong>WEB2</strong> را در سبد خرید وارد کنید و ۱۰٪ تخفیف نمایشی بگیرید.</p>
+            </div>
+            <a class="primary-button" href="#products">شروع خرید <i class="fa-solid fa-arrow-down"></i></a>
+        </section>
+
         <section class="section products-section" id="products">
             <div class="container">
                 <div class="section-heading">
@@ -95,7 +130,49 @@
                     </div>
                     <p>هر چیزی که برای ارتقای تجربه بازی و تکمیل ستاپ خود نیاز دارید.</p>
                 </div>
+                <div class="product-toolbar glass-panel" aria-label="جستجو و فیلتر محصولات">
+                    <label class="product-search">
+                        <span class="sr-only">جستجوی محصول</span>
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input id="productSearch" type="search" placeholder="جستجوی سریع محصول..." autocomplete="off">
+                    </label>
+                    <label class="toolbar-field">
+                        <span>دسته‌بندی</span>
+                        <select id="categoryFilter"><option value="all">همه دسته‌ها</option></select>
+                    </label>
+                    <label class="toolbar-field">
+                        <span>محدوده قیمت</span>
+                        <select id="priceFilter">
+                            <option value="all">همه قیمت‌ها</option>
+                            <option value="under-3">کمتر از ۳ میلیون</option>
+                            <option value="3-6">۳ تا ۶ میلیون</option>
+                            <option value="over-6">بیشتر از ۶ میلیون</option>
+                        </select>
+                    </label>
+                    <label class="toolbar-field">
+                        <span>مرتب‌سازی</span>
+                        <select id="productSort">
+                            <option value="popular">محبوب‌ترین</option>
+                            <option value="price-asc">ارزان‌ترین</option>
+                            <option value="price-desc">گران‌ترین</option>
+                            <option value="rating">بالاترین امتیاز</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="product-results-meta">
+                    <span id="productResultsCount"></span>
+                    <button class="text-button" id="clearProductFilters" type="button" hidden><i class="fa-solid fa-rotate-left"></i> پاک کردن فیلترها</button>
+                </div>
                 <div class="product-grid" id="productGrid" aria-live="polite"></div>
+            </div>
+        </section>
+
+        <section class="section benefits-section" aria-label="مزایای فروشگاه">
+            <div class="container benefits-grid">
+                <article><span><i class="fa-solid fa-shield-halved"></i></span><div><h3>پرداخت امن</h3><p>فرایند پرداخت نمایشی، سریع و بدون ذخیره اطلاعات بانکی.</p></div></article>
+                <article><span><i class="fa-solid fa-truck-fast"></i></span><div><h3>ارسال سریع</h3><p>آماده‌سازی سریع سفارش و ارسال رایگان در نسخه نمایشی.</p></div></article>
+                <article><span><i class="fa-solid fa-headset"></i></span><div><h3>پشتیبانی حرفه‌ای</h3><p>همراهی برای انتخاب بهتر تجهیزات مناسب ستاپ شما.</p></div></article>
+                <article><span><i class="fa-solid fa-medal"></i></span><div><h3>انتخاب مطمئن</h3><p>محصولات منتخب با امتیاز و بازخورد کاربران.</p></div></article>
             </div>
         </section>
 
@@ -160,6 +237,7 @@
     </footer>
 
     <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+    <button class="back-to-top" id="backToTop" type="button" aria-label="بازگشت به بالای صفحه"><i class="fa-solid fa-arrow-up"></i></button>
     <script src="script.js"></script>
 </body>
 </html>
