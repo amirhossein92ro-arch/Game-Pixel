@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="مشاهده مشخصات محصول در فروشگاه گیمینگ Web 2">
+    <meta name="theme-color" content="#050816">
+    <meta name="color-scheme" content="dark light">
+    <title>مشخصات محصول | Web 2</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="product">
+    <a class="skip-link" href="#main-content">رفتن به محتوای اصلی</a>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand" href="index.html" aria-label="صفحه اصلی Web 2">
+                <span class="brand-icon"><i class="fa-solid fa-gamepad"></i></span>
+                <span><strong>WEB 2</strong><small>GAMING STORE</small></span>
+            </a>
+            <button class="menu-toggle" id="menuToggle" type="button" aria-label="باز کردن منو" aria-controls="mainNav" aria-expanded="false"><span></span><span></span><span></span></button>
+            <nav class="main-nav" id="mainNav" aria-label="ناوبری اصلی">
+                <a href="index.html">خانه</a><a class="active" href="index.html#products" aria-current="page">محصولات</a><a href="cart.html">سبد خرید</a><a href="index.html#about">درباره ما</a><a href="index.html#contact">تماس با ما</a>
+                <div class="nav-actions">
+                    <button class="icon-button" id="themeBtn" type="button" aria-label="فعال کردن تم روشن" title="تغییر تم"><i class="fa-solid fa-sun"></i></button>
+                    <a class="cart-button" href="cart.html" aria-label="مشاهده سبد خرید"><i class="fa-solid fa-cart-shopping"></i><span class="cart-label">سبد</span><span class="cart-count" id="cart-count">۰</span></a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main id="main-content" class="inner-page">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="مسیر صفحه"><a href="index.html">خانه</a><i class="fa-solid fa-angle-left"></i><a href="index.html#products">محصولات</a><i class="fa-solid fa-angle-left"></i><span id="breadcrumbProduct">مشخصات محصول</span></nav>
+            <section id="productDetail" class="product-detail-shell" aria-live="polite" aria-busy="true">
+                <div class="loading-state"><span class="loader"></span><p>در حال آماده‌سازی محصول...</p></div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="site-footer compact-footer">
+        <div class="container footer-inner"><p>© ۲۰۲۶ Web 2 — فروشگاه نمایشی تجهیزات گیمینگ.</p><a href="index.html#products">بازگشت به محصولات</a></div>
+    </footer>
+    <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+    <script src="script.js"></script>
+</body>
+</html>

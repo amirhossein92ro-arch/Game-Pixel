@@ -1,4 +1,4 @@
-:root {
+html { direction: rtl; }`r`nbody { direction: rtl; text-align: right; }`r`n:root {
     --bg: #050816;
     --bg-soft: #090e20;
     --surface: rgba(15, 23, 48, 0.72);
