@@ -19,10 +19,15 @@ function repairMojibake(value) {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// تنظیم UTF-8 برای تمام پاسخ‌ها
-app.use((req, res, next) => {
-  res.setHeader("Charset", "utf-8");
-  next();
+// مسیرهای HTML باید قبل از static باشند تا فایل بدون پسوند «admin» تداخلی ایجاد نکند.
+app.get("/", (_req, res) => {
+  res.type("html").sendFile(path.join(__dirname, "index.html"));
+});
+app.get(["/admin", "/admin.html"], (_req, res) => {
+  res.type("html").sendFile(path.join(__dirname, "admin.html"));
+});
+app.get(["/cart.html", "/checkout.html", "/product.html"], (req, res) => {
+  res.type("html").sendFile(path.join(__dirname, req.path.slice(1)));
 });
 
 // سرو کردن تمام فایل‌های پروژه (HTML, CSS, JS, تصاویر)
@@ -123,19 +128,6 @@ app.delete("/api/admin/products/:id", (req, res) => {
   }
 });
 
-// روت‌های اصلی صفحات
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
-});
-
-app.get("/admin", (req, res) => {
-  res.sendFile(path.join(__dirname, "admin.html"));
-});
-
-app.get(["/admin.html", "/cart.html", "/checkout.html", "/product.html"], (req, res) => {
-  res.sendFile(path.join(__dirname, req.path.slice(1)));
-});
-
 // اجرای سرور
 app.listen(PORT, () => {
   console.log(`\n==============================================`);
@@ -143,5 +135,6 @@ app.listen(PORT, () => {
   console.log(`👉 Home:   http://localhost:${PORT}`);
   console.log(`👉 Admin:  http://localhost:${PORT}/admin`);
   console.log(`👉 Admin HTML: http://localhost:${PORT}/admin.html`);
+  console.log(`Server is running at http://localhost:${PORT}`);
   console.log(`==============================================\n`);
 });

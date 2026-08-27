@@ -1,0 +1,22 @@
+{
+  "name": "web2-gaming-store",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Full-stack demo gaming store built with Node.js and Express",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "express": "^4.22.2"
+  },
+  "keywords": [
+    "gaming-store",
+    "express",
+    "nodejs"
+  ],
+  "license": "MIT"
+}

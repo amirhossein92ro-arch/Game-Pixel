@@ -256,19 +256,19 @@ function getProducts() {
 
     if (!Array.isArray(stored) || !stored.length) {
         const migrated = migrateLegacyProducts();
-        const seeded = mergeProducts(migrated, defaultProducts);
+        const seeded = mergeProducts(migrated);
         localStorage.setItem(PRODUCTS_KEY, JSON.stringify(seeded));
         console.log(`[getProducts] ${migrated.length ? "داده‌های منتقل‌شده" : "داده‌های اولیه (seed)"} ذخیره شدند — تعداد: ${seeded.length}`);
         products = seeded;
         return seeded;
     }
 
-    let normalized = mergeProducts(stored, defaultProducts);
+    let normalized = mergeProducts(stored);
 
     // محافظت در برابر داده‌ی معیوب: اگر کلید پر بود ولی همه‌ی رکوردها نامعتبر بودند،
     // به‌جای نمایش فروشگاه خالی، داده‌های اولیه بازگردانده می‌شوند (کلید قدیمی حذف نمی‌شود).
     if (!normalized.length) {
-        normalized = defaultProducts.map((product) => normalizeProduct(product)).filter(Boolean);
+        normalized = [];
         localStorage.setItem(PRODUCTS_KEY, JSON.stringify(normalized));
         console.warn("[getProducts] داده‌ی ذخیره‌شده معیوب بود؛ داده‌های اولیه (seed) بازگردانده شدند.", { storedCount: stored.length });
         products = normalized;
@@ -299,7 +299,7 @@ async function loadProductsFromApi() {
         const payload = await response.json();
         const apiProducts = Array.isArray(payload) ? payload : payload.products;
         if (!Array.isArray(apiProducts)) throw new Error("Invalid products payload");
-        const merged = mergeProducts(apiProducts, getProducts());
+        const merged = mergeProducts(apiProducts);
         localStorage.setItem(PRODUCTS_KEY, JSON.stringify(merged));
         localStorage.setItem(PRODUCT_FALLBACK_KEY, JSON.stringify(merged));
         products = merged;
@@ -309,7 +309,7 @@ async function loadProductsFromApi() {
         console.error("[products] ???? API:", error);
         let fallback = [];
         try { fallback = JSON.parse(localStorage.getItem(PRODUCT_FALLBACK_KEY) || "[]"); } catch {}
-        products = mergeProducts(fallback, getProducts());
+        products = mergeProducts(fallback);
         console.warn(`[products] ??????? ???? � ?????: ${products.length}`);
         return products;
     }
