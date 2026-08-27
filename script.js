@@ -149,6 +149,7 @@ const THEME_KEY = "web2_theme";
 const DISCOUNT_KEY = "web2_discount";
 const DISCOUNT_CODE = "WEB2";
 const DISCOUNT_RATE = 0.1;
+const USER_SESSION_KEY = "gp_user";
 const numberFormatter = new Intl.NumberFormat("fa-IR");
 const dateFormatter = new Intl.DateTimeFormat("fa-IR", {
     dateStyle: "medium",
@@ -597,6 +598,10 @@ function showToast(message, type = "success") {
 }
 
 function addToCart(productId) {
+    if (!getCurrentUser()) {
+        openAuthModal("شما حساب کاربری ندارید! برای ثبت خرید لطفاً وارد شوید یا ثبت‌نام کنید.");
+        return;
+    }
     const product = getProduct(productId);
     if (!product) {
         showToast("محصول موردنظر پیدا نشد.", "error");
@@ -632,6 +637,73 @@ function addToCart(productId) {
         }, 1400);
     }
 }
+
+function getCurrentUser() {
+    try { return JSON.parse(localStorage.getItem(USER_SESSION_KEY) || "null"); } catch { return null; }
+}
+
+function saveCurrentUser(user) {
+    localStorage.setItem(USER_SESSION_KEY, JSON.stringify(user));
+    updateAuthUI();
+}
+
+function setupAuthUI() {
+    const navActions = document.querySelector(".nav-actions");
+    if (!navActions || document.getElementById("authTrigger")) return;
+    const trigger = document.createElement("button");
+    trigger.id = "authTrigger";
+    trigger.type = "button";
+    trigger.className = "profile-button";
+    trigger.addEventListener("click", () => getCurrentUser() ? openProfileModal() : openAuthModal());
+    navActions.prepend(trigger);
+
+    const modal = document.createElement("div");
+    modal.id = "authModal";
+    modal.className = "auth-modal";
+    modal.hidden = true;
+    modal.innerHTML = `<div class="auth-backdrop" data-close-auth></div><section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <button class="auth-close" type="button" data-close-auth aria-label="بستن"><i class="fa-solid fa-xmark"></i></button>
+      <div class="auth-brand"><i class="fa-solid fa-gamepad"></i><span>GAME PIXEL</span></div>
+      <h2 id="authTitle">ورود به حساب کاربری</h2><p class="auth-hint">برای تجربه‌ای شخصی‌تر در فروشگاه</p>
+      <form id="authForm"><label>نام گیمری / نام کاربر<input name="name" required minlength="2" autocomplete="name" placeholder="مثلاً آرش گیمر"></label><label>شماره تماس یا ایمیل<input name="phone" required autocomplete="email tel" placeholder="۰۹۱۲۱۲۳۴۵۶۷ یا you@example.com"></label><button class="primary-button" type="submit">ورود / ساخت حساب <i class="fa-solid fa-arrow-left"></i></button></form>
+      <div id="profileView" hidden></div>
+    </section>`;
+    document.body.appendChild(modal);
+    modal.addEventListener("click", e => { if (e.target.closest("[data-close-auth]")) closeAuthModal(); });
+    document.getElementById("authForm").addEventListener("submit", e => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        saveCurrentUser({ name: data.get("name").trim(), phone: data.get("phone").trim(), orderCount: 0, joinDate: new Date().toISOString() });
+        closeAuthModal(); showToast("خوش آمدید! حساب شما آماده است.");
+    });
+    updateAuthUI();
+}
+
+function updateAuthUI() {
+    const trigger = document.getElementById("authTrigger");
+    if (!trigger) return;
+    const user = getCurrentUser();
+    trigger.innerHTML = user ? `<i class="fa-solid fa-user-astronaut"></i><span>${escapeHTML(user.name.split(" ")[0])}</span><small>خریدها: ${formatNumber(user.orderCount || 0)}</small><b>خروج</b>` : `<i class="fa-regular fa-circle-user"></i><span>ورود / حساب کاربری</span>`;
+    trigger.classList.toggle("is-authenticated", !!user);
+}
+
+function openAuthModal(message = "") {
+    const modal = document.getElementById("authModal"); if (!modal) return;
+    modal.hidden = false; document.body.classList.add("auth-open");
+    document.getElementById("authTitle").textContent = "ورود به حساب کاربری";
+    document.getElementById("authForm").hidden = false; document.getElementById("profileView").hidden = true;
+    document.querySelector(".auth-hint").textContent = message || "برای تجربه‌ای شخصی‌تر در فروشگاه";
+}
+function openProfileModal() {
+    const modal = document.getElementById("authModal"), user = getCurrentUser(); if (!modal || !user) return;
+    modal.hidden = false; document.body.classList.add("auth-open");
+    document.getElementById("authTitle").textContent = "پروفایل گیمر";
+    document.getElementById("authForm").hidden = true;
+    const view = document.getElementById("profileView"); view.hidden = false;
+    view.innerHTML = `<div class="profile-avatar"><i class="fa-solid fa-user-astronaut"></i></div><h3>${escapeHTML(user.name)}</h3><p>${escapeHTML(user.phone || "")}</p><span class="profile-level">خریدها: ${formatNumber(user.orderCount || 0)}</span><button class="secondary-button" id="logoutBtn" type="button">خروج</button>`;
+    document.getElementById("logoutBtn").onclick = () => { localStorage.removeItem(USER_SESSION_KEY); closeAuthModal(); updateAuthUI(); showToast("از حساب خارج شدید."); };
+}
+function closeAuthModal() { const modal = document.getElementById("authModal"); if (modal) { modal.hidden = true; document.body.classList.remove("auth-open"); } }
 
 function renderProducts() {
     const grid = document.getElementById("productGrid");
@@ -1442,6 +1514,7 @@ function initializeStore() {
         renderAdminProducts();
     });
     setupTheme();
+    setupAuthUI();
     setupMobileMenu();
     setupGlobalActions();
     setupStorageSync();
