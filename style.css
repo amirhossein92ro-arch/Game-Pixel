@@ -3208,6 +3208,99 @@ body.light-theme .admin-message-card {
         padding: 20px;
     }
 }
+/* ===== Profile / Dashboard Page ===== */
+.profile-page {
+    min-height: calc(100vh - 78px);
+    padding-block: 50px 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.profile-page .container {
+    width: min(calc(100% - 40px), 800px);
+}
+.profile-auth-card {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 40px 34px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: var(--shadow), 0 0 60px rgba(139, 92, 246, 0.08);
+    text-align: center;
+}
+.profile-auth-card .auth-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: var(--cyan);
+    font-size: 1.6rem;
+    font-weight: 900;
+}
+.profile-auth-card .auth-brand i {
+    font-size: 1.8rem;
+    filter: drop-shadow(0 0 12px rgba(0, 212, 255, 0.4));
+}
+.profile-auth-card h1 {
+    margin: 6px 0 4px;
+    font-size: 1.6rem;
+}
+.profile-auth-card .auth-sub {
+    color: var(--text-soft);
+    font-size: 0.88rem;
+    margin-bottom: 28px;
+}
+.profile-auth-card .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-bottom: 24px;
+    text-align: right;
+}
+.profile-auth-card .field-group label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-soft);
+}
+.profile-auth-card .field-group label span {
+    display: block;
+    margin-bottom: 6px;
+}
+.profile-auth-card .field-group input {
+    width: 100%;
+    padding: 13px 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--text);
+    font-size: 0.95rem;
+    transition: border-color 0.25s, box-shadow 0.25s;
+}
+.profile-auth-card .field-group input:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 16px rgba(0, 212, 255, 0.15);
+    outline: none;
+}
+.profile-auth-card .primary-button {
+    width: 100%;
+    justify-content: center;
+    padding-block: 14px;
+    font-size: 1rem;
+}
+.profile-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+.profile-dashboard h1 {
+    font-size: 1.35rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
 
 @media (prefers-reduced-motion: reduce) {
     *,

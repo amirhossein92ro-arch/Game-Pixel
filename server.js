@@ -1,10 +1,26 @@
-﻿const express = require("express");
+const express = require("express");
 const path = require("path");
 const fs = require("fs");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const DATA_PATH = path.join(__dirname, "data.json");
+
+// Middleware: set charset=utf-8 for all text-based responses
+app.use((req, res, next) => {
+  const origSetHeader = res.setHeader.bind(res);
+  res.setHeader = function (name, value) {
+    if (name && name.toLowerCase() === "content-type" && typeof value === "string" && !value.includes("charset")) {
+      if (value.startsWith("text/") || value.startsWith("application/json") || value.startsWith("application/javascript")) {
+        value = value + "; charset=utf-8";
+      }
+    }
+    origSetHeader(name, value);
+  };
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  next();
+});
+
 function repairMojibake(value) {
   if (typeof value === "string" && /[ØÙÚÃÂ]/.test(value)) {
     const bytes = Buffer.from([...value].map((ch) => ch === "\uFFFD" ? 0x81 : ch.charCodeAt(0) & 0xff));
@@ -29,9 +45,22 @@ app.get(["/admin", "/admin.html"], (_req, res) => {
 app.get(["/cart.html", "/checkout.html", "/product.html"], (req, res) => {
   res.type("html").sendFile(path.join(__dirname, req.path.slice(1)));
 });
+app.get(["/profile", "/profile.html"], (_req, res) => {
+  res.type("html").sendFile(path.join(__dirname, "profile.html"));
+});
 
-// سرو کردن تمام فایل‌های پروژه (HTML, CSS, JS, تصاویر)
-app.use(express.static(__dirname));
+// سرو فایل‌های استاتیک با charset=utf-8
+app.use(express.static(__dirname, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith(".html")) {
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+    } else if (filePath.endsWith(".json")) {
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+    } else if (filePath.endsWith(".js")) {
+      res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+    }
+  }
+}));
 
 // مسیر دریافت محصولات
 app.get("/api/products", (req, res) => {
@@ -135,6 +164,7 @@ app.listen(PORT, () => {
   console.log(`👉 Home:   http://localhost:${PORT}`);
   console.log(`👉 Admin:  http://localhost:${PORT}/admin`);
   console.log(`👉 Admin HTML: http://localhost:${PORT}/admin.html`);
+  console.log(`👉 Profile: http://localhost:${PORT}/profile`);
   console.log(`Server is running at http://localhost:${PORT}`);
   console.log(`==============================================\n`);
 });
