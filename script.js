@@ -713,7 +713,7 @@ function updateAuthUI() {
     const trigger = document.getElementById("authTrigger");
     if (!trigger) return;
     const user = getCurrentUser();
-    trigger.innerHTML = user ? `<i class="fa-solid fa-user-astronaut"></i><span>خوش آمدید ${escapeHTML(user.name.split(" ")[0])}</span>` : `<i class="fa-regular fa-circle-user"></i><span>حساب کاربری</span>`;
+    trigger.innerHTML = user ? `<i class="fa-solid fa-user-astronaut"></i><span>خوش آمدید ${escapeHTML(user.name.length > 12 ? user.name.slice(0, 10) + "..." : user.name)}</span>` : `<i class="fa-regular fa-circle-user"></i><span>حساب کاربری</span>`;
     trigger.classList.toggle("is-authenticated", !!user);
 }
 
@@ -1583,4 +1583,3 @@ function initializeStore() {
 }
 
 document.addEventListener("DOMContentLoaded", initializeStore);
-
