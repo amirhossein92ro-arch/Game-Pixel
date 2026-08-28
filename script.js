@@ -99,7 +99,7 @@ const defaultProducts = [
         reviews: 81,
         shortDescription: "Ù…ÛŒÚ©Ø±ÙˆÙÙˆÙ† USB Ú©Ø§Ù†Ø¯Ù†Ø³Ø± Ø¨Ø§ Ø§Ù„Ú¯ÙˆÛŒ Ú©Ø§Ø±Ø¯ÛŒÙˆØ¦ÛŒØ¯ Ùˆ Ú©Ù†ØªØ±Ù„ Ù…Ø³ØªÙ‚ÛŒÙ… Ø¨Ø±Ø§ÛŒ Ø§Ø³ØªØ±ÛŒÙ….",
         description: "Stream Core ØµØ¯Ø§ÛŒÛŒ Ú¯Ø±Ù… Ùˆ ÙˆØ§Ø¶Ø­ Ø¨Ø±Ø§ÛŒ Ø§Ø³ØªØ±ÛŒÙ…ØŒ Ù¾Ø§Ø¯Ú©Ø³Øª Ùˆ Ú¯ÙØªâ€ŒÙˆÚ¯ÙˆÛŒ ØªÛŒÙ…ÛŒ Ø¶Ø¨Ø· Ù…ÛŒâ€ŒÚ©Ù†Ø¯. Ù†ØµØ¨ Ø¢Ø³Ø§Ù† USB Ùˆ Ú©Ù†ØªØ±Ù„â€ŒÙ‡Ø§ÛŒ Ø±ÙˆÛŒ Ø¨Ø¯Ù†Ù‡ØŒ Ø§Ø³ØªÙØ§Ø¯Ù‡ Ø§Ø² Ø¢Ù† Ø±Ø§ Ø³Ø±ÛŒØ¹ Ùˆ Ø¨Ø¯ÙˆÙ† Ø¯Ø±Ø¯Ø³Ø± Ù…ÛŒâ€ŒØ³Ø§Ø²Ø¯.",
-        features: ["Ú©Ù¾Ø³ÙˆÙ„ Ú©Ø§Ù†Ø¯Ù†Ø³Ø±", "Ø§Ù„Ú¯ÙˆÛŒ Ú©Ø§Ø±Ø¯ÛŒÙˆØ¦ÛŒØ¯", "Ø®Ø±ÙˆØ¬ÛŒ Ù‡Ø¯ÙÙˆÙ† Ø¨Ø¯ÙˆÙ† ØªØ£Ø®ÛŒØ±", "Ú©Ù„ÛŒØ¯ Ù‚Ø·Ø¹ Ø³Ø±ÛŒØ¹ ØµØ¯Ø§", "Ù¾Ø§ÛŒÙ‡ Ø¶Ø¯ Ù„Ø±Ø²Ø´", "Ø§ØªØµØ§Ù„ Plug & Play"],
+        features: ["Ú©Ù¾Ø³ÙˆÙ„ Ú©Ø§Ù†Ø¯Ù†Ø³Ø±", "Ø§Ù„Ú¯ÙˆÛŒ Ú©Ø§Ø±Ø¯ÛŒÙˆØ¦ÛŒØ¯", "خروجÛŒ Ù‡Ø¯ÙÙˆÙ† Ø¨Ø¯ÙˆÙ† ØªØ£Ø®ÛŒØ±", "Ú©Ù„ÛŒØ¯ Ù‚Ø·Ø¹ Ø³Ø±ÛŒØ¹ ØµØ¯Ø§", "Ù¾Ø§ÛŒÙ‡ Ø¶Ø¯ Ù„Ø±Ø²Ø´", "Ø§ØªØµØ§Ù„ Plug & Play"],
         guarantee: "Û±Û¸ Ù…Ø§Ù‡ Ú¯Ø§Ø±Ø§Ù†ØªÛŒ",
         category: "ØªØ¬Ù‡ÛŒØ²Ø§Øª Ø§Ø³ØªØ±ÛŒÙ…"
     },
@@ -150,6 +150,33 @@ const DISCOUNT_KEY = "web2_discount";
 const DISCOUNT_CODE = "WEB2";
 const DISCOUNT_RATE = 0.1;
 const USER_SESSION_KEY = "gp_user";
+
+// Cleanup corrupted localStorage data (Mojibake fix)
+function sanitizeStoredUser() {
+    try {
+        const raw = localStorage.getItem(USER_SESSION_KEY);
+        if (!raw) return;
+        const user = JSON.parse(raw);
+        let dirty = false;
+        if (user.name && /[^\x00-\x7F]/.test(user.name)) {
+            // Check if the name contains Mojibake pattern (high bytes that look re-encoded)
+            const testClean = user.name.replace(/[^\x00-\x7F]/g, '');
+            if (testClean.length > 0 && testClean.length < user.name.length * 0.3) {
+                // Looks corrupted - reset to a safe default
+                user.name = 'گیمر';
+                dirty = true;
+            }
+        }
+        if (dirty) {
+            localStorage.setItem(USER_SESSION_KEY, JSON.stringify(user));
+        }
+    } catch (e) {
+        // If parsing fails, remove corrupted data entirely
+        localStorage.removeItem(USER_SESSION_KEY);
+    }
+}
+// Run cleanup on load
+sanitizeStoredUser();
 const ORDERS_KEY = "web2_orders";
 const numberFormatter = new Intl.NumberFormat("fa-IR");
 const dateFormatter = new Intl.DateTimeFormat("fa-IR", {
@@ -600,7 +627,7 @@ function showToast(message, type = "success") {
 
 function addToCart(productId) {
     if (!getCurrentUser()) {
-        openAuthModal("Ø´Ù…Ø§ Ø­Ø³Ø§Ø¨ Ú©Ø§Ø±Ø¨Ø±ÛŒ Ù†Ø¯Ø§Ø±ÛŒØ¯! Ø¨Ø±Ø§ÛŒ Ø®Ø±ÛŒØ¯ Ø§Ø¨ØªØ¯Ø§ Ø¨Ø§ÛŒØ¯ ÙˆØ§Ø±Ø¯ Ø´ÙˆÛŒØ¯.");
+        openAuthModal("Ø´Ù…Ø§ حساب کاربری Ù†Ø¯Ø§Ø±ÛŒØ¯! Ø¨Ø±Ø§ÛŒ Ø®Ø±ÛŒØ¯ Ø§Ø¨ØªØ¯Ø§ Ø¨Ø§ÛŒØ¯ ÙˆØ§Ø±Ø¯ Ø´ÙˆÛŒØ¯.");
         return;
     }
     const product = getProduct(productId);
@@ -665,10 +692,10 @@ function setupAuthUI() {
     modal.className = "auth-modal";
     modal.hidden = true;
     modal.innerHTML = `<div class="auth-backdrop" data-close-auth></div><section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
-      <button class="auth-close" type="button" data-close-auth aria-label="Ø¨Ø³ØªÙ†"><i class="fa-solid fa-xmark"></i></button>
+      <button class="auth-close" type="button" data-close-auth aria-label="بستن"><i class="fa-solid fa-xmark"></i></button>
       <div class="auth-brand"><i class="fa-solid fa-gamepad"></i><span>GAME PIXEL</span></div>
-      <h2 id="authTitle">ÙˆØ±ÙˆØ¯ Ø¨Ù‡ Ø­Ø³Ø§Ø¨ Ú©Ø§Ø±Ø¨Ø±ÛŒ</h2><p class="auth-hint">Ø¨Ø±Ø§ÛŒ ØªØ¬Ø±Ø¨Ù‡â€ŒØ§ÛŒ Ø´Ø®ØµÛŒâ€ŒØªØ± Ø¯Ø± ÙØ±ÙˆØ´Ú¯Ø§Ù‡</p>
-      <form id="authForm"><label>Ù†Ø§Ù… Ú¯ÛŒÙ…Ø±ÛŒ / Ù†Ø§Ù… Ú©Ø§Ø±Ø¨Ø±<input name="name" required minlength="2" autocomplete="name" placeholder="Ù…Ø«Ù„Ø§Ù‹ Ø¢Ø±Ø´ Ú¯ÛŒÙ…Ø±"></label><label>Ø´Ù…Ø§Ø±Ù‡ ØªÙ…Ø§Ø³ ÛŒØ§ Ø§ÛŒÙ…ÛŒÙ„<input name="phone" required autocomplete="email tel" placeholder="Û°Û¹Û±Û²Û±Û²Û³Û´ÛµÛ¶Û· ÛŒØ§ you@example.com"></label><button class="primary-button" type="submit">ÙˆØ±ÙˆØ¯ / Ø³Ø§Ø®Øª Ø­Ø³Ø§Ø¨ <i class="fa-solid fa-arrow-left"></i></button></form>
+      <h2 id="authTitle">ورود به حساب کاربری</h2><p class="auth-hint">برای تجربه‌ای شخصی‌تر در فروشگاه</p>
+      <form id="authForm"><label>نام گیمری / نام کاربر<input name="name" required minlength="2" autocomplete="name" placeholder="مثلاً آرش گیمر"></label><label>شماره تماس یا ایمیل<input name="phone" required autocomplete="email tel" placeholder="۰۹۱۲۱۲۳۴۵۶۷ یا you@example.com"></label><button class="primary-button" type="submit">ورود / ساخت حساب <i class="fa-solid fa-arrow-left"></i></button></form>
       <div id="profileView" hidden></div>
     </section>`;
     document.body.appendChild(modal);
@@ -677,7 +704,7 @@ function setupAuthUI() {
         e.preventDefault();
         const data = new FormData(e.currentTarget);
         saveCurrentUser({ name: data.get("name").trim(), phone: data.get("phone").trim(), orderCount: 0, joinDate: new Date().toISOString() });
-        closeAuthModal(); showToast("Ø®ÙˆØ´ Ø¢Ù…Ø¯ÛŒØ¯! Ø­Ø³Ø§Ø¨ Ø´Ù…Ø§ Ø¢Ù…Ø§Ø¯Ù‡ Ø§Ø³Øª.");
+        closeAuthModal(); showToast("خوش آمدیدØ¯! Ø­Ø³Ø§Ø¨ Ø´Ù…Ø§ Ø¢Ù…Ø§Ø¯Ù‡ Ø§Ø³Øª.");
     });
     updateAuthUI();
 }
@@ -686,35 +713,35 @@ function updateAuthUI() {
     const trigger = document.getElementById("authTrigger");
     if (!trigger) return;
     const user = getCurrentUser();
-    trigger.innerHTML = user ? `<i class="fa-solid fa-user-astronaut"></i><span>Ø®ÙˆØ´ Ø¢Ù…Ø¯ÛŒ ${escapeHTML(user.name.split(" ")[0])}</span>` : `<i class="fa-regular fa-circle-user"></i><span>Ø­Ø³Ø§Ø¨ Ú©Ø§Ø±Ø¨Ø±ÛŒ</span>`;
+    trigger.innerHTML = user ? `<i class="fa-solid fa-user-astronaut"></i><span>خوش آمدید ${escapeHTML(user.name.split(" ")[0])}</span>` : `<i class="fa-regular fa-circle-user"></i><span>حساب کاربری</span>`;
     trigger.classList.toggle("is-authenticated", !!user);
 }
 
 function openAuthModal(message = "") {
     const modal = document.getElementById("authModal"); if (!modal) return;
     modal.hidden = false; document.body.classList.add("auth-open");
-    document.getElementById("authTitle").textContent = "ÙˆØ±ÙˆØ¯ Ø¨Ù‡ Ø­Ø³Ø§Ø¨ Ú©Ø§Ø±Ø¨Ø±ÛŒ";
+    document.getElementById("authTitle").textContent = "ورود به حساب کاربری";
     document.getElementById("authForm").hidden = false; document.getElementById("profileView").hidden = true;
     let action = document.querySelector(".auth-card .auth-hint + .auth-open-profile");
-    if (!action) { action = document.createElement("a"); action.className = "auth-open-profile primary-button"; action.target="_blank"; action.rel="noopener"; action.href="profile.html"; action.textContent="Ø¨Ø§Ø² Ú©Ø±Ø¯Ù† ØµÙØ­Ù‡ Ø­Ø³Ø§Ø¨ Ú©Ø§Ø±Ø¨Ø±ÛŒ"; document.querySelector(".auth-card").appendChild(action); }
+    if (!action) { action = document.createElement("a"); action.className = "auth-open-profile primary-button"; action.target="_blank"; action.rel="noopener"; action.href="profile.html"; action.textContent="Ø¨Ø§Ø² Ú©Ø±Ø¯Ù† ØµÙØ­Ù‡ حساب کاربری"; document.querySelector(".auth-card").appendChild(action); }
     action.hidden = !message;
-    document.querySelector(".auth-hint").textContent = message || "Ø¨Ø±Ø§ÛŒ ØªØ¬Ø±Ø¨Ù‡â€ŒØ§ÛŒ Ø´Ø®ØµÛŒâ€ŒØªØ± Ø¯Ø± ÙØ±ÙˆØ´Ú¯Ø§Ù‡";
+    document.querySelector(".auth-hint").textContent = message || "برای تجربه‌ای شخصی‌تر در فروشگاه";
 }
 function openProfileModal() {
     const modal = document.getElementById("authModal"), user = getCurrentUser(); if (!modal || !user) return;
     modal.hidden = false; document.body.classList.add("auth-open");
-    document.getElementById("authTitle").textContent = "Ù¾Ø±ÙˆÙØ§ÛŒÙ„ Ú¯ÛŒÙ…Ø±";
+    document.getElementById("authTitle").textContent = "پروفایل گیمر";
     document.getElementById("authForm").hidden = true;
     const view = document.getElementById("profileView"); view.hidden = false;
-    view.innerHTML = `<div class="profile-avatar"><i class="fa-solid fa-user-astronaut"></i></div><h3>${escapeHTML(user.name)}</h3><p>${escapeHTML(user.phone || "")}</p><span class="profile-level">Ø®Ø±ÛŒØ¯Ù‡Ø§: ${formatNumber(user.orderCount || 0)}</span><button class="secondary-button" id="logoutBtn" type="button">Ø®Ø±ÙˆØ¬</button>`;
-    document.getElementById("logoutBtn").onclick = () => { localStorage.removeItem(USER_SESSION_KEY); closeAuthModal(); updateAuthUI(); showToast("Ø§Ø² Ø­Ø³Ø§Ø¨ Ø®Ø§Ø±Ø¬ Ø´Ø¯ÛŒØ¯."); };
+    view.innerHTML = `<div class="profile-avatar"><i class="fa-solid fa-user-astronaut"></i></div><h3>${escapeHTML(user.name)}</h3><p>${escapeHTML(user.phone || "")}</p><span class="profile-level">خریدها: ${formatNumber(user.orderCount || 0)}</span><button class="secondary-button" id="logoutBtn" type="button">خروج</button>`;
+    document.getElementById("logoutBtn").onclick = () => { localStorage.removeItem(USER_SESSION_KEY); closeAuthModal(); updateAuthUI(); showToast("از حساب خارج شدید."); };
 }
 function closeAuthModal() { const modal = document.getElementById("authModal"); if (modal) { modal.hidden = true; document.body.classList.remove("auth-open"); } }
 
 function renderProducts() {
     const grid = document.getElementById("productGrid");
     if (!grid) return;
-    console.log(`[renderProducts] Ø±Ù†Ø¯Ø± ØµÙØ­Ù‡ Ø§ØµÙ„ÛŒ â€” ØªØ¹Ø¯Ø§Ø¯: ${products.length}`);
+    console.log(`[renderProducts] رندر صفحه اصلی — تعداد: ${products.length}`);
     const productCount = document.getElementById("homeProductCount");
     if (productCount) productCount.textContent = formatNumber(products.length);
 
@@ -1224,7 +1251,7 @@ function setupMobileMenu() {
     button.addEventListener("click", () => {
         const willOpen = button.getAttribute("aria-expanded") !== "true";
         button.setAttribute("aria-expanded", String(willOpen));
-        button.setAttribute("aria-label", willOpen ? "Ø¨Ø³ØªÙ† Ù…Ù†Ùˆ" : "Ø¨Ø§Ø² Ú©Ø±Ø¯Ù† Ù…Ù†Ùˆ");
+        button.setAttribute("aria-label", willOpen ? "بستن Ù…Ù†Ùˆ" : "Ø¨Ø§Ø² Ú©Ø±Ø¯Ù† Ù…Ù†Ùˆ");
         nav.classList.toggle("open", willOpen);
         document.body.classList.toggle("menu-open", willOpen);
     });
@@ -1556,5 +1583,4 @@ function initializeStore() {
 }
 
 document.addEventListener("DOMContentLoaded", initializeStore);
-
 
