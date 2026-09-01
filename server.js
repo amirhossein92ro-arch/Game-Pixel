@@ -42,7 +42,7 @@ app.get("/", (_req, res) => {
 app.get(["/admin", "/admin.html"], (_req, res) => {
   res.type("html").sendFile(path.join(__dirname, "admin.html"));
 });
-app.get(["/cart.html", "/checkout.html", "/product.html"], (req, res) => {
+app.get(["/cart", "/cart.html", "/checkout.html", "/product.html"], (req, res) => {
   res.type("html").sendFile(path.join(__dirname, req.path.slice(1)));
 });
 app.get(["/profile", "/profile.html"], (_req, res) => {
@@ -76,6 +76,60 @@ app.get("/api/products", (req, res) => {
   }
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.json([]);
+});
+
+app.post("/api/products", (req, res) => {
+  try {
+    const products = readProducts();
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+    const name = String(body.name || "").trim();
+    const price = Number(body.price);
+    if (name.length < 2 || !Number.isFinite(price) || price <= 0) {
+      return res.status(400).json({ error: "نام و قیمت محصول معتبر نیست" });
+    }
+    const id = products.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
+    const product = {
+      ...body, id, name, price: Math.round(price),
+      stock: Number.isFinite(Number(body.stock)) ? Math.max(0, Number(body.stock)) : 0,
+      category: String(body.category || "محصول").trim(),
+      description: String(body.description || "").trim(),
+      image: String(body.image || "img/product-placeholder.svg").trim()
+    };
+    writeProducts([...products, product]);
+    res.status(201).json(product);
+  } catch {
+    res.status(500).json({ error: "خطا در ذخیره محصول" });
+  }
+});
+
+app.put("/api/products/:id", (req, res) => {
+  try {
+    const products = readProducts();
+    const index = products.findIndex((item) => String(item.id) === String(req.params.id));
+    if (index < 0) return res.status(404).json({ error: "محصول پیدا نشد" });
+    const updated = { ...products[index], ...(req.body || {}), id: products[index].id };
+    if (updated.price !== undefined) updated.price = Math.round(Number(updated.price));
+    if (!updated.name || !Number.isFinite(updated.price) || updated.price <= 0) {
+      return res.status(400).json({ error: "اطلاعات محصول معتبر نیست" });
+    }
+    products[index] = updated;
+    writeProducts(products);
+    res.json(updated);
+  } catch {
+    res.status(500).json({ error: "خطا در ویرایش محصول" });
+  }
+});
+
+app.delete("/api/products/:id", (req, res) => {
+  try {
+    const products = readProducts();
+    const remaining = products.filter((item) => String(item.id) !== String(req.params.id));
+    if (remaining.length === products.length) return res.status(404).json({ error: "محصول پیدا نشد" });
+    writeProducts(remaining);
+    res.status(204).end();
+  } catch {
+    res.status(500).json({ error: "خطا در حذف محصول" });
+  }
 });
 
 function readProducts() {

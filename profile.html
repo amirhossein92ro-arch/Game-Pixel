@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -507,11 +507,11 @@
 
                     // Validate email format
                     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    if (!emailRegex.test(email)) {
-                        document.getElementById("emailError").textContent = "لطفاً یک ایمیل معتبر و کوتاه وارد کنید.";
-                        document.getElementById("emailError").classList.add("show");
-                        document.querySelector("input[name='email']").classList.add("input-error-border");
-                        hasError = true;
+                      if (!emailRegex.test(email)) {
+                        document.getElementById("emailError").textContent = "لطفاً یک ایمیل معتبر وارد کنید.";
+                          document.getElementById("emailError").classList.add("show");
+                          document.querySelector("input[name='email']").classList.add("input-error-border");
+                          hasError = true;
                     }
 
                     if (hasError) return;
