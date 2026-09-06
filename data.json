@@ -193,5 +193,10 @@
       "category": "خنک‌کننده"
     }
   ],
-  "messages": []
+  "messages": [],
+  "admin": {
+    "username": "admin",
+    "password": "$2b$10$.dmcF5fLNQBcfyiTw3W44Og8dLjbS9zrGBfu/K41j6iNgrlfO0fR2",
+    "role": "admin"
+  }
 }

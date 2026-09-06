@@ -1,0 +1,138 @@
+﻿
+function validateCheckoutForm() {
+    const name = document.getElementById("customerName");
+    const phone = document.getElementById("customerPhone");
+    const address = document.getElementById("customerAddress");
+    const card = document.getElementById("cardNumber");
+    const expiry = document.getElementById("expiryDate");
+    const cvv = document.getElementById("cvv");
+
+    const cardDigits = card.value.replace(/\D/g, "");
+    const phoneDigits = phone.value.replace(/\D/g, "");
+    const expiryMatch = expiry.value.match(/^(\d{2})\/(\d{2})$/);
+
+    const checks = [
+        setFieldValidity(name, name.value.trim().length >= 3),
+        setFieldValidity(phone, /^09\d{9}$/.test(phoneDigits)),
+        setFieldValidity(address, address.value.trim().length >= 10),
+        setFieldValidity(card, cardDigits.length === 16),
+        setFieldValidity(expiry, Boolean(expiryMatch) && Number(expiryMatch[1]) >= 1 && Number(expiryMatch[1]) <= 12),
+        setFieldValidity(cvv, /^\d{3,4}$/.test(cvv.value))
+    ];
+
+    return checks.every(Boolean);
+}
+
+function setupCheckoutForm() {
+    const form = document.getElementById("checkoutForm");
+    if (!form) return;
+
+    const cardInput = document.getElementById("cardNumber");
+    const expiryInput = document.getElementById("expiryDate");
+    const phoneInput = document.getElementById("customerPhone");
+    const cvvInput = document.getElementById("cvv");
+
+    cardInput.addEventListener("input", () => {
+        const digits = cardInput.value.replace(/\D/g, "").slice(0, 16);
+        cardInput.value = digits.replace(/(\d{4})(?=\d)/g, "$1 ");
+        cardInput.classList.remove("input-error");
+    });
+
+    expiryInput.addEventListener("input", () => {
+        const digits = expiryInput.value.replace(/\D/g, "").slice(0, 4);
+        expiryInput.value = digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+        expiryInput.classList.remove("input-error");
+    });
+
+    phoneInput.addEventListener("input", () => {
+        phoneInput.value = phoneInput.value.replace(/\D/g, "").slice(0, 11);
+        phoneInput.classList.remove("input-error");
+    });
+
+    cvvInput.addEventListener("input", () => {
+        cvvInput.value = cvvInput.value.replace(/\D/g, "").slice(0, 4);
+        cvvInput.classList.remove("input-error");
+    });
+
+    form.querySelectorAll("input, textarea").forEach((field) => {
+        field.addEventListener("input", () => field.classList.remove("input-error"));
+    });
+
+    form.addEventListener("submit", (event) => {
+        event.preventDefault();
+
+        if (!getCurrentUser()) {
+            openAuthModal("برای ثبت سفارش، ابتدا وارد حساب کاربری شوید.");
+            showToast("ثبت سفارش فقط برای کاربران واردشده امکان‌پذیر است.", "error");
+            return;
+        }
+
+        if (!validateCheckoutForm()) {
+            showToast("لطفاً اطلاعات فرم را کامل و صحیح وارد کنید.", "error");
+            form.querySelector(".input-error")?.focus();
+            return;
+        }
+
+        const button = document.getElementById("payButton");
+        const originalContent = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<span><i class="fa-solid fa-spinner fa-spin"></i> در حال پردازش...</span>';
+
+        window.setTimeout(() => {
+            const cart = getCart();
+            const totals = getCartTotals(cart);
+            const orderCode = `W2-${Date.now().toString().slice(-6)}`;
+            const receiptDate = new Intl.DateTimeFormat("fa-IR", {
+                dateStyle: "long",
+                timeStyle: "short"
+            }).format(new Date());
+            const receiptItems = cart.map((item) => {
+                const product = getProduct(item.id);
+                return {
+                    name: product.name,
+                    quantity: item.quantity
+                };
+            });
+
+            renderReceipt({
+                orderCode,
+                date: receiptDate,
+                amount: formatPrice(totals.price),
+                items: receiptItems
+            });
+
+            /* Save order to history and update user stats */
+            const user = getCurrentUser();
+            if (user) {
+                const orders = JSON.parse(localStorage.getItem(ORDERS_KEY) || "[]");
+                orders.push({
+                    code: orderCode,
+                    date: receiptDate,
+                    amount: totals.price,
+                    itemCount: cart.reduce((s, i) => s + i.quantity, 0),
+                    userPhone: user.phone
+                });
+                localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+                user.orderCount = (user.orderCount || 0) + 1;
+                user.totalSpent = (user.totalSpent || 0) + totals.price;
+                saveCurrentUser(user);
+            }
+
+            localStorage.removeItem(CART_KEY);
+            localStorage.removeItem("cart");
+            localStorage.removeItem(DISCOUNT_KEY);
+            updateCartCount();
+            document.getElementById("checkoutContent").hidden = true;
+            document.getElementById("paymentSuccess").hidden = false;
+            const successPanel = document.getElementById("paymentSuccess");
+            successPanel.setAttribute("tabindex", "-1");
+            successPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+            successPanel.focus({ preventScroll: true });
+            button.innerHTML = originalContent;
+            button.disabled = false;
+        }, 1100);
+    });
+}
+
+function renderReceipt(receipt) {
+    document.getElementById("orderCode").textContent = receipt.orderCode;

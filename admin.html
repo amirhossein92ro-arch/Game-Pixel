@@ -36,15 +36,19 @@
                 <div class="admin-login-icon"><i class="fa-solid fa-user-shield"></i></div>
                 <span class="eyebrow">SECURE AREA</span>
                 <h1>ورود به پنل مدیریت</h1>
-                <p>برای مدیریت محصولات و مشاهده پیام‌های کاربران، رمز عبور را وارد کنید.</p>
+                <p>برای مدیریت محصولات و مشاهده پیام‌های کاربران، نام کاربری و رمز عبور را وارد کنید.</p>
                 <form id="adminLoginForm">
                     <label class="field">
+                        <span>نام کاربری</span>
+                        <input id="adminUsername" name="username" type="text" autocomplete="username" value="admin" required autofocus>
+                    </label>
+                    <label class="field">
                         <span>رمز عبور</span>
-                        <input id="adminPassword" name="password" type="password" inputmode="numeric" autocomplete="current-password" placeholder="رمز عبور مدیریت" maxlength="4" minlength="4" required autofocus>
+                        <input id="adminPassword" name="password" type="password" inputmode="numeric" autocomplete="current-password" placeholder="رمز عبور مدیریت" maxlength="5" minlength="5" pattern="[0-9]{5}" required>
                     </label>
                     <button class="primary-button" type="submit"><i class="fa-solid fa-arrow-right-to-bracket"></i> ورود به پنل</button>
                 </form>
-                <small class="admin-security-note"><i class="fa-solid fa-circle-info"></i> این ورود صرفاً نمایشی و مبتنی بر مرورگر است.</small>
+                <small class="admin-security-note"><i class="fa-solid fa-circle-info"></i> ورود مدیر به‌صورت امن در سرور بررسی می‌شود.</small>
             </div>
         </section>
 

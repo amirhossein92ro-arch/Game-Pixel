@@ -143,14 +143,15 @@ const defaultProducts = [
 const PRODUCTS_KEY = "gaming_store_products";
 const MESSAGES_KEY = "gaming_store_messages";
 const LEGACY_PRODUCT_KEYS = ["products", "store_products", "web2_products"];
-const ADMIN_SESSION_KEY = "web2_admin_authenticated";
-const ADMIN_PASSWORD = "GamePixel2026!";
+const ADMIN_TOKEN_KEY = "web2_admin_token";
 const CART_KEY = "web2_cart";
 const THEME_KEY = "web2_theme";
 const DISCOUNT_KEY = "web2_discount";
 const DISCOUNT_CODE = "WEB2";
 const DISCOUNT_RATE = 0.1;
 const USER_SESSION_KEY = "gp_user";
+const CHECKOUT_STEP_KEY = "web2_checkout_step";
+const CHECKOUT_DATA_KEY = "web2_checkout_data";
 
 // Cleanup corrupted localStorage data (Mojibake fix)
 function sanitizeStoredUser() {
@@ -628,7 +629,7 @@ function showToast(message, type = "success") {
 
 function addToCart(productId) {
     if (!getCurrentUser()) {
-        openAuthModal("حساب کاربری نداری! برای خرید ابتدا باید وارد شوید.");
+        openAuthModal("برای افزودن محصول به سبد خرید، ابتدا وارد حساب کاربری شوید.");
         return;
     }
     const product = getProduct(productId);
@@ -921,7 +922,7 @@ function renderCart() {
     document.getElementById("totalItems").textContent = formatNumber(totals.quantity);
     document.getElementById("subtotalPrice").textContent = formatPrice(totals.subtotal);
     document.getElementById("discountLine").hidden = !totals.hasDiscount;
-    document.getElementById("discountAmount").textContent = `âˆ’ ${formatPrice(totals.discount)}`;
+    document.getElementById("discountAmount").textContent = `− ${formatPrice(totals.discount)}`;
     document.getElementById("totalPrice").textContent = formatPrice(totals.price);
 }
 
@@ -959,7 +960,7 @@ function renderCheckout() {
     const totals = getCartTotals(cart);
     document.getElementById("checkoutItemCount").textContent = formatNumber(totals.quantity);
     document.getElementById("checkoutDiscountLine").hidden = !totals.hasDiscount;
-    document.getElementById("checkoutDiscount").textContent = `âˆ’ ${formatPrice(totals.discount)}`;
+    document.getElementById("checkoutDiscount").textContent = `− ${formatPrice(totals.discount)}`;
     document.getElementById("checkoutTotal").textContent = formatPrice(totals.price);
     document.getElementById("paymentAmount").textContent = formatPrice(totals.price);
 }
@@ -1091,6 +1092,12 @@ function setupCheckoutForm() {
     form.addEventListener("submit", (event) => {
         event.preventDefault();
 
+        if (!getCurrentUser()) {
+            openAuthModal("برای ثبت سفارش، ابتدا وارد حساب کاربری شوید.");
+            showToast("ثبت سفارش فقط برای کاربران واردشده امکان‌پذیر است.", "error");
+            return;
+        }
+
         if (!validateCheckoutForm()) {
             showToast("لطفاً اطلاعات فرم را کامل و صحیح وارد کنید.", "error");
             form.querySelector(".input-error")?.focus();
@@ -1166,7 +1173,7 @@ function renderReceipt(receipt) {
     const productsList = document.getElementById("receiptProducts");
     productsList.replaceChildren(...receipt.items.map((item) => {
         const listItem = document.createElement("li");
-        listItem.textContent = `${item.name} Ã— ${formatNumber(item.quantity)}`;
+        listItem.textContent = `${item.name} × ${formatNumber(item.quantity)}`;
         return listItem;
     }));
 
@@ -1176,7 +1183,7 @@ function renderReceipt(receipt) {
 
 function downloadReceipt(receipt) {
     const products = receipt.items
-        .map((item) => `- ${item.name} Ã— ${formatNumber(item.quantity)}`)
+        .map((item) => `- ${item.name} × ${formatNumber(item.quantity)}`)
         .join("\n");
     const content = [
         "WEB 2 - رسید پرداخت",
@@ -1336,7 +1343,7 @@ function renderAdminProducts() {
 }
 
 async function loadAdminProductsFromApi() {
-    const response = await fetch(ADMIN_API_BASE);
+    const response = await fetch(ADMIN_API_BASE, { headers: getAdminAuthHeaders() });
     if (!response.ok) throw new Error("دریافت محصولات از سرور ناموفق بود.");
     const payload = await response.json();
     const list = Array.isArray(payload) ? payload : payload.items;
@@ -1382,17 +1389,21 @@ function renderAdminMessages() {
     }).join("");
 }
 
-function unlockAdminPanel() {
+function getAdminAuthHeaders(extraHeaders = {}) {
+    const token = sessionStorage.getItem(ADMIN_TOKEN_KEY);
+    return token
+        ? { ...extraHeaders, Authorization: `Bearer ${token}` }
+        : { ...extraHeaders };
+}
+
+async function unlockAdminPanel() {
     const loginView = document.getElementById("adminLoginView");
     const dashboard = document.getElementById("adminDashboard");
+    await loadAdminProductsFromApi();
     if (loginView) loginView.hidden = true;
     if (dashboard) dashboard.hidden = false;
     renderAdminProducts();
     renderAdminMessages();
-    loadAdminProductsFromApi().catch(() => {
-        adminApiMode = false;
-        showToast("اتصال به API مدیریت برقرار نشد؛ حالت محلی فعال است.", "error");
-    });
 }
 
 function setupAdminPanel() {
@@ -1401,41 +1412,59 @@ function setupAdminPanel() {
     const loginForm = document.getElementById("adminLoginForm");
     const productForm = document.getElementById("adminProductForm");
     const logoutButton = document.getElementById("adminLogout");
-    const isAuthenticated = sessionStorage.getItem(ADMIN_SESSION_KEY) === "true";
-
-    if (isAuthenticated) unlockAdminPanel();
+    const savedToken = sessionStorage.getItem(ADMIN_TOKEN_KEY);
+    if (savedToken) {
+        fetch("/api/admin/session", { headers: getAdminAuthHeaders() })
+            .then((response) => {
+                if (!response.ok) throw new Error("نشست مدیریت معتبر نیست.");
+                return unlockAdminPanel();
+            })
+            .catch(() => sessionStorage.removeItem(ADMIN_TOKEN_KEY));
+    }
 
     const passwordInput = document.getElementById("adminPassword");
     if (passwordInput) {
         passwordInput.addEventListener("input", () => {
-            if (passwordInput.value.length > 4) {
-                passwordInput.value = passwordInput.value.slice(0, 4);
-            }
+            passwordInput.value = passwordInput.value.replace(/\D/g, "").slice(0, 5);
         });
     }
 
-    loginForm?.addEventListener("submit", (event) => {
+    loginForm?.addEventListener("submit", async (event) => {
         event.preventDefault();
+        const username = document.getElementById("adminUsername").value.trim();
         const pwd = passwordInput.value;
-        if (pwd.length !== 4) {
-            showToast("رمز عبور باید دقیقاً ۴ رقم/کاراکتر باشد.", "error");
+        if (!/^\d{5}$/.test(pwd)) {
+            showToast("رمز عبور باید دقیقاً ۵ رقم باشد.", "error");
             passwordInput.select();
             return;
         }
-        if (pwd !== ADMIN_PASSWORD) {
-            showToast("رمز عبور اشتباه است.", "error");
+        try {
+            const response = await fetch("/api/admin/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password: pwd })
+            });
+            const payload = await response.json();
+            if (!response.ok || !payload.token) {
+                throw new Error(payload.error || "ورود به پنل ناموفق بود.");
+            }
+            sessionStorage.setItem(ADMIN_TOKEN_KEY, payload.token);
+            await unlockAdminPanel();
+            loginForm.reset();
+            showToast("ورود به پنل مدیریت موفق بود.");
+        } catch (error) {
+            sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+            showToast(error.message, "error");
             passwordInput.select();
-            return;
         }
-
-        sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
-        loginForm.reset();
-        unlockAdminPanel();
-        showToast("ورود به پنل مدیریت موفق بود.");
     });
 
-    logoutButton?.addEventListener("click", () => {
-        sessionStorage.removeItem(ADMIN_SESSION_KEY);
+    logoutButton?.addEventListener("click", async () => {
+        await fetch("/api/admin/logout", {
+            method: "POST",
+            headers: getAdminAuthHeaders()
+        }).catch(() => {});
+        sessionStorage.removeItem(ADMIN_TOKEN_KEY);
         window.location.reload();
     });
 
@@ -1459,7 +1488,7 @@ function setupAdminPanel() {
             if (adminApiMode) {
                 const response = await fetch(ADMIN_API_BASE, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: getAdminAuthHeaders({ "Content-Type": "application/json" }),
                     body: JSON.stringify(payload)
                 });
                 if (!response.ok) throw new Error("ثبت محصول در سرور ناموفق بود.");
@@ -1490,7 +1519,7 @@ function setupAdminPanel() {
             const updated = normalizeProduct({ ...product, name: name.trim(), price: Math.round(Number(price)) });
             if (adminApiMode) {
                 fetch(`${ADMIN_API_BASE}/${encodeURIComponent(product.id)}`, {
-                    method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updated)
+                    method: "PUT", headers: getAdminAuthHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(updated)
                 }).then((response) => {
                     if (!response.ok) throw new Error("ویرایش محصول در سرور ناموفق بود.");
                     return response.json();
@@ -1514,7 +1543,7 @@ function setupAdminPanel() {
         if (!product || !window.confirm(`محصول «${product.name}» حذف شود؟`)) return;
 
         if (adminApiMode) {
-            fetch(`${ADMIN_API_BASE}/${encodeURIComponent(product.id)}`, { method: "DELETE" })
+            fetch(`${ADMIN_API_BASE}/${encodeURIComponent(product.id)}`, { method: "DELETE", headers: getAdminAuthHeaders() })
                 .then((response) => {
                     if (!response.ok) throw new Error("حذف محصول در سرور ناموفق بود.");
                     products = products.filter((item) => String(item.id) !== String(product.id));
@@ -1532,6 +1561,14 @@ function setupAdminPanel() {
 
 function setupGlobalActions() {
     document.addEventListener("click", (event) => {
+        const checkoutLink = event.target.closest("#checkoutBtn");
+        if (checkoutLink && !getCurrentUser()) {
+            event.preventDefault();
+            openAuthModal("برای ادامه خرید و پرداخت، ابتدا وارد حساب کاربری شوید.");
+            showToast("ادامه خرید فقط برای کاربران واردشده امکان‌پذیر است.", "error");
+            return;
+        }
+
         const addButton = event.target.closest("[data-add-to-cart]");
         if (addButton) {
             addToCart(addButton.dataset.addToCart);

@@ -2,11 +2,11 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="سبد خرید فروشگاه گیمینگ Web 2">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="سبد خرید فروشگاه گیمینگ WEB 2">
     <meta name="theme-color" content="#050816">
     <meta name="color-scheme" content="dark light">
-    <title>سبد خرید | Web 2</title>
+    <title>سبد خرید | WEB 2 Gaming Store</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -17,11 +17,30 @@
     <a class="skip-link" href="#main-content">رفتن به محتوای اصلی</a>
     <header class="site-header">
         <div class="container header-inner">
-            <a class="brand" href="index.html" aria-label="صفحه اصلی Web 2"><span class="brand-icon"><i class="fa-solid fa-gamepad"></i></span><span><strong>WEB 2</strong><small>GAMING STORE</small></span></a>
-            <button class="menu-toggle" id="menuToggle" type="button" aria-label="باز کردن منو" aria-controls="mainNav" aria-expanded="false"><span></span><span></span><span></span></button>
+            <a class="brand" href="index.html" aria-label="صفحه اصلی WEB 2">
+                <span class="brand-icon"><i class="fa-solid fa-gamepad" aria-hidden="true"></i></span>
+                <span><strong>WEB 2</strong><small>GAMING STORE</small></span>
+            </a>
+            <button class="menu-toggle" id="menuToggle" type="button" aria-label="باز و بسته کردن منو" aria-controls="mainNav" aria-expanded="false">
+                <span></span><span></span><span></span>
+            </button>
             <nav class="main-nav" id="mainNav" aria-label="ناوبری اصلی">
-                <a href="index.html">خانه</a><a href="index.html#products">محصولات</a><a class="active" href="cart.html" aria-current="page">سبد خرید</a><a href="index.html#about">درباره ما</a><a href="index.html#contact">تماس با ما</a>
-                <div class="nav-actions"><button class="icon-button" id="themeBtn" type="button" aria-label="فعال کردن تم روشن" title="تغییر تم"><i class="fa-solid fa-sun"></i></button><a class="cart-button" href="cart.html" aria-label="مشاهده سبد خرید"><i class="fa-solid fa-cart-shopping"></i><span class="cart-label">سبد</span><span class="cart-count" id="cart-count">۰</span></a></div>
+                <a href="index.html">خانه</a>
+                <a href="index.html#products">محصولات</a>
+                <a class="active" href="cart.html" aria-current="page">سبد خرید</a>
+                <a href="profile.html" target="_blank" rel="noopener">حساب کاربری</a>
+                <a href="index.html#about">درباره ما</a>
+                <a href="index.html#contact">تماس با ما</a>
+                <div class="nav-actions">
+                    <button class="icon-button" id="themeBtn" type="button" aria-label="فعال کردن تم روشن" title="تغییر تم">
+                        <i class="fa-solid fa-sun" aria-hidden="true"></i>
+                    </button>
+                    <a class="cart-button" href="cart.html" aria-label="مشاهده سبد خرید">
+                        <i class="fa-solid fa-cart-shopping" aria-hidden="true"></i>
+                        <span class="cart-label">سبد</span>
+                        <span class="cart-count" id="cart-count">۰</span>
+                    </a>
+                </div>
             </nav>
         </div>
     </header>
@@ -30,20 +49,20 @@
         <section class="container page-heading-block">
             <span class="eyebrow">YOUR LOADOUT</span>
             <h1>سبد خرید شما</h1>
-            <p>تعداد تجهیزات را مدیریت کنید و برای تکمیل سفارش نمایشی ادامه دهید.</p>
+            <p>تجهیزات انتخابی خود را مدیریت کنید و برای تکمیل سفارش ادامه دهید.</p>
         </section>
         <section class="container cart-layout">
             <div class="cart-main">
                 <div id="cartItems" class="cart-items" aria-live="polite" aria-busy="true"></div>
                 <div id="emptyCart" class="empty-state" hidden>
-                    <div class="empty-icon"><i class="fa-solid fa-cart-shopping"></i></div>
-                    <h2>سبد خریدت هنوز خالی است</h2>
-                    <p>از میان تجهیزات منتخب، گزینه مناسب ستاپ خودت را پیدا کن.</p>
+                    <div class="empty-icon"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i></div>
+                    <h2>سبد خرید شما خالی است</h2>
+                    <p>از میان تجهیزات منتخب، گزینه مناسب ستاپ خود را پیدا کنید.</p>
                     <a class="primary-button" href="index.html#products">مشاهده محصولات <i class="fa-solid fa-arrow-left"></i></a>
                 </div>
             </div>
             <aside class="order-summary glass-panel" id="cartSummary" hidden>
-                <div class="summary-title"><h2>خلاصه سفارش</h2><i class="fa-solid fa-receipt"></i></div>
+                <div class="summary-title"><h2>خلاصه سفارش</h2><i class="fa-solid fa-receipt" aria-hidden="true"></i></div>
                 <div class="summary-line"><span>تعداد اقلام</span><strong id="totalItems">۰</strong></div>
                 <div class="summary-line"><span>جمع محصولات</span><strong id="subtotalPrice">۰ تومان</strong></div>
                 <div class="summary-line"><span>هزینه ارسال</span><strong class="free-label">رایگان</strong></div>
@@ -55,12 +74,17 @@
                 <div class="summary-line discount-line" id="discountLine" hidden><span>تخفیف</span><strong id="discountAmount">۰ تومان</strong></div>
                 <div class="summary-total"><span>مبلغ نهایی</span><strong id="totalPrice">۰ تومان</strong></div>
                 <a class="primary-button checkout-link" id="checkoutBtn" href="checkout.html">ادامه به پرداخت <i class="fa-solid fa-arrow-left"></i></a>
-                <p class="secure-note"><i class="fa-solid fa-shield-halved"></i> این فرایند صرفاً نمایشی است و تراکنش واقعی انجام نمی‌شود.</p>
+                <p class="secure-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> این فرایند نمایشی است و تراکنش واقعی انجام نمی‌شود.</p>
             </aside>
         </section>
     </main>
 
-    <footer class="site-footer compact-footer"><div class="container footer-inner"><p>© ۲۰۲۶ Web 2 — فروشگاه نمایشی تجهیزات گیمینگ.</p><a href="index.html#products">ادامه خرید</a></div></footer>
+    <footer class="site-footer compact-footer">
+        <div class="container footer-inner">
+            <p>© ۲۰۲۶ WEB 2 — فروشگاه نمایشی تجهیزات گیمینگ.</p>
+            <a href="index.html#products">ادامه خرید</a>
+        </div>
+    </footer>
     <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
     <script src="script.js"></script>
 </body>
