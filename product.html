@@ -7,6 +7,13 @@
     <meta name="theme-color" content="#050816">
     <meta name="color-scheme" content="dark light">
     <title>مشخصات محصول | Web 2</title>
+    <link rel="canonical" href="/product.html">
+    <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+    <meta property="og:type" content="product">
+    <meta property="og:locale" content="fa_IR">
+    <meta property="og:title" content="مشخصات محصول | Web 2">
+    <meta property="og:description" content="مشخصات، موجودی و قیمت محصول در فروشگاه تجهیزات گیمینگ Web 2.">
+    <meta property="og:image" content="/img/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -38,6 +45,10 @@
             <nav class="breadcrumb" aria-label="مسیر صفحه"><a href="index.html">خانه</a><i class="fa-solid fa-angle-left"></i><a href="index.html#products">محصولات</a><i class="fa-solid fa-angle-left"></i><span id="breadcrumbProduct">مشخصات محصول</span></nav>
             <section id="productDetail" class="product-detail-shell" aria-live="polite" aria-busy="true">
                 <div class="loading-state"><span class="loader"></span><p>در حال آماده‌سازی محصول...</p></div>
+            </section>
+            <section id="relatedProductsSection" class="section" hidden aria-labelledby="relatedProductsTitle">
+                <div class="section-heading compact-heading"><div><span class="eyebrow">RELATED GEAR</span><h2 id="relatedProductsTitle">محصولات مرتبط</h2></div><p>انتخاب‌های مشابه برای کامل‌کردن ستاپ شما.</p></div>
+                <div id="relatedProducts" class="product-grid" aria-live="polite"></div>
             </section>
         </div>
     </main>

@@ -55,9 +55,12 @@ test('account and admin DOM flow uses real API, wishlist cart and safe logout',a
         w.document.querySelector('[data-account-action="delete-address"]').click();await until(()=>w.document.getElementById('accountCancel'));w.document.getElementById('accountCancel').click();
         await until(()=>!w.document.getElementById('accountDialog').open);assert.equal((await w.Web2.request('/api/users/me/addresses')).length,1);
         const checkout=createPage('checkout.html');await until(()=>checkout.document.getElementById('savedAddress')?.value);
-        assert.ok(checkout.document.getElementById('customerAddress').value.includes('تهران'));
-        assert.ok(checkout.document.getElementById('customerAddress').value.includes('1234567890'));
-        assert.equal(checkout.document.getElementById('customerName').value,'گیرنده تست');
+        assert.equal(checkout.document.getElementById('customerProvince').value,'تهران');
+        assert.equal(checkout.document.getElementById('customerCity').value,'تهران');
+        assert.equal(checkout.document.getElementById('customerPostalCode').value,'1234567890');
+        assert.ok(checkout.document.getElementById('customerAddress').value.includes('آدرس کامل'));
+        assert.equal(checkout.document.getElementById('customerName').value,'گیرنده');
+        assert.equal(checkout.document.getElementById('customerLastName').value,'تست');
         // The wishlist heart in actual store markup saves in the authenticated account.
         const shop=createPage('index.html');await until(()=>shop.document.querySelector('[data-wishlist-product]'));
         const heart=shop.document.querySelector('[data-wishlist-product]'),productId=heart.dataset.wishlistProduct;

@@ -62,9 +62,22 @@ app.use((_req, res, next) => {
     next();
 });
 
-// Product images can be uploaded by the admin panel as compact data URLs.
-app.use(express.json({ limit: "6mb" }));
-app.use(express.urlencoded({ extended: true, limit: "6mb" }));
+// Keep request parsing deliberately small; product artwork should normally be a URL or optimized data image.
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "256kb", parameterLimit: 100 }));
+app.use((req, _res, next) => {
+    if (!req.body || typeof req.body !== "object") return next();
+    const queue = [req.body];
+    while (queue.length) {
+        const value = queue.pop();
+        if (!value || typeof value !== "object") continue;
+        for (const key of Object.keys(value)) {
+            if (["__proto__", "prototype", "constructor"].includes(key)) return next(Object.assign(new Error("ساختار درخواست نامعتبر است."), {status: 400}));
+            if (value[key] && typeof value[key] === "object") queue.push(value[key]);
+        }
+    }
+    next();
+});
 
 function repairMojibake(value) {
     if (typeof value === "string") {
@@ -333,6 +346,8 @@ app.delete("/api/products/:id", requireAdmin, deleteProduct);
 /* â”€â”€ Static files â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const staticOptions = {
     index: false,
+    etag: true,
+    maxAge: IS_PRODUCTION ? "1d" : 0,
     setHeaders: (res, filePath) => {
         const ext = path.extname(filePath).toLowerCase();
         if (ext === ".html") res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -441,6 +456,7 @@ function sendError(res, error, fallbackMessage) {
 
 function sendPage(fileName, res, next) {
     const filePath = path.join(STATIC_ROOT, fileName);
+    res.set("Cache-Control", "no-cache");
     res.set("Content-Type", "text/html; charset=utf-8");
     res.sendFile(filePath, (error) => {
         if (error) next(error);
@@ -568,7 +584,10 @@ app.use((error, req, res, next) => {
     if (res.headersSent) return next(error);
     const status = error.status || error.statusCode || 500;
     if (error.retryAfter) res.set('Retry-After', String(error.retryAfter));
-    res.status(status >= 400 && status < 600 ? status : 500).json({ error: status < 500 ? error.message : 'خطای سرور؛ دوباره تلاش کنید.' });
+    const message = error.type === 'entity.parse.failed' ? 'بدنه JSON معتبر نیست.'
+        : error.type === 'entity.too.large' ? 'حجم درخواست بیش از حد مجاز است.'
+        : status < 500 ? error.message : 'خطای سرور؛ دوباره تلاش کنید.';
+    res.status(status >= 400 && status < 600 ? status : 500).json({ error: message });
 });
 const httpServer = app.listen(RUN_PORT, HOST, () => {
     console.log(`Server is running on http://${HOST}:${RUN_PORT}`);

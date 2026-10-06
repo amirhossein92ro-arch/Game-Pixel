@@ -9,13 +9,13 @@ const {getPaymentProvider}=require('../lib/payment.cjs');
 test('checkout UI steps validate the server quote and submit without card fields',async()=>{
     const storage=new Map(),events={},nodes=new Map(),requests=[];
     const node=()=>({value:'',hidden:false,innerHTML:'',textContent:'',dataset:{},classList:{add(){},remove(){},toggle(){}},setAttribute(){},removeAttribute(){},focus(){},scrollIntoView(){},listeners:{},addEventListener(type,fn){(this.listeners[type]??=[]).push(fn);}});
-    for(const id of ['checkoutForm','checkoutProgress','checkoutLoggedIn','checkoutLoginFields','checkoutAuthName','checkoutAuthEmail','checkoutAuthPhone','checkoutAuthPassword','customerName','customerPhone','customerAddress','checkoutLoginError','checkoutRecipientError','checkoutReviewError','checkoutPaymentError','paymentAmount','payButton','acceptDemo','checkoutContent','paymentSuccess'])nodes.set(id,node());
+    for(const id of ['checkoutForm','checkoutProgress','checkoutLoggedIn','checkoutLoginFields','checkoutAuthName','checkoutAuthEmail','checkoutAuthPhone','checkoutAuthPassword','customerName','customerLastName','customerPhone','customerProvince','customerCity','customerPostalCode','customerAddress','shippingMethod','orderNote','checkoutLoginError','checkoutRecipientError','checkoutReviewError','checkoutPaymentError','paymentAmount','payButton','acceptDemo','checkoutContent','paymentSuccess'])nodes.set(id,node());
     const steps=[1,2,3,4,5].map(step=>({...node(),dataset:{checkoutStep:String(step)}}));
     const progress=[1,2,3,4,5].map(step=>({...node(),dataset:{checkoutJump:String(step)}}));
     nodes.get('checkoutForm').querySelectorAll=selector=>selector==='[data-checkout-step]'?steps:[];
     nodes.get('checkoutProgress').querySelectorAll=()=>progress;
     nodes.get('checkoutForm').dispatchEvent=()=>{};
-    nodes.get('customerName').value='گیرنده تست';nodes.get('customerPhone').value='09120000000';nodes.get('customerAddress').value='نشانی آزمایشی سفارش برای تست';nodes.get('acceptDemo').checked=true;
+    nodes.get('customerName').value='گیرنده';nodes.get('customerLastName').value='تست';nodes.get('customerPhone').value='09120000000';nodes.get('customerProvince').value='تهران';nodes.get('customerCity').value='تهران';nodes.get('customerPostalCode').value='1234567890';nodes.get('customerAddress').value='نشانی آزمایشی سفارش برای تست';nodes.get('shippingMethod').value='standard';nodes.get('acceptDemo').checked=true;
     const localStorage={getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)};
     const user={id:'test-user-id',name:'تست',email:'test@example.invalid',phone:'09120000000',addresses:[]};
     const context=vm.createContext({console,crypto,localStorage,sessionStorage:localStorage,Web2:{user},document:{addEventListener(type,fn){events[type]=fn;},getElementById:id=>nodes.get(id)||null,querySelector:()=>null},window:{addEventListener(){},setTimeout(){},clearTimeout(){}},CustomEvent:class{constructor(type,data){this.type=type;this.detail=data.detail;}},fetch:async(url,options)=>{
@@ -27,7 +27,7 @@ test('checkout UI steps validate the server quote and submit without card fields
     run(fs.readFileSync(path.join(__dirname,'../script.js'),'utf8'));
     run('Web2.request=async(url,options)=>{const response=await fetch(url,options);return response.json();};');
     run(`products=[{id:1,name:'محصول تست',price:100,stock:5}];escapeHTML=value=>String(value);showToast=()=>{};updateCartCount=renderCart=renderCheckout=renderInvoiceReview=()=>{};renderReceipt=()=>{};loadProductsFromApi=async()=>products;saveCart([{id:1,quantity:2}]);setupCheckoutSteps();setupCheckoutSteps();setupCheckoutForm();setupCheckoutForm();`);
-    nodes.get('customerName').value='گیرنده تست';nodes.get('customerPhone').value='09120000000';nodes.get('customerAddress').value='نشانی آزمایشی سفارش برای تست';
+    nodes.get('customerName').value='گیرنده';nodes.get('customerLastName').value='تست';nodes.get('customerPhone').value='09120000000';nodes.get('customerProvince').value='تهران';nodes.get('customerCity').value='تهران';nodes.get('customerPostalCode').value='1234567890';nodes.get('customerAddress').value='نشانی آزمایشی سفارش برای تست';
     const form=nodes.get('checkoutForm');
     assert.equal(form.listeners.submit.length,1);assert.equal(form.listeners.click.length,1);
     const next=step=>form.listeners.click[0]({target:{closest:selector=>selector==='[data-checkout-next]'?{dataset:{checkoutNext:String(step)},disabled:false}:null}});
@@ -36,6 +36,7 @@ test('checkout UI steps validate the server quote and submit without card fields
     await next(3);assert.equal(steps[3].hidden,false);assert.equal(requests[0].url,'/api/checkout/quote');
     await form.listeners.submit[0]({preventDefault(){}});
     const orderRequest=requests.find(r=>r.url==='/api/checkout');assert.ok(orderRequest.headers['Idempotency-Key']);
+    assert.equal(orderRequest.payload.recipientLastName,'تست');assert.equal(orderRequest.payload.recipientProvince,'تهران');assert.equal(orderRequest.payload.recipientPostalCode,'1234567890');
     for(const key of ['cardNumber','cvv','expiryDate'])assert.equal(key in orderRequest.payload,false);
     assert.equal(nodes.get('paymentSuccess').hidden,false);assert.equal(nodes.get('checkoutContent').hidden,true);
     assert.equal(run('getCart().length'),0);

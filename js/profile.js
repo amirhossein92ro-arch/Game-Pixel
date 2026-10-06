@@ -275,15 +275,4 @@ document.addEventListener('DOMContentLoaded',async()=>{
         else if(Web2.user&&accountState.section==='support'&&accountState.ticket&&!document.querySelector('#accountReplyForm textarea')?.value)accountOpenTicket(accountState.ticket.id).catch(e=>accountNotice(e.message,'error'));
     });
     window.addEventListener('pageshow',e=>{if(e.persisted){Web2.user=null;Web2.csrfToken=null;accountBoot();Web2.refresh().then(()=>accountBoot()).catch(()=>{Web2.user=null;accountBoot();});}});
-    window.setInterval(async()=>{
-        if(!Web2.user||document.visibilityState!=='visible'||accountState.busy.size||accountState.reads.size)return;
-        try {
-            if(['dashboard','notifications'].includes(accountState.section))await accountLoadSection();
-            else {
-                const data=await profileRequest('/api/account/dashboard');accountState.dashboard=data;accountState.unread=data.stats.unread;accountUpdateIdentity();
-                if(accountState.section==='orders')await accountLoadSection('orders');
-                if(accountState.section==='support'&&accountState.ticket&&!document.querySelector('#accountReplyForm textarea')?.value)await accountOpenTicket(accountState.ticket.id);
-            }
-        }catch { /* The next manual refresh remains available after a transient failure. */ }
-    },60000);
 });

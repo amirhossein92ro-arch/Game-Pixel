@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Game Pixel">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#00d4ff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs>
+  <rect width="64" height="64" rx="16" fill="#080b1b"/>
+  <path d="M17 24h30a9 9 0 0 1 8 12l-4 11a6 6 0 0 1-10 2l-4-5H27l-4 5a6 6 0 0 1-10-2L9 36a9 9 0 0 1 8-12Z" fill="none" stroke="url(#g)" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M21 31v10M16 36h10M43 33h.1M48 39h.1" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+</svg>

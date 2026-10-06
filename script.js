@@ -1605,7 +1605,7 @@ function getProductImage(value, category) {
 }
 
 function productImageMarkup(product, className = "product-image") {
-    return `<img class="${className} product-image" src="${escapeHTML(getProductImage(product.image, product.category))}" alt="${escapeHTML(product.name)}" loading="lazy" decoding="async"><i class="fa-solid ${normalizeIcon(product.icon)} product-image-fallback" aria-hidden="true"></i>`;
+    return `<img class="${className} product-image" src="${escapeHTML(getProductImage(product.image, product.category))}" alt="${escapeHTML(product.name)}" width="480" height="360" loading="lazy" decoding="async"><i class="fa-solid ${normalizeIcon(product.icon)} product-image-fallback" aria-hidden="true"></i>`;
 }
 
 function setupProductImageFallback() {
@@ -2024,6 +2024,7 @@ function getCartTotals(cart = getCart()) {
 }
 
 function getProductBadge(product) {
+    if(Number(product.discount)>0)return `${Math.round(Number(product.discount))}٪ تخفیف`;
     if(product.bestSeller)return "پرفروش";if(product.isNew)return "جدید";if(product.featured)return "ویژه";if(product.bestSeller===false&&product.isNew===false)return product.tag;
     if (Number(product.reviews) >= 180) return "پرفروش";
     if (product.isNew || String(product.tag).includes("جدید")) return "جدید";
@@ -2051,7 +2052,7 @@ function createProductCard(product, compact = false) {
                         <span>(${formatNumber(product.reviews)} نظر)</span>
                     </div>
                     <div class="product-footer">
-                        <span class="product-price"><span>قیمت</span><strong>${formatPrice(getUnitPrice(product))}</strong></span>
+                        <span class="product-price"><span>قیمت</span>${Number(product.discount)>0?`<del class="product-old-price">${formatPrice(product.price)}</del>`:''}<strong>${formatPrice(getUnitPrice(product))}</strong></span>
                         <span class="view-product">مشاهده مشخصات <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></span>
                     </div>
                 </div>
@@ -2349,6 +2350,10 @@ function renderProductDetail() {
     document.title = `${product.name} | Web 2`;
     const descriptionMeta = document.querySelector('meta[name="description"]');
     if (descriptionMeta) descriptionMeta.setAttribute('content', product.shortDescription || product.description);
+    document.querySelector('meta[property="og:title"]')?.setAttribute('content', `${product.name} | Web 2`);
+    document.querySelector('meta[property="og:description"]')?.setAttribute('content', product.shortDescription || product.description);
+    document.querySelector('meta[property="og:image"]')?.setAttribute('content', new URL(getProductImage(product.image,product.category),location.href).href);
+    const canonical=document.querySelector('link[rel="canonical"]');if(canonical)canonical.href=`/product.html?id=${encodeURIComponent(product.id)}`;
     container.setAttribute("aria-busy", "false");
     const breadcrumb = document.getElementById("breadcrumbProduct");
     if (breadcrumb) breadcrumb.textContent = product.name;
@@ -2389,6 +2394,11 @@ function renderProductDetail() {
                 </div>
             </div>
         </div>`;
+    const relatedSection=document.getElementById('relatedProductsSection'),relatedGrid=document.getElementById('relatedProducts');
+    if(relatedSection&&relatedGrid){
+        const related=products.filter(item=>item.id!==product.id&&item.stock>0).sort((a,b)=>(b.category===product.category)-(a.category===product.category)||b.rating-a.rating).slice(0,4);
+        relatedSection.hidden=!related.length;relatedGrid.innerHTML=related.map(item=>createProductCard(item,true)).join('');
+    }
 }
 
 function changeCartQuantity(productId, change) {
@@ -2786,7 +2796,10 @@ function setupCheckoutForm() {
             if (!response.ok) {
                 const fieldMap = {
                     userName: "checkoutAuthName", userEmail: "checkoutAuthEmail", userPhone: "checkoutAuthPhone",
-                    recipientName: "customerName", recipientPhone: "customerPhone", recipientAddress: "customerAddress",
+                    recipientName: "customerName", recipientLastName: "customerLastName", recipientPhone: "customerPhone",
+                    recipientProvince: "customerProvince", recipientCity: "customerCity",
+                    recipientPostalCode: "customerPostalCode", recipientAddress: "customerAddress",
+                    shippingMethod: "shippingMethod", note: "orderNote",
                     isAgreed: "acceptDemo"
                 };
                 const field = document.getElementById(fieldMap[result.field]);
@@ -3426,7 +3439,7 @@ document.addEventListener('DOMContentLoaded',()=>initializeStore().catch(error=>
         let target;try{target=new URL(link.href,location.href);}catch{return;}
         if(!['http:','https:'].includes(target.protocol)||target.origin!==location.origin)return;
         const here=new URL(location.href);if(target.pathname===here.pathname&&target.search===here.search)return;
-        event.preventDefault();if(navigating)return;navigating=true;show();setTimeout(()=>location.assign(target.href),110);
+        event.preventDefault();if(navigating)return;navigating=true;show();setTimeout(()=>location.assign(target.href),80);
     });
     window.addEventListener('pagehide',show);window.addEventListener('pageshow',hide);window.addEventListener('load',hide);
 })();
