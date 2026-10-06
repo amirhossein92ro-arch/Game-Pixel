@@ -40,6 +40,64 @@ function accountAuth() {
     app.innerHTML=`<section class="account-auth account-panel glass-panel"><div class="auth-brand rgb-text rgb-text-glow"><i class="fa-solid fa-gamepad" aria-hidden="true"></i> WEB 2</div><h1 class="rgb-text">به حساب خود وارد شوید</h1><p class="account-muted">سفارش‌ها، علاقه‌مندی‌ها و پشتیبانی فروشگاه، در یک جا.</p><div id="profileNotice" class="account-notice" role="status" aria-live="polite" hidden></div><form id="profileAuth" class="account-form"><label class="field"><span>ورود یا ثبت‌نام</span><select name="mode" id="profileAuthMode"><option value="login">ورود به حساب</option><option value="register">ساخت حساب جدید</option></select></label><div id="accountRegisterFields" class="account-form" hidden>${accountField('نام','name','','minlength="2" maxlength="100" autocomplete="given-name"')}${accountField('موبایل','phone','','pattern="09[0-9]{9}" maxlength="11" inputmode="tel" dir="ltr" autocomplete="tel"')}</div>${accountField('ایمیل','email','','type="email" required maxlength="200" dir="ltr" autocomplete="email"')}${accountField('رمز عبور','password','','type="password" required maxlength="72" autocomplete="current-password"')}<small class="account-muted" id="accountPasswordHint">رمز حساب خود را وارد کنید.</small><button class="primary-button" type="submit">ادامه <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button></form><a class="account-muted" href="index.html">بازگشت به فروشگاه</a></section>`;
     if(new URLSearchParams(location.search).has('loggedout'))accountNotice('از حساب خارج شدید.');
 }
+const accountRecoveryState={phone:'',challengeId:'',resetToken:'',resendAt:0,timer:null};
+let accountCaptchaConfigPromise;
+function accountCaptchaConfig(){return accountCaptchaConfigPromise||(accountCaptchaConfigPromise=Web2.request('/api/auth/config'));}
+function accountTurnstileReady(){
+    if(window.turnstile)return Promise.resolve();
+    return new Promise((resolve,reject)=>{
+        const old=document.querySelector('script[data-web2-turnstile]');
+        if(old){old.addEventListener('load',resolve,{once:true});old.addEventListener('error',reject,{once:true});return;}
+        const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';script.async=true;script.defer=true;script.dataset.web2Turnstile='true';script.onload=resolve;script.onerror=()=>reject(new Error('بارگذاری تأیید امنیتی ممکن نشد.'));document.head.append(script);
+    });
+}
+async function accountRenderCaptcha(form){
+    if(!form)return;
+    const host=form.querySelector('[data-captcha]'),input=form.querySelector('[name="captchaToken"]');if(!host||!input)return;
+    try{
+        const config=await accountCaptchaConfig();
+        if(!form.isConnected)return;
+        if(config.captchaTestMode){input.value='test-valid-captcha';host.textContent='تأیید امنیتی حالت آزمایشی';return;}
+        if(!config.captchaRequired){input.value='development-mock';host.textContent='تأیید امنیتی در محیط توسعه غیرفعال است.';return;}
+        await accountTurnstileReady();if(!form.isConnected)return;
+        host.textContent='';host.dataset.widgetId=window.turnstile.render(host,{sitekey:config.captchaSiteKey,theme:document.body.classList.contains('light-theme')?'light':'dark',language:'fa',callback:token=>{input.value=token;},'expired-callback':()=>{input.value='';},'error-callback':()=>{input.value='';}});
+    }catch(error){host.textContent=error.message;host.dataset.error='true';}
+}
+async function accountCaptchaToken(form,data){
+    const config=await accountCaptchaConfig();
+    const token=form.querySelector('[name="captchaToken"]')?.value||'';
+    if(config.captchaRequired&&!token)throw new Error('لطفاً تأیید کنید ربات نیستید.');
+    data.captchaToken=token||'development-mock';return data;
+}
+function accountResetCaptcha(form){
+    if(!form?.isConnected)return;
+    const host=form?.querySelector('[data-captcha]'),input=form?.querySelector('[name="captchaToken"]');if(input)input.value='';
+    if(host?.dataset.widgetId&&window.turnstile)window.turnstile.reset(host.dataset.widgetId);
+    else if(form?.isConnected)accountRenderCaptcha(form);
+}
+function accountCaptchaMarkup(){return '<div class="account-captcha account-full" data-captcha role="group" aria-label="تأیید امنیتی"><span class="account-muted">در حال آماده‌سازی تأیید امنیتی…</span></div><input type="hidden" name="captchaToken">';}
+function accountAuthSecure(message='',kind='success'){
+    clearInterval(accountRecoveryState.timer);
+    const app=document.getElementById('profileApp');
+    app.innerHTML=`<section class="account-auth account-panel glass-panel"><div class="auth-brand rgb-text rgb-text-glow"><i class="fa-solid fa-gamepad" aria-hidden="true"></i> WEB 2</div><h1 class="rgb-text">به حساب خود وارد شوید</h1><p class="account-muted">نشست شما پس از ورود، پنج ساعت معتبر خواهد بود.</p><div id="profileNotice" class="account-notice" role="status" aria-live="polite" hidden></div><form id="profileAuth" class="account-form"><label class="field"><span>ورود یا ثبت‌نام</span><select name="mode" id="profileAuthMode"><option value="login">ورود به حساب</option><option value="register">ساخت حساب جدید</option></select></label><div id="accountRegisterFields" class="account-form" hidden>${accountField('نام','name','','minlength="2" maxlength="100" autocomplete="given-name"')}${accountField('موبایل','phone','','pattern="09[0-9]{9}" maxlength="11" inputmode="tel" dir="ltr" autocomplete="tel"')}</div>${accountField('ایمیل','email','','type="email" required maxlength="200" dir="ltr" autocomplete="email"')}${accountField('رمز عبور','password','','type="password" required maxlength="72" autocomplete="current-password"')}<small class="account-muted" id="accountPasswordHint">رمز حساب خود را وارد کنید.</small>${accountCaptchaMarkup()}<button class="primary-button" type="submit">ادامه <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button><button class="account-link-button" type="button" data-account-auth="forgot">فراموشی رمز عبور</button></form><a class="account-muted account-back-link" href="index.html">بازگشت به فروشگاه</a></section>`;
+    accountRenderCaptcha(document.getElementById('profileAuth'));
+    if(message)accountNotice(message,kind);else if(new URLSearchParams(location.search).has('loggedout'))accountNotice('از حساب خارج شدید.');
+}
+function accountForgot(step='request',payload={}){
+    clearInterval(accountRecoveryState.timer);
+    const app=document.getElementById('profileApp');let body='';
+    if(step==='request')body=`<h1 class="rgb-text">فراموشی رمز عبور</h1><p class="account-muted">شماره موبایل ثبت‌شده را وارد کنید. پاسخ این مرحله وجود یا عدم وجود حساب را نمایش نمی‌دهد.</p><form id="forgotRequest" class="account-form">${accountField('شماره موبایل','phone',accountRecoveryState.phone,'required pattern="09[0-9]{9}" maxlength="11" inputmode="tel" dir="ltr" autocomplete="tel"')}${accountCaptchaMarkup()}<button class="primary-button" type="submit">ارسال کد یک‌بارمصرف</button></form>`;
+    if(step==='verify')body=`<h1 class="rgb-text">تأیید کد پیامک</h1><p class="account-muted">کد شش‌رقمی را وارد کنید. این کد فقط یک بار قابل استفاده است.</p><form id="forgotVerify" class="account-form">${accountField('کد تأیید','otp','','required pattern="[0-9]{6}" minlength="6" maxlength="6" inputmode="numeric" dir="ltr" autocomplete="one-time-code"')}${accountCaptchaMarkup()}<button class="primary-button" type="submit">تأیید کد</button><button class="account-link-button" id="forgotResend" type="button" data-account-auth="resend" disabled>ارسال مجدد کد تا 02:00</button></form>`;
+    if(step==='reset')body=`<h1 class="rgb-text">تعیین رمز جدید</h1><p class="account-muted">رمز جدید حداقل ۱۲ کاراکتر و حداکثر ۷۲ بایت باشد.</p><form id="forgotReset" class="account-form">${accountField('رمز عبور جدید','password','','type="password" required minlength="12" maxlength="72" autocomplete="new-password"')}${accountField('تکرار رمز عبور','confirmPassword','','type="password" required minlength="12" maxlength="72" autocomplete="new-password"')}${accountCaptchaMarkup()}<button class="primary-button" type="submit">ذخیره رمز جدید</button></form>`;
+    app.innerHTML=`<section class="account-auth account-panel glass-panel"><div class="auth-brand rgb-text rgb-text-glow"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> WEB 2</div><div id="profileNotice" class="account-notice" role="status" aria-live="polite" hidden></div>${body}<button class="account-link-button account-back-link" type="button" data-account-auth="login">بازگشت به ورود</button></section>`;
+    const form=app.querySelector('form');accountRenderCaptcha(form);
+    if(payload.message)accountNotice(payload.message,'success');
+    if(payload.mockOtp)accountNotice(`${payload.message} کد آزمایشی توسعه: ${payload.mockOtp}`,'success');
+    if(step==='verify'){
+        accountRecoveryState.resendAt=Date.now()+Number(payload.resendAfter||120)*1000;
+        const tick=()=>{const button=document.getElementById('forgotResend');if(!button){clearInterval(accountRecoveryState.timer);return;}const left=Math.max(0,Math.ceil((accountRecoveryState.resendAt-Date.now())/1000));button.disabled=left>0;button.textContent=left?`ارسال مجدد کد تا ${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}`:'ارسال مجدد کد';};tick();accountRecoveryState.timer=setInterval(tick,1000);
+    }
+}
 function accountShell() {
     const user=Web2.user;
     document.getElementById('profileApp').innerHTML=`<div class="account-layout"><aside class="account-sidebar glass-panel"><div class="account-identity">${accountAvatar(user)}<strong data-account-name>${profileEscape(user.displayName||user.name)}</strong><small dir="ltr" data-account-email>${profileEscape(user.email)}</small></div><nav class="account-nav" aria-label="منوی حساب کاربری">${accountMenu.map(([key,label,icon])=>`<button type="button" data-account-section="${key}" ${key===accountState.section?'aria-current="page"':''}><i class="fa-solid ${icon}" aria-hidden="true"></i><span>${label}</span>${key==='notifications'?'<span id="accountUnread" class="account-count" hidden>۰</span>':''}</button>`).join('')}<button type="button" class="account-logout" data-account-action="logout"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> خروج از حساب</button></nav></aside><div class="account-content"><header class="account-topbar"><div><span class="account-eyebrow" dir="ltr">PLAYER ACCOUNT / WEB 2</span><h1 id="accountTitle" class="rgb-text">داشبورد</h1></div><button class="secondary-button" type="button" data-account-action="refresh"><i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> به‌روزرسانی</button></header><div id="profileNotice" class="account-notice" role="status" aria-live="polite" hidden></div><div id="accountSection" class="account-section" aria-live="polite"></div></div></div><dialog id="accountDialog" class="account-dialog" aria-labelledby="accountDialogTitle"><header><h2 id="accountDialogTitle">جزئیات</h2><button class="icon-button" type="button" data-account-action="close-dialog" aria-label="بستن"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></header><div id="accountDialogBody"></div></dialog>`;
@@ -109,7 +167,7 @@ async function accountLoadSection(section=accountState.section) {
     }catch(error){if(generation!==accountState.generation)return;target.removeAttribute('aria-busy');target.innerHTML=accountEmpty(error.message,'fa-triangle-exclamation');accountNotice(error.message,'error');}
 }
 async function accountBoot() {
-    if(!Web2.user){accountState.userId=null;accountState.dashboard=null;accountState.unread=0;accountState.addresses=[];accountState.ticket=null;accountState.reads.clear();accountState.generation++;accountState.boot=null;document.getElementById('accountDialog')?.close();accountAuth();return;}
+    if(!Web2.user){accountState.userId=null;accountState.dashboard=null;accountState.unread=0;accountState.addresses=[];accountState.ticket=null;accountState.reads.clear();accountState.generation++;accountState.boot=null;document.getElementById('accountDialog')?.close();accountAuthSecure();return;}
     if(accountState.boot&&accountState.userId===Web2.user.id)return accountState.boot;
     accountState.userId=Web2.user.id;accountState.section='dashboard';accountState.dashboard=null;accountState.unread=0;accountState.addresses=[];accountState.ticket=null;accountShell();
     const task=accountLoadSection('dashboard').finally(()=>{if(accountState.boot===task)accountState.boot=null;});accountState.boot=task;return task;
@@ -137,7 +195,7 @@ async function accountBusy(key,element,fn) {
     const buttons=element?.tagName==='FORM'?[...element.querySelectorAll('button')]:element?[element]:[];
     const previous=buttons.map(b=>b.disabled);buttons.forEach(b=>b.disabled=true);element?.setAttribute('aria-busy','true');
     try{await fn();}catch(error){accountNotice(error.message,'error');const dialogBody=document.getElementById('accountDialogBody');if(document.getElementById('accountDialog')?.open)dialogBody.textContent=error.message;}
-    finally{buttons.forEach((b,i)=>b.disabled=previous[i]);element?.removeAttribute('aria-busy');accountState.busy.delete(key);}
+    finally{buttons.forEach((b,i)=>b.disabled=previous[i]);element?.removeAttribute('aria-busy');accountState.busy.delete(key);if(element?.tagName==='FORM'&&element.querySelector('[data-captcha]'))accountResetCaptcha(element);}
 }
 function accountConfirm(message) {
     const dialog=document.getElementById('accountDialog');
@@ -167,7 +225,10 @@ function accountBind() {
         if(!form.reportValidity())return;
         const data=Object.fromEntries(new FormData(form));
         await accountBusy(form.id,form,async()=>{
-            if(form.id==='profileAuth'){await Web2.authenticate(data.mode,data);await accountBoot();return;}
+            if(form.id==='profileAuth'){await accountCaptchaToken(form,data);await Web2.authenticate(data.mode,data);await accountBoot();return;}
+            if(form.id==='forgotRequest'){await accountCaptchaToken(form,data);accountRecoveryState.phone=data.phone;const result=await Web2.request('/api/auth/forgot-password/request',accountJSON('POST',data));accountRecoveryState.challengeId=result.challengeId;accountForgot('verify',result);return;}
+            if(form.id==='forgotVerify'){await accountCaptchaToken(form,data);data.challengeId=accountRecoveryState.challengeId;const result=await Web2.request('/api/auth/forgot-password/verify',accountJSON('POST',data));accountRecoveryState.resetToken=result.resetToken;accountForgot('reset',result);return;}
+            if(form.id==='forgotReset'){if(data.password!==data.confirmPassword)throw new Error('تکرار رمز عبور یکسان نیست.');await accountCaptchaToken(form,data);data.challengeId=accountRecoveryState.challengeId;data.resetToken=accountRecoveryState.resetToken;const result=await Web2.request('/api/auth/forgot-password/reset',accountJSON('POST',data));accountRecoveryState.phone='';accountRecoveryState.challengeId='';accountRecoveryState.resetToken='';accountAuthSecure(result.message);return;}
             if(form.id==='profileEdit'){Web2.user=await profileRequest('/api/users/me',accountJSON('PUT',data));await accountLoadSection('info');}
             if(form.id==='profileAddressForm'){const id=data.id;delete data.id;data.isDefault=data.isDefault==='true';await profileRequest('/api/users/me/addresses'+(id?'/'+encodeURIComponent(id):''),accountJSON(id?'PUT':'POST',data));await accountLoadSection('addresses');}
             if(form.id==='accountPasswordForm'){
@@ -181,6 +242,8 @@ function accountBind() {
         });
     });
     app.addEventListener('click',async e=>{
+        const auth=e.target.closest('[data-account-auth]');
+        if(auth){const action=auth.dataset.accountAuth;if(action==='forgot'){accountForgot();return;}if(action==='login'){accountAuthSecure();return;}if(action==='resend'){await accountBusy('forgot-resend',auth,async()=>{const data={phone:accountRecoveryState.phone};const temp=document.getElementById('forgotVerify');await accountCaptchaToken(temp,data);const result=await Web2.request('/api/auth/forgot-password/request',accountJSON('POST',data));accountRecoveryState.challengeId=result.challengeId;accountForgot('verify',result);});return;}}
         const nav=e.target.closest('[data-account-section]');
         if(nav){accountNotice('');if(nav.dataset.accountSection===accountState.section&&!accountState.ticket)return;await accountLoadSection(nav.dataset.accountSection);return;}
         const button=e.target.closest('[data-account-action]');if(!button)return;

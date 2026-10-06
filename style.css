@@ -4467,3 +4467,14 @@ body.light-theme .profile-contact-item {
         padding: 23px 18px;
     }
 }
+/* Full-page navigation transition. Injected once by script.js on every store page. */
+.page-transition-overlay{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;background:rgba(3,5,14,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .24s ease,visibility 0s linear .24s}
+.page-transition-overlay.is-visible{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .18s ease}
+.page-transition-card{display:grid;justify-items:center;gap:13px;min-width:150px;padding:24px 28px;border:1px solid rgba(0,212,255,.32);border-radius:22px;background:radial-gradient(circle at 25% 10%,rgba(0,212,255,.15),transparent 55%),rgba(8,11,27,.86);box-shadow:0 0 42px rgba(0,212,255,.16),0 0 70px rgba(139,92,246,.12)}
+.page-transition-logo{display:grid;place-items:center;width:66px;height:66px;border-radius:20px;color:var(--cyan,#00d4ff);font-size:2rem;background:linear-gradient(145deg,rgba(0,212,255,.12),rgba(139,92,246,.2));box-shadow:0 0 24px rgba(0,212,255,.22);animation:page-logo-spin .9s cubic-bezier(.55,.1,.45,.9) infinite}
+.page-transition-logo img{width:48px;height:48px;object-fit:contain}
+.page-transition-name{font-weight:900;font-size:.82rem;letter-spacing:2px;color:#fff}
+.page-transition-dots{display:flex;gap:5px}.page-transition-dots i{display:block;width:5px;height:5px;border-radius:50%;background:var(--cyan,#00d4ff);animation:page-dot 1s ease-in-out infinite}.page-transition-dots i:nth-child(2){animation-delay:.14s;background:var(--purple,#8b5cf6)}.page-transition-dots i:nth-child(3){animation-delay:.28s;background:#ff2bd6}
+@keyframes page-logo-spin{to{transform:rotate(360deg)}}@keyframes page-dot{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
+@media(max-width:480px){.page-transition-card{min-width:132px;padding:20px 24px}.page-transition-logo{width:58px;height:58px;font-size:1.7rem}}
+@media(prefers-reduced-motion:reduce){.page-transition-overlay{transition-duration:.01ms}.page-transition-logo{animation:page-logo-pulse 1s ease-in-out infinite}@keyframes page-logo-pulse{50%{opacity:.65;transform:scale(.96)}}}

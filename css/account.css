@@ -74,6 +74,14 @@ body.light-theme .account-badge.pending,body.light-theme .account-badge.open {co
 .account-auth h1 {font-size:1.3rem;margin-bottom:8px;}
 .account-auth .account-muted {margin-bottom:25px;}
 .account-auth .primary-button {width:100%;justify-content:center;}
+.account-link-button {appearance:none;border:0;background:transparent;color:var(--cyan);font:inherit;font-size:.8rem;line-height:1.8;padding:5px;cursor:pointer;text-align:center;}
+.account-link-button:hover {text-decoration:underline;}
+.account-link-button:focus-visible {outline:2px solid var(--cyan);outline-offset:2px;border-radius:8px;}
+.account-link-button:disabled {color:var(--text-soft);text-decoration:none;cursor:not-allowed;}
+.account-back-link {display:block;margin-top:18px;text-align:center;}
+.account-captcha {min-height:66px;display:grid;place-items:center;overflow:hidden;border-radius:12px;}
+.account-captcha[data-error="true"] {border:1px solid var(--danger);padding:10px;color:var(--danger);}
+.account-captcha iframe {max-width:100%;}
 .account-address-card {align-items:start;}
 .account-address-card p {margin:8px 0;overflow-wrap:anywhere;}
 .account-address-card.is-default {border-color:rgba(0,212,255,.4);}
@@ -102,5 +110,5 @@ body.light-theme .account-badge.pending,body.light-theme .account-badge.open {co
 @keyframes account-enter {from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 @media(max-width:1000px){.account-layout{grid-template-columns:200px minmax(0,1fr);gap:18px}.account-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.account-grid{grid-template-columns:1fr}.account-panel{padding:22px}}
 @media(max-width:760px){body[data-page="profile"] .profile-page{padding-top:20px}.account-layout{grid-template-columns:1fr}.account-sidebar{position:static;padding:14px}.account-identity{display:none}.account-nav{display:flex;overflow-x:auto;gap:8px;padding-bottom:5px;scrollbar-width:thin}.account-nav button{flex:0 0 auto;width:auto;white-space:nowrap;padding:10px;font-size:.77rem}.account-nav button.account-logout{margin:0;border-top:0}.account-count{margin-inline-start:0}.account-topbar{margin-top:6px}.account-welcome{gap:14px}.account-welcome .account-avatar{width:60px;height:60px;font-size:1.5rem}.account-welcome h2{font-size:1.2rem}.account-form{grid-template-columns:1fr}.account-wishlist{grid-template-columns:1fr}.account-row{gap:12px}.account-topbar h1{font-size:1.15rem}}
-@media(max-width:420px){body[data-page="profile"] .profile-page>.container{width:calc(100% - 24px)}.account-panel{padding:18px}.account-stat{padding:15px}.account-stat strong{font-size:1.5rem}.account-welcome{align-items:start}.account-welcome .account-avatar{display:none}.account-auth{padding:24px 18px}.account-dialog{padding:20px}.account-row>.account-actions{width:100%}}
+@media(max-width:420px){body[data-page="profile"] .profile-page>.container{width:calc(100% - 24px)}.account-panel{padding:18px}.account-stat{padding:15px}.account-stat strong{font-size:1.5rem}.account-welcome{align-items:start}.account-welcome .account-avatar{display:none}.account-auth{padding:24px 14px}.account-dialog{padding:20px}.account-row>.account-actions{width:100%}.account-form{gap:14px}.account-form input,.account-form select{padding:11px 12px;font-size:.82rem}.account-captcha{transform-origin:center;}}
 @media(prefers-reduced-motion:reduce){.account-section{animation:none}.account-nav button{transition:none}}

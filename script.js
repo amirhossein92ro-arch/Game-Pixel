@@ -3382,3 +3382,30 @@ async function initializeStore() {
     renderHomeDiscovery(); renderProducts(); renderProductDetail(); refreshCartUI();
 }
 document.addEventListener('DOMContentLoaded',()=>initializeStore().catch(error=>{console.error('Store initialization failed');showToast('بارگذاری فروشگاه انجام نشد؛ صفحه را تازه کنید.','error');}));
+/* Short, fail-safe transition for real same-origin page navigations. */
+(()=>{
+    let overlay,watchdog,navigating=false;
+    const build=()=>{
+        if(overlay)return overlay;
+        overlay=document.createElement('div');overlay.className='page-transition-overlay';overlay.setAttribute('aria-hidden','true');
+        const current=document.querySelector('.brand-icon');
+        const logo=current?current.cloneNode(true):Object.assign(document.createElement('span'),{innerHTML:'<i class="fa-solid fa-gamepad" aria-hidden="true"></i>'});
+        logo.className='page-transition-logo';
+        const card=document.createElement('div');card.className='page-transition-card';card.setAttribute('role','status');card.setAttribute('aria-label','در حال بارگذاری صفحه');
+        const name=document.createElement('span');name.className='page-transition-name';name.textContent=document.querySelector('.brand strong')?.textContent?.trim()||'WEB 2';
+        const dots=document.createElement('span');dots.className='page-transition-dots';dots.setAttribute('aria-hidden','true');dots.innerHTML='<i></i><i></i><i></i>';
+        card.append(logo,name,dots);overlay.append(card);document.body.append(overlay);return overlay;
+    };
+    const show=()=>{build().classList.add('is-visible');clearTimeout(watchdog);watchdog=setTimeout(hide,3000);};
+    const hide=()=>{clearTimeout(watchdog);navigating=false;if(overlay)overlay.classList.remove('is-visible');};
+    const ready=()=>{build();requestAnimationFrame(()=>requestAnimationFrame(hide));};
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
+    document.addEventListener('click',event=>{
+        const link=event.target.closest?.('a[href]');if(!link||event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||link.hasAttribute('download')||link.target&&link.target!=='_self')return;
+        let target;try{target=new URL(link.href,location.href);}catch{return;}
+        if(!['http:','https:'].includes(target.protocol)||target.origin!==location.origin)return;
+        const here=new URL(location.href);if(target.pathname===here.pathname&&target.search===here.search)return;
+        event.preventDefault();if(navigating)return;navigating=true;show();setTimeout(()=>location.assign(target.href),110);
+    });
+    window.addEventListener('pagehide',show);window.addEventListener('pageshow',hide);window.addEventListener('load',hide);
+})();
