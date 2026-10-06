@@ -3384,6 +3384,7 @@ async function initializeStore() {
 document.addEventListener('DOMContentLoaded',()=>initializeStore().catch(error=>{console.error('Store initialization failed');showToast('بارگذاری فروشگاه انجام نشد؛ صفحه را تازه کنید.','error');}));
 /* Short, fail-safe transition for real same-origin page navigations. */
 (()=>{
+    if(typeof document?.createElement!=='function'||typeof document?.addEventListener!=='function')return;
     let overlay,watchdog,navigating=false;
     const build=()=>{
         if(overlay)return overlay;

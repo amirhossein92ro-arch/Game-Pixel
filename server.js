@@ -548,6 +548,7 @@ app.use('/api', (_req, res) => res.status(404).json({ error: 'مسیر API پی�
 app.use((error, req, res, next) => {
     if (res.headersSent) return next(error);
     const status = error.status || error.statusCode || 500;
+    if (error.retryAfter) res.set('Retry-After', String(error.retryAfter));
     res.status(status >= 400 && status < 600 ? status : 500).json({ error: status < 500 ? error.message : 'خطای سرور؛ دوباره تلاش کنید.' });
 });
 app.listen(RUN_PORT, () => {
