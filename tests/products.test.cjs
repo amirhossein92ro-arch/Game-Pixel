@@ -254,7 +254,7 @@ test('all database products: API, home/search/category links, detail, cart and p
     const port=29000+Math.floor(Math.random()*1000),base=`http://localhost:${port}`,windows=[];
     let child;
     async function start(){
-        child=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,PORT:String(port),DATABASE_PATH:database,SEED_DATA_PATH:seedPath,ADMIN_PASSWORD:'test-products-password-2026',APP_ORIGIN:base,NODE_ENV:'test'},stdio:['ignore','pipe','pipe']});
+        child=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,PORT:String(port),DATABASE_PATH:database,SEED_DATA_PATH:seedPath,ADMIN_PASSWORD:'test-products-password-2026',APP_ORIGIN:base,ALLOWED_ORIGINS:' http://109.122.247.237:3000/ , http://109.122.247.237 ',NODE_ENV:'test'},stdio:['ignore','pipe','pipe']});
         await new Promise((resolve,reject)=>{
             const timer=setTimeout(()=>reject(Error('startup timeout')),15000);
             child.once('exit',code=>{clearTimeout(timer);reject(Error('startup '+code));});
@@ -284,6 +284,14 @@ test('all database products: API, home/search/category links, detail, cart and p
         assert.equal(preflight.headers.get('Access-Control-Allow-Credentials'),'true');
         const blocked=await fetch(base+'/api/products',{headers:{Origin:'https://example.invalid'}});
         assert.equal(blocked.headers.get('Access-Control-Allow-Origin'),null);
+        assert.equal(blocked.status,403);
+        const productionOrigin='http://109.122.247.237:3000';
+        const productionCatalog=await fetch(base+'/api/products',{headers:{Origin:productionOrigin}});
+        assert.equal(productionCatalog.status,200);
+        assert.equal(productionCatalog.headers.get('Access-Control-Allow-Origin'),productionOrigin);
+        assert.equal(productionCatalog.headers.get('Access-Control-Allow-Credentials'),'true');
+        const sameServer=await fetch(base+'/api/products');
+        assert.equal(sameServer.status,200);
         for(const id of ['1','2','3','8','10','20','40','60',...opaqueIds]){
             assert.equal((await fetch(`${base}/product.html?id=${encodeURIComponent(id)}`)).status,200);
             const direct=page('product.html',`?id=${id}`);windows.push(direct.w);
