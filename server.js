@@ -5,11 +5,14 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const bcrypt = require("bcrypt");
+const helmet = require("helmet");
 
 if (fs.existsSync(path.join(__dirname, '.env'))) process.loadEnvFile(path.join(__dirname, '.env'));
 
 const app = express();
 const PORT = Number.parseInt(process.env.PORT || "3000", 10) || 3000;
+const HOST = process.env.HOST || "0.0.0.0";
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const DATA_PATH = process.env.SEED_DATA_PATH || path.join(__dirname, "data.json");
 const store = require("./lib/database.cjs").openDatabase(process.env.DATABASE_PATH || path.join(__dirname, "var", "web2.sqlite"), DATA_PATH);
 const STATIC_ROOT = __dirname;
@@ -19,6 +22,22 @@ const ADMIN_SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const adminSessions = new Map();
 
 app.disable("x-powered-by");
+if (process.env.TRUST_PROXY) app.set("trust proxy", process.env.TRUST_PROXY === "true" ? 1 : process.env.TRUST_PROXY);
+app.use(helmet({
+    crossOriginEmbedderPolicy: false,
+    strictTransportSecurity: IS_PRODUCTION ? undefined : false,
+    referrerPolicy: {policy: "strict-origin-when-cross-origin"},
+    contentSecurityPolicy: {directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://challenges.cloudflare.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https://challenges.cloudflare.com"],
+        frameSrc: ["https://challenges.cloudflare.com"],
+        frameAncestors: ["'none'"], baseUri: ["'self'"], formAction: ["'self'"]
+    }}
+}));
 
 /*
  * Express normally adds a charset for JSON and text responses, but static
@@ -551,8 +570,8 @@ app.use((error, req, res, next) => {
     if (error.retryAfter) res.set('Retry-After', String(error.retryAfter));
     res.status(status >= 400 && status < 600 ? status : 500).json({ error: status < 500 ? error.message : 'خطای سرور؛ دوباره تلاش کنید.' });
 });
-app.listen(RUN_PORT, () => {
-    console.log('Server is running on http://localhost:' + RUN_PORT);
+const httpServer = app.listen(RUN_PORT, HOST, () => {
+    console.log(`Server is running on http://${HOST}:${RUN_PORT}`);
 }).on('error', (error) => {
     console.error(error.code === 'EADDRINUSE'
         ? `Port ${RUN_PORT} is already in use. Stop the other server or set PORT and APP_ORIGIN to a matching free port.`
@@ -560,3 +579,15 @@ app.listen(RUN_PORT, () => {
     store.db.close();
     process.exitCode = 1;
 });
+let shuttingDown = false;
+function shutdown(signal) {
+    if (shuttingDown) return; shuttingDown = true;
+    const force = setTimeout(() => process.exit(1), 10000); force.unref();
+    httpServer.close(error => {
+        try { store.db.close(); } catch {}
+        clearTimeout(force);
+        if (error) { console.error(`[shutdown] ${signal}: ${error.message}`); process.exitCode = 1; }
+    });
+}
+process.once('SIGTERM', () => shutdown('SIGTERM'));
+process.once('SIGINT', () => shutdown('SIGINT'));

@@ -2226,12 +2226,12 @@ function setupAuthUI() {
       <button class="icon-button theme-btn auth-theme-btn" type="button" aria-label="تغییر تم" title="تغییر تم"><i class="fa-solid fa-sun"></i></button>
       <div class="auth-brand"><i class="fa-solid fa-gamepad"></i><span>GAME PIXEL</span></div>
       <h2 id="authTitle" class="rgb-text">ورود به حساب کاربری</h2><p class="auth-hint">برای تجربه‌ای شخصی‌تر در فروشگاه</p>
-      <form id="authForm"><label>عملیات<select name="mode"><option value="login">ورود</option><option value="register">ثبت‌نام</option></select></label><label>ایمیل<input name="email" type="email" required autocomplete="email"></label><label>رمز عبور<input name="password" type="password" required maxlength="72" autocomplete="current-password"><small>رمز ثبت‌نام باید حداقل ۱۲ کاراکتر باشد.</small></label><label>نام گیمری / نام کاربر<input name="name" minlength="2" maxlength="50" autocomplete="name" placeholder="مثلاً آرش گیمر"></label><label>شماره تماس یا ایمیل<input name="phone" autocomplete="tel" maxlength="50" placeholder="۰۹۱۲۱۲۳۴۵۶۷ یا you@example.com"></label><button class="primary-button" type="submit">ورود / ساخت حساب <i class="fa-solid fa-arrow-left"></i></button></form>
+      <div id="authForm"><p class="auth-hint">ورود، ثبت‌نام و بازیابی رمز در صفحه امن حساب کاربری انجام می‌شود.</p><a class="primary-button" href="profile.html">ورود یا ساخت حساب <i class="fa-solid fa-arrow-left"></i></a></div>
       <div id="profileView" hidden></div>
     </section>`;
     document.body.appendChild(modal);
     modal.addEventListener("click", e => { if (e.target.closest("[data-close-auth]")) closeAuthModal(); });
-    document.getElementById("authForm").addEventListener("submit", async e => {
+    document.getElementById("authForm")?.addEventListener("submit", async e => {
         e.preventDefault();
         const button = e.currentTarget.querySelector('button[type="submit"]');
         button.disabled = true;
@@ -2275,7 +2275,6 @@ function closeAuthModal() { const modal = document.getElementById("authModal"); 
 function renderProducts() {
     const grid = document.getElementById("productGrid");
     if (!grid) return;
-    console.log(`[renderProducts] رندر صفحه اصلی — تعداد: ${products.length}`);
     const productCount = document.getElementById("homeProductCount");
     if (productCount) productCount.textContent = formatNumber(products.length);
 
@@ -2625,8 +2624,14 @@ function persistCheckoutDraft() {
     const accountEmail = document.getElementById("checkoutAuthEmail");
     const accountPhone = document.getElementById("checkoutAuthPhone");
     const recipientName = document.getElementById("customerName");
+    const recipientLastName = document.getElementById("customerLastName");
     const recipientPhone = document.getElementById("customerPhone");
     const recipientAddress = document.getElementById("customerAddress");
+    const recipientProvince = document.getElementById("customerProvince");
+    const recipientCity = document.getElementById("customerCity");
+    const recipientPostalCode = document.getElementById("customerPostalCode");
+    const shippingMethod = document.getElementById("shippingMethod");
+    const orderNote = document.getElementById("orderNote");
 
     return saveCheckoutData({
         account: {
@@ -2636,8 +2641,14 @@ function persistCheckoutDraft() {
         },
         recipient: {
             name: recipientName ? recipientName.value.trim() : (current.recipient?.name || ""),
+            lastName: recipientLastName ? recipientLastName.value.trim() : (current.recipient?.lastName || ""),
             phone: recipientPhone ? recipientPhone.value.replace(/\D/g, "") : (current.recipient?.phone || ""),
-            address: recipientAddress ? recipientAddress.value.trim() : (current.recipient?.address || "")
+            address: recipientAddress ? recipientAddress.value.trim() : (current.recipient?.address || ""),
+            province: recipientProvince ? recipientProvince.value.trim() : (current.recipient?.province || ""),
+            city: recipientCity ? recipientCity.value.trim() : (current.recipient?.city || ""),
+            postalCode: recipientPostalCode ? recipientPostalCode.value.replace(/\D/g, "") : (current.recipient?.postalCode || ""),
+            shippingMethod: shippingMethod ? shippingMethod.value : (current.recipient?.shippingMethod || "standard"),
+            note: orderNote ? orderNote.value.trim() : (current.recipient?.note || "")
         }
     });
 }
@@ -2657,7 +2668,11 @@ function getCheckoutValidationIssue() {
         { invalid: !account.email.trim(), field: document.getElementById("checkoutAuthEmail"), step: 1, message: "فیلد «ایمیل» تکمیل نشده است." },
         { invalid: !account.phone.trim(), field: document.getElementById("checkoutAuthPhone"), step: 1, message: "فیلد «شماره موبایل حساب» تکمیل نشده است." },
         { invalid: !String(recipient.name || "").trim(), field: document.getElementById("customerName"), step: 2, message: "فیلد «نام گیرنده» تکمیل نشده است." },
+        { invalid: document.getElementById("customerLastName") && !String(recipient.lastName || "").trim(), field: document.getElementById("customerLastName"), step: 2, message: "فیلد «نام خانوادگی» تکمیل نشده است." },
         { invalid: !String(recipient.phone || "").trim(), field: document.getElementById("customerPhone"), step: 2, message: "فیلد «شماره موبایل گیرنده» تکمیل نشده است." },
+        { invalid: document.getElementById("customerProvince") && !String(recipient.province || "").trim(), field: document.getElementById("customerProvince"), step: 2, message: "فیلد «استان» تکمیل نشده است." },
+        { invalid: document.getElementById("customerCity") && !String(recipient.city || "").trim(), field: document.getElementById("customerCity"), step: 2, message: "فیلد «شهر» تکمیل نشده است." },
+        { invalid: document.getElementById("customerPostalCode") && !/^\d{10}$/.test(String(recipient.postalCode || "")), field: document.getElementById("customerPostalCode"), step: 2, message: "کد پستی باید ۱۰ رقم باشد." },
         { invalid: !String(recipient.address || "").trim(), field: document.getElementById("customerAddress"), step: 2, message: "فیلد «آدرس کامل» تکمیل نشده است." },
         { invalid: getCart().length === 0, field: null, step: 3, message: "فیلد «اقلام فاکتور» خالی است؛ سبد خرید را تکمیل کنید." },
         // Payment is demonstrational: any non-empty test value is accepted.
@@ -2708,7 +2723,7 @@ function setupCheckoutForm() {
     const phoneInput = document.getElementById("customerPhone");
 
 
-    phoneInput.addEventListener("input", () => {
+    phoneInput?.addEventListener("input", () => {
         phoneInput.value = phoneInput.value.replace(/\D/g, "").slice(0, 11);
         phoneInput.classList.remove("input-error");
     });
@@ -2717,11 +2732,12 @@ function setupCheckoutForm() {
     form.querySelectorAll("input, textarea").forEach((field) => {
         field.addEventListener("input", () => {
             field.classList.remove("input-error");
-            if (["checkoutAuthName", "checkoutAuthEmail", "checkoutAuthPhone", "customerName", "customerPhone", "customerAddress"].includes(field.id)) {
+            if (["checkoutAuthName", "checkoutAuthEmail", "checkoutAuthPhone", "customerName", "customerLastName", "customerPhone", "customerProvince", "customerCity", "customerPostalCode", "customerAddress", "orderNote"].includes(field.id)) {
                 persistCheckoutDraft();
             }
         });
     });
+    document.getElementById("shippingMethod")?.addEventListener("change", persistCheckoutDraft);
 
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -2749,8 +2765,14 @@ function setupCheckoutForm() {
                 userEmail: user?.email || checkoutData.account?.email || "",
                 userPhone: user?.phone || checkoutData.account?.phone || "",
                 recipientName: checkoutData.recipient?.name || "",
+                recipientLastName: checkoutData.recipient?.lastName || "",
                 recipientPhone: checkoutData.recipient?.phone || "",
                 recipientAddress: checkoutData.recipient?.address || "",
+                recipientProvince: checkoutData.recipient?.province || "",
+                recipientCity: checkoutData.recipient?.city || "",
+                recipientPostalCode: checkoutData.recipient?.postalCode || "",
+                shippingMethod: checkoutData.recipient?.shippingMethod || "standard",
+                note: checkoutData.recipient?.note || "",
                 items: cart.map((item) => ({ id: item.id, quantity: item.quantity })),
                 discountCode: totals.discountCode,
                 isAgreed: document.getElementById("acceptDemo").checked
@@ -3296,7 +3318,7 @@ function setupCheckoutSteps() {
     window.addEventListener('web2:auth', refreshCheckoutAccount);
     let currentStep = 1;
     try { const saved = Number(localStorage.getItem(CHECKOUT_STEP_KEY)); if (saved >= 1 && saved <= 5) currentStep = saved; } catch {}
-    for (const [id, value] of Object.entries({checkoutAuthName:user?.name || draft.account?.name, checkoutAuthEmail:user?.email || draft.account?.email, checkoutAuthPhone:user?.phone || draft.account?.phone, customerName:draft.recipient?.name, customerPhone:draft.recipient?.phone, customerAddress:draft.recipient?.address})) {
+    for (const [id, value] of Object.entries({checkoutAuthName:user?.name || draft.account?.name, checkoutAuthEmail:user?.email || draft.account?.email, checkoutAuthPhone:user?.phone || draft.account?.phone, customerName:draft.recipient?.name, customerLastName:draft.recipient?.lastName, customerPhone:draft.recipient?.phone, customerProvince:draft.recipient?.province, customerCity:draft.recipient?.city, customerPostalCode:draft.recipient?.postalCode, customerAddress:draft.recipient?.address, shippingMethod:draft.recipient?.shippingMethod, orderNote:draft.recipient?.note})) {
         const field = document.getElementById(id); if (field) field.value = value || '';
     }
     function syncSavedAddresses() {
@@ -3305,8 +3327,9 @@ function setupCheckoutSteps() {
         if(!addresses.length||!field){select?.remove();return;}
         if(!select){select=document.createElement('select');select.id='savedAddress';select.setAttribute('aria-label','انتخاب آدرس ذخیره‌شده');field.before(select);
             select.addEventListener('change',()=>{const a=(getCurrentUser()?.addresses||[]).find(a=>a.id===select.value);if(!a)return;
-                document.getElementById('customerName').value=a.name;document.getElementById('customerPhone').value=a.phone;
-                field.value=[a.province,a.city,a.address,a.postalCode?`کد پستی: ${a.postalCode}`:''].filter(Boolean).join('، ');persistCheckoutDraft();});
+                const parts=String(a.name||'').trim().split(/\s+/);document.getElementById('customerName').value=parts.shift()||'';document.getElementById('customerLastName').value=parts.join(' ');document.getElementById('customerPhone').value=a.phone;
+                document.getElementById('customerProvince').value=a.province||'';document.getElementById('customerCity').value=a.city||'';document.getElementById('customerPostalCode').value=a.postalCode||'';
+                field.value=a.address||'';persistCheckoutDraft();});
         }
         const selected=select.value;
         select.innerHTML='<option value="">انتخاب آدرس ذخیره‌شده</option>'+addresses.map(a=>`<option value="${escapeHTML(a.id)}">${escapeHTML(a.title||a.name)}${a.isDefault?' (پیش‌فرض)':''} — ${escapeHTML(a.address)}</option>`).join('');
@@ -3330,16 +3353,13 @@ function setupCheckoutSteps() {
         if (step === 1) {
             if (!getCurrentUser()) {
                 const errorEl=document.getElementById('checkoutLoginError');
-                try {
-                    await Web2.authenticate('login',{email:document.getElementById('checkoutAuthEmail').value.trim(),password:document.getElementById('checkoutAuthPassword').value});
-                    updateAuthUI(); errorEl.textContent='';
-                } catch(error) { errorEl.textContent=error.message+' برای ساخت حساب جدید از صفحه پروفایل ثبت‌نام کنید.';return false; }
+                errorEl.textContent='برای ادامه، از صفحه امن حساب کاربری وارد شوید.';openAuthModal(errorEl.textContent);return false;
             }
             persistCheckoutDraft(); return true;
         }
         if (step === 2) {
-            const name=document.getElementById('customerName'),phone=document.getElementById('customerPhone'),address=document.getElementById('customerAddress'),errorEl=document.getElementById('checkoutRecipientError');
-            if (name.value.trim().length<2 || !/^09\d{9}$/.test(phone.value) || address.value.trim().length<10) { errorEl.textContent='نام، موبایل و آدرس کامل گیرنده را وارد کنید.';return false; }
+            const name=document.getElementById('customerName'),lastName=document.getElementById('customerLastName'),phone=document.getElementById('customerPhone'),province=document.getElementById('customerProvince'),city=document.getElementById('customerCity'),postal=document.getElementById('customerPostalCode'),address=document.getElementById('customerAddress'),errorEl=document.getElementById('checkoutRecipientError');
+            if (name.value.trim().length<2 || (lastName&&lastName.value.trim().length<2) || !/^09\d{9}$/.test(phone.value) || (province&&province.value.trim().length<2) || (city&&city.value.trim().length<2) || (postal&&!/^\d{10}$/.test(postal.value)) || address.value.trim().length<10) { errorEl.textContent='نام، نام خانوادگی، موبایل، استان، شهر، کد پستی و آدرس کامل را بررسی کنید.';return false; }
             errorEl.textContent='';persistCheckoutDraft();return true;
         }
         if (step === 3) {

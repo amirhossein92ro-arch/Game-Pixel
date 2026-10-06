@@ -100,10 +100,20 @@
                     <section class="checkout-step" data-checkout-step="2" aria-labelledby="stepTitle2" hidden>
                         <div class="form-section-heading"><span>۲</span><div><h2 id="stepTitle2" class="rgb-text">اطلاعات گیرنده</h2><p>مشخصات ارسال نمایشی سفارش را وارد کنید.</p></div></div>
                         <div class="field-row">
-                            <label class="field"><span>نام گیرنده</span><input type="text" id="customerName" name="customerName" minlength="3" maxlength="80" autocomplete="shipping name" required></label>
+                            <label class="field"><span>نام گیرنده</span><input type="text" id="customerName" name="customerName" minlength="2" maxlength="50" autocomplete="shipping given-name" required></label>
+                            <label class="field"><span>نام خانوادگی</span><input type="text" id="customerLastName" name="customerLastName" minlength="2" maxlength="50" autocomplete="shipping family-name" required></label>
+                        </div>
+                        <div class="field-row">
                             <label class="field"><span>شماره موبایل</span><input type="tel" id="customerPhone" name="customerPhone" inputmode="numeric" maxlength="11" autocomplete="shipping tel" dir="ltr" placeholder="09123456789" required></label>
+                            <label class="field"><span>کد پستی</span><input type="text" id="customerPostalCode" name="customerPostalCode" inputmode="numeric" minlength="10" maxlength="10" autocomplete="shipping postal-code" dir="ltr" required></label>
+                        </div>
+                        <div class="field-row">
+                            <label class="field"><span>استان</span><input type="text" id="customerProvince" name="customerProvince" minlength="2" maxlength="60" autocomplete="shipping address-level1" required></label>
+                            <label class="field"><span>شهر</span><input type="text" id="customerCity" name="customerCity" minlength="2" maxlength="60" autocomplete="shipping address-level2" required></label>
                         </div>
                         <label class="field"><span>آدرس کامل</span><textarea id="customerAddress" name="customerAddress" minlength="10" maxlength="400" rows="4" autocomplete="shipping street-address" required placeholder="استان، شهر، خیابان و پلاک"></textarea></label>
+                        <label class="field"><span>روش ارسال</span><select id="shippingMethod" name="shippingMethod" required><option value="standard">پست پیشتاز</option><option value="express">ارسال سریع (با هماهنگی فروشگاه)</option><option value="pickup">تحویل حضوری</option></select></label>
+                        <label class="field"><span>توضیحات سفارش (اختیاری)</span><textarea id="orderNote" name="orderNote" maxlength="1000" rows="3" placeholder="زمان مناسب تحویل یا توضیح لازم برای سفارش"></textarea></label>
                         <div class="checkout-errors" id="checkoutRecipientError" role="alert"></div>
                         <div class="checkout-step-actions"><button class="secondary-button" type="button" data-checkout-prev="2"><i class="fa-solid fa-arrow-right"></i> بازگشت</button><button class="primary-button" type="button" data-checkout-next="2">بررسی فاکتور <i class="fa-solid fa-arrow-left"></i></button></div>
                     </section>
