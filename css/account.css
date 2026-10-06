@@ -82,6 +82,10 @@ body.light-theme .account-badge.pending,body.light-theme .account-badge.open {co
 .account-captcha {min-height:66px;display:grid;place-items:center;overflow:hidden;border-radius:12px;}
 .account-captcha[data-error="true"] {border:1px solid var(--danger);padding:10px;color:var(--danger);}
 .account-captcha iframe {max-width:100%;}
+.account-captcha-status {display:block;margin-top:-10px!important;text-align:center;color:var(--text-soft);font-size:.75rem;line-height:1.8;}
+.account-captcha-status[data-kind="success"] {color:var(--green);}
+.account-captcha-status[data-kind="error"] {color:var(--danger);}
+.account-captcha-status[data-kind="warning"] {color:#fbbf24;}
 .account-address-card {align-items:start;}
 .account-address-card p {margin:8px 0;overflow-wrap:anywhere;}
 .account-address-card.is-default {border-color:rgba(0,212,255,.4);}

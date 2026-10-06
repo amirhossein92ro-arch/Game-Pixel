@@ -51,17 +51,25 @@ function accountTurnstileReady(){
         const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';script.async=true;script.defer=true;script.dataset.web2Turnstile='true';script.onload=resolve;script.onerror=()=>reject(new Error('بارگذاری تأیید امنیتی ممکن نشد.'));document.head.append(script);
     });
 }
+function accountCaptchaAction(form){
+    if(form?.id==='profileAuth')return form.elements.mode?.value==='register'?'register':'login';
+    return ({forgotRequest:'forgot_password',forgotVerify:'forgot_password',forgotReset:'password_reset'})[form?.id]||'account_action';
+}
+function accountCaptchaSubmit(form,enabled){const button=form?.querySelector('button[type="submit"]');if(button)button.disabled=!enabled;}
+function accountCaptchaStatus(form,message,kind=''){const status=form?.querySelector('[data-captcha-status]');if(!status)return;status.textContent=message;status.dataset.kind=kind;}
 async function accountRenderCaptcha(form){
     if(!form)return;
     const host=form.querySelector('[data-captcha]'),input=form.querySelector('[name="captchaToken"]');if(!host||!input)return;
     try{
         const config=await accountCaptchaConfig();
         if(!form.isConnected)return;
-        if(config.captchaTestMode){input.value='test-valid-captcha';host.textContent='تأیید امنیتی حالت آزمایشی';return;}
-        if(!config.captchaRequired){input.value='development-mock';host.textContent='تأیید امنیتی در محیط توسعه غیرفعال است.';return;}
+        if(config.captchaTestMode){input.value='test-valid-captcha';host.textContent='تأیید امنیتی حالت آزمایشی';accountCaptchaSubmit(form,true);return;}
+        if(!config.captchaRequired){input.value='';host.textContent=config.developmentMessage||'Cloudflare Turnstile در محیط توسعه تنظیم نشده است.';accountCaptchaStatus(form,'برای فعال‌سازی CAPTCHA کلیدهای Turnstile را در .env وارد کنید.','warning');accountCaptchaSubmit(form,false);return;}
+        accountCaptchaSubmit(form,false);
         await accountTurnstileReady();if(!form.isConnected)return;
-        host.textContent='';host.dataset.widgetId=window.turnstile.render(host,{sitekey:config.captchaSiteKey,theme:document.body.classList.contains('light-theme')?'light':'dark',language:'fa',callback:token=>{input.value=token;},'expired-callback':()=>{input.value='';},'error-callback':()=>{input.value='';}});
-    }catch(error){host.textContent=error.message;host.dataset.error='true';}
+        host.textContent='';const action=accountCaptchaAction(form);host.dataset.action=action;
+        host.dataset.widgetId=window.turnstile.render(host,{sitekey:config.turnstileSiteKey||config.captchaSiteKey,action,theme:document.body.classList.contains('light-theme')?'light':'dark',language:'fa',size:'flexible',appearance:'always','response-field':false,callback:token=>{input.value=token;accountCaptchaStatus(form,'تأیید امنیتی انجام شد.','success');accountCaptchaSubmit(form,true);},'expired-callback':()=>{input.value='';accountCaptchaStatus(form,'تأیید امنیتی منقضی شد؛ دوباره تأیید کنید.','error');accountCaptchaSubmit(form,false);},'error-callback':()=>{input.value='';accountCaptchaStatus(form,'بارگذاری تأیید امنیتی ناموفق بود؛ دوباره تلاش کنید.','error');accountCaptchaSubmit(form,false);}});
+    }catch(error){host.textContent=error.message;host.dataset.error='true';accountCaptchaStatus(form,'بارگذاری CAPTCHA ممکن نشد.','error');accountCaptchaSubmit(form,false);}
 }
 async function accountCaptchaToken(form,data){
     const config=await accountCaptchaConfig();
@@ -72,10 +80,10 @@ async function accountCaptchaToken(form,data){
 function accountResetCaptcha(form){
     if(!form?.isConnected)return;
     const host=form?.querySelector('[data-captcha]'),input=form?.querySelector('[name="captchaToken"]');if(input)input.value='';
-    if(host?.dataset.widgetId&&window.turnstile)window.turnstile.reset(host.dataset.widgetId);
+    if(host?.dataset.widgetId&&window.turnstile){window.turnstile.reset(host.dataset.widgetId);accountCaptchaSubmit(form,false);accountCaptchaStatus(form,'لطفاً تأیید کنید که ربات نیستید.');}
     else if(form?.isConnected)accountRenderCaptcha(form);
 }
-function accountCaptchaMarkup(){return '<div class="account-captcha account-full" data-captcha role="group" aria-label="تأیید امنیتی"><span class="account-muted">در حال آماده‌سازی تأیید امنیتی…</span></div><input type="hidden" name="captchaToken">';}
+function accountCaptchaMarkup(){return '<div class="account-captcha account-full" data-captcha role="group" aria-label="تأیید امنیتی"><span class="account-muted">در حال آماده‌سازی تأیید امنیتی…</span></div><small class="account-captcha-status account-full" data-captcha-status role="status" aria-live="polite">لطفاً تأیید کنید که ربات نیستید.</small><input type="hidden" name="captchaToken">';}
 function accountAuthSecure(message='',kind='success'){
     clearInterval(accountRecoveryState.timer);
     const app=document.getElementById('profileApp');
@@ -219,6 +227,9 @@ function accountBind() {
         app.querySelectorAll('#accountRegisterFields input').forEach(i=>{i.required=register;i.disabled=!register;});
         const password=app.querySelector('[name="password"]');password.minLength=register?12:1;password.autocomplete=register?'new-password':'current-password';
         document.getElementById('accountPasswordHint').textContent=register?'حداقل ۱۲ کاراکتر و حداکثر ۷۲ بایت UTF-8.':'رمز حساب خود را وارد کنید.';
+        const form=e.target.form,host=form?.querySelector('[data-captcha]');
+        if(host?.dataset.widgetId&&window.turnstile)window.turnstile.remove(host.dataset.widgetId);
+        if(host){delete host.dataset.widgetId;host.textContent='در حال آماده‌سازی تأیید امنیتی…';form.querySelector('[name="captchaToken"]').value='';accountRenderCaptcha(form);}
     });
     app.addEventListener('submit',async e=>{
         const form=e.target.closest('form');if(!form)return;e.preventDefault();
