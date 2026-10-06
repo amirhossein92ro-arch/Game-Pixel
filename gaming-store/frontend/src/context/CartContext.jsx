@@ -7,18 +7,18 @@ export function CartProvider({ children }) {
 
   const addToCart = (product) => {
     setCart(prev => {
-      const existing = prev.find(item => item.id === product.id);
+      const existing = prev.find(item => String(item.id) === String(product.id));
       if (existing) {
         return prev.map(item =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          String(item.id) === String(product.id) ? { ...item, id: String(item.id), quantity: item.quantity + 1 } : item
         );
       }
-      return [...prev, { ...product, quantity: 1 }];
+      return [...prev, { ...product, id: String(product.id), quantity: 1 }];
     });
   };
 
   const removeFromCart = (productId) => {
-    setCart(prev => prev.filter(item => item.id !== productId));
+    setCart(prev => prev.filter(item => String(item.id) !== String(productId)));
   };
 
   const updateQuantity = (productId, quantity) => {
@@ -28,7 +28,7 @@ export function CartProvider({ children }) {
     }
     setCart(prev =>
       prev.map(item =>
-        item.id === productId ? { ...item, quantity } : item
+        String(item.id) === String(productId) ? { ...item, quantity } : item
       )
     );
   };

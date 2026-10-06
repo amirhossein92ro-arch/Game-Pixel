@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="پنل مدیریت محلی فروشگاه گیمینگ Web 2">
+    <meta name="description" content="پنل مدیریت فروشگاه گیمینگ Web 2">
     <meta name="theme-color" content="#050816">
     <title>پنل مدیریت | Web 2</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -44,7 +44,7 @@
                     </label>
                     <label class="field">
                         <span>رمز عبور</span>
-                        <input id="adminPassword" name="password" type="password" inputmode="numeric" autocomplete="current-password" placeholder="رمز عبور مدیریت" maxlength="5" minlength="5" pattern="[0-9]{5}" required>
+                        <input id="adminPassword" name="password" type="password" autocomplete="current-password" placeholder="رمز عبور مدیریت" maxlength="72" minlength="12" required>
                     </label>
                     <button class="primary-button" type="submit"><i class="fa-solid fa-arrow-right-to-bracket"></i> ورود به پنل</button>
                 </form>
@@ -138,6 +138,9 @@
     </main>
 
     <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+    <script src="js/session.js"></script>
+    <script src="js/invoice.js"></script>
     <script src="script.js"></script>
+    <script src="js/admin.js"></script>
 </body>
 </html>

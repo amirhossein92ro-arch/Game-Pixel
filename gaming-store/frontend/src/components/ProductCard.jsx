@@ -11,7 +11,7 @@ function ProductCard({ product }) {
   };
 
   return (
-    <Link to={`/products/${product.id}`} className="product-card">
+    <Link to={`/products/${encodeURIComponent(product.id)}`} className="product-card">
       <div className="product-card-image">
         <img src={product.image} alt={product.name} />
         {product.price === 0 ? (

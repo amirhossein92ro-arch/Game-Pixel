@@ -13,7 +13,7 @@ function ProductDetail() {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await axios.get(`/api/products/${id}`);
+        const res = await axios.get(`/api/products/${encodeURIComponent(id)}`);
         setProduct(res.data);
       } catch (err) {
         setError('Product not found');

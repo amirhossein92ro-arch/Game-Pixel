@@ -11,7 +11,7 @@ export default function ProductDetail() {
   const [qty, setQty] = useState(1);
   const [activeTab, setActiveTab] = useState("specs");
 
-  const product = products.find((p) => p.id === Number(id));
+  const product = products.find((p) => String(p.id) === String(id));
 
   if (!product) {
     return (
@@ -27,7 +27,7 @@ export default function ProductDetail() {
 
   const discount = getDiscount(product.originalPrice, product.price);
   const related = products
-    .filter((p) => p.category === product.category && p.id !== product.id)
+    .filter((p) => p.category === product.category && String(p.id) !== String(product.id))
     .slice(0, 4);
 
   const handleAdd = () => {
@@ -209,7 +209,7 @@ export default function ProductDetail() {
             {related.map((p) => (
               <Link
                 key={p.id}
-                to={`/product/${p.id}`}
+                to={`/product/${encodeURIComponent(p.id)}`}
                 className="pd__related-card"
                 onClick={() => window.scrollTo(0, 0)}
               >

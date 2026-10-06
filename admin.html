@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="پنل مدیریت محلی فروشگاه گیمینگ Web 2">
+    <meta name="description" content="پنل مدیریت فروشگاه گیمینگ Web 2">
     <meta name="theme-color" content="#050816">
     <title>پنل مدیریت | Web 2</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/rgb-text.css">
 </head>
 <body data-page="admin" class="admin-page">
     <a class="skip-link" href="#main-content">رفتن به محتوای اصلی</a>
@@ -35,7 +36,7 @@
             <div class="admin-login-card glass-panel">
                 <div class="admin-login-icon"><i class="fa-solid fa-user-shield"></i></div>
                 <span class="eyebrow">SECURE AREA</span>
-                <h1>ورود به پنل مدیریت</h1>
+                <h1 class="rgb-text rgb-text-glow">ورود به پنل مدیریت</h1>
                 <p>برای مدیریت محصولات و مشاهده پیام‌های کاربران، نام کاربری و رمز عبور را وارد کنید.</p>
                 <form id="adminLoginForm">
                     <label class="field">
@@ -44,46 +45,55 @@
                     </label>
                     <label class="field">
                         <span>رمز عبور</span>
-                        <input id="adminPassword" name="password" type="password" inputmode="numeric" autocomplete="current-password" placeholder="رمز عبور مدیریت" maxlength="5" minlength="5" pattern="[0-9]{5}" required>
+                        <input id="adminPassword" name="password" type="password" autocomplete="current-password" placeholder="رمز عبور مدیریت" maxlength="72" required>
                     </label>
-                    <button class="primary-button" type="submit"><i class="fa-solid fa-arrow-right-to-bracket"></i> ورود به پنل</button>
+                    <label class="field"><span>کد دومرحله‌ای (در صورت فعال بودن)</span><input id="adminOtp" name="otp" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"></label><button class="primary-button" type="submit"><i class="fa-solid fa-arrow-right-to-bracket"></i> ورود به پنل</button>
                 </form>
                 <small class="admin-security-note"><i class="fa-solid fa-circle-info"></i> ورود مدیر به‌صورت امن در سرور بررسی می‌شود.</small>
             </div>
         </section>
 
         <div class="container admin-dashboard" id="adminDashboard" hidden>
-            <section class="admin-welcome">
+            <section class="admin-welcome admin-reveal">
                 <div>
                     <span class="eyebrow">CONTROL CENTER</span>
-                    <h1>داشبورد مدیریت فروشگاه</h1>
-                    <p>محصولات فروشگاه و پیام‌های ثبت‌شده در مرورگر را از اینجا مدیریت کنید.</p>
+                    <h1 class="rgb-text rgb-text-glow">داشبورد مدیریت فروشگاه</h1>
+                    <p>کنترل یکپارچه فروش، سفارش‌ها، کاربران و موجودی فروشگاه.</p>
                 </div>
                 <button class="admin-logout-button" id="adminLogout" type="button"><i class="fa-solid fa-right-from-bracket"></i> خروج</button>
             </section>
 
-            <div class="admin-stats">
-                <article class="admin-stat-card">
-                    <span><i class="fa-solid fa-boxes-stacked"></i></span>
-                    <div><strong id="adminProductCount">۰</strong><small>محصول فعال</small></div>
-                </article>
-                <article class="admin-stat-card">
-                    <span><i class="fa-solid fa-envelope"></i></span>
-                    <div><strong id="adminMessageCount">۰</strong><small>پیام دریافتی</small></div>
-                </article>
-                <article class="admin-stat-card">
-                    <span><i class="fa-solid fa-database"></i></span>
-                    <div><strong>Local</strong><small>محل ذخیره داده</small></div>
-                </article>
-            </div>
+            <nav class="admin-tabs glass-panel admin-reveal" aria-label="بخش‌های مدیریت">
+                <button class="is-active" type="button" data-admin-tab="overview"><i class="fa-solid fa-chart-line"></i> نمای کلی</button>
+                <button type="button" data-admin-tab="products"><i class="fa-solid fa-boxes-stacked"></i> محصولات</button>
+                <button type="button" data-admin-tab="orders"><i class="fa-solid fa-bag-shopping"></i> سفارش‌ها</button>
+                <button type="button" data-admin-tab="users"><i class="fa-solid fa-users"></i> کاربران</button>
+            </nav>
 
-            <section class="admin-grid">
+            <section class="admin-tab-panel is-active" data-admin-panel="overview">
+                <div class="admin-stats admin-stats-pro" id="adminStatsGrid" aria-busy="true">
+                    <article class="admin-stat-card"><span><i class="fa-solid fa-calendar-day"></i></span><div><strong id="adminTodaySales">—</strong><small>فروش امروز</small></div></article>
+                    <article class="admin-stat-card"><span><i class="fa-solid fa-chart-column"></i></span><div><strong id="adminMonthSales">—</strong><small>فروش این ماه</small></div></article>
+                    <article class="admin-stat-card"><span><i class="fa-solid fa-receipt"></i></span><div><strong id="adminOrderCount">—</strong><small>کل سفارش‌ها</small></div></article>
+                    <article class="admin-stat-card"><span><i class="fa-solid fa-user-check"></i></span><div><strong id="adminActiveUsers">—</strong><small>کاربران فعال</small></div></article>
+                    <article class="admin-stat-card"><span><i class="fa-solid fa-box-open"></i></span><div><strong id="adminOutOfStock">—</strong><small>کالای ناموجود</small></div></article>
+                    <article class="admin-stat-card"><span><i class="fa-solid fa-hourglass-half"></i></span><div><strong id="adminPendingOrders">—</strong><small>در انتظار بررسی</small></div></article>
+                </div>
+                <section class="glass-panel admin-messages-panel">
+                    <div class="admin-panel-heading"><span class="admin-heading-icon"><i class="fa-solid fa-inbox"></i></span><div><h2 class="rgb-text">پیام‌های فرم تماس</h2><p>جدیدترین پیام‌ها در ابتدای فهرست قرار می‌گیرند.</p></div></div>
+                    <div class="admin-messages-grid" id="adminMessages"></div>
+                </section>
+            </section>
+
+            <section class="admin-tab-panel" data-admin-panel="products" hidden>
+              <div class="admin-grid">
                 <div class="glass-panel admin-form-panel">
                     <div class="admin-panel-heading">
                         <span class="admin-heading-icon"><i class="fa-solid fa-plus"></i></span>
-                        <div><h2>افزودن محصول جدید</h2><p>محصول بلافاصله در فروشگاه نمایش داده می‌شود.</p></div>
+                        <div><h2 id="adminProductFormTitle" class="rgb-text">افزودن محصول جدید</h2><p>محصول بلافاصله در فروشگاه نمایش داده می‌شود.</p></div>
                     </div>
                     <form id="adminProductForm">
+                        <input type="hidden" name="id"><div class="admin-flags"><label><input type="checkbox" name="featured"> محصول ویژه</label><label><input type="checkbox" name="isNew"> محصول جدید</label><label><input type="checkbox" name="bestSeller"> پرفروش</label></div>
                         <label class="field">
                             <span>نام محصول</span>
                             <input type="text" name="name" minlength="2" maxlength="80" placeholder="مثلاً مانیتور گیمینگ UltraView" required>
@@ -103,41 +113,55 @@
                                 <span>موجودی</span>
                                 <input type="number" name="stock" min="0" step="1" inputmode="numeric" placeholder="50" required>
                             </label>
-                            <label class="field">
-                                <span>تصویر (URL)</span>
-                                <input type="url" name="image" placeholder="https://..." dir="ltr">
-                            </label>
+                            <label class="field"><span>تخفیف (درصد)</span><input type="number" name="discount" min="0" max="99" step="1" value="0"></label>
                         </div>
+                        <label class="field"><span>برند</span><input name="brand" maxlength="100" value="WEB 2" required></label><label class="field"><span>توضیح کوتاه</span><input name="shortDescription" maxlength="300" required></label><label class="field"><span>ویژگی‌ها (هر خط یک ویژگی)</span><textarea name="features" rows="5" maxlength="8000" required></textarea></label><div class="field-row"><label class="field"><span>امتیاز</span><input name="rating" type="number" min="0" max="5" step="0.1" value="4.5" required></label><label class="field"><span>تعداد نظرات</span><input name="reviews" type="number" min="0" step="1" value="0" required></label></div><label class="field"><span>گارانتی</span><input name="guarantee" value="۱۲ ماه گارانتی" maxlength="200" required></label><label class="field"><span>وضعیت محصول</span><select name="status"><option value="active">فعال</option><option value="inactive">غیرفعال</option></select></label><label class="field"><span>آیکون Font Awesome</span><input name="icon" value="fa-gamepad" pattern="fa-[a-z0-9-]+" required></label><label class="field"><span>رنگ نمایشی</span><input name="accent" type="color" value="#00d4ff"></label><label class="field"><span>برچسب</span><input name="tag" value="جدید" maxlength="100"></label><label class="field"><span>تصویر محصول</span><input type="file" name="imageFile" accept="image/png,image/jpeg,image/webp,image/gif"><small class="field-help">PNG/JPG/WebP تا ۲ مگابایت؛ تصویر در داده فروشگاه ذخیره می‌شود.</small></label>
+                        <label class="field"><span>یا آدرس تصویر</span><input type="text" name="image" placeholder="https://... یا img/product.jpg" dir="ltr"></label>
                         <label class="field">
                             <span>توضیحات محصول</span>
                             <textarea name="description" minlength="5" maxlength="500" rows="5" placeholder="توضیح کوتاه و کاربردی درباره محصول..." required></textarea>
                         </label>
-                        <button class="primary-button" type="submit"><i class="fa-solid fa-floppy-disk"></i> ذخیره محصول</button>
+                        <div class="admin-form-actions"><button class="primary-button" type="submit"><i class="fa-solid fa-floppy-disk"></i> ذخیره محصول</button><button class="secondary-button" id="adminProductCancel" type="button" hidden>انصراف از ویرایش</button></div>
                     </form>
                 </div>
 
                 <div class="glass-panel admin-products-panel">
                     <div class="admin-panel-heading">
                         <span class="admin-heading-icon"><i class="fa-solid fa-list"></i></span>
-                    <div><h2>محصولات فعلی</h2><p>مدیریت محصولات مستقیماً از طریق API فروشگاه انجام می‌شود.</p></div>
+                    <div><h2 class="rgb-text">محصولات فعلی</h2><p>مدیریت محصولات مستقیماً از طریق API فروشگاه انجام می‌شود.</p></div>
                     </div>
                     <div class="admin-table-wrap">
-                        <div id="product-list" class="admin-product-list" aria-live="polite"></div>
+                        <div id="product-list" class="admin-product-list" aria-live="polite"><div class="admin-skeleton-list" aria-label="در حال بارگذاری"></div></div>
                     </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="admin-tab-panel" data-admin-panel="orders" hidden>
+                <div class="glass-panel admin-data-panel">
+                    <div class="admin-panel-heading"><span class="admin-heading-icon"><i class="fa-solid fa-bag-shopping"></i></span><div><h2 class="rgb-text">مدیریت سفارش‌ها</h2><p>وضعیت سفارش را تغییر دهید یا فاکتور رسمی آن را مشاهده کنید.</p></div></div>
+                    <div class="admin-toolbar"><label class="admin-search"><i class="fa-solid fa-magnifying-glass"></i><input id="adminOrderSearch" type="search" placeholder="جست‌وجوی کد، خریدار یا موبایل"></label><select id="adminOrderFilter"><option value="">همه وضعیت‌ها</option><option value="processing">در حال بررسی</option><option value="pending">در انتظار بررسی</option><option value="paid">پرداخت شده</option><option value="delivered">تحویل شده</option><option value="shipped">ارسال شده</option><option value="cancelled">لغو شده</option></select></div>
+                    <div class="admin-responsive-table" id="adminOrders" aria-live="polite"></div>
                 </div>
             </section>
 
-            <section class="glass-panel admin-messages-panel">
-                <div class="admin-panel-heading">
-                    <span class="admin-heading-icon"><i class="fa-solid fa-inbox"></i></span>
-                    <div><h2>پیام‌های فرم تماس</h2><p>جدیدترین پیام‌ها در ابتدای فهرست قرار می‌گیرند.</p></div>
+            <section class="admin-tab-panel" data-admin-panel="users" hidden>
+                <div class="glass-panel admin-data-panel">
+                    <div class="admin-panel-heading"><span class="admin-heading-icon"><i class="fa-solid fa-users-gear"></i></span><div><h2 class="rgb-text">مدیریت کاربران</h2><p>نقش، وضعیت دسترسی و سابقه خرید کاربران را کنترل کنید.</p></div></div>
+                    <div class="admin-toolbar"><label class="admin-search"><i class="fa-solid fa-magnifying-glass"></i><input id="adminUserSearch" type="search" placeholder="جست‌وجوی نام، ایمیل یا موبایل"></label></div>
+                    <div class="admin-responsive-table" id="adminUsers" aria-live="polite"></div>
                 </div>
-                <div class="admin-messages-grid" id="adminMessages"></div>
             </section>
         </div>
     </main>
 
     <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
-    <script src="script.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.12.1/html2pdf.bundle.min.js" referrerpolicy="no-referrer"></script>
+    <script src="js/invoice.js"></script>
+    <script src="js/api-config.js"></script><script src="js/session.js"></script>
+    <script src="js/wishlist.js"></script>
+    <script src="js/admin-console.js"></script><script src="js/admin-actions.js"></script><script src="script.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/admin-support.js"></script>
 </body>
 </html>

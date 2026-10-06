@@ -7,24 +7,24 @@ export function CartProvider({ children }) {
 
   const addItem = useCallback((product) => {
     setItems((prev) => {
-      const existing = prev.find((i) => i.id === product.id);
+      const existing = prev.find((i) => String(i.id) === String(product.id));
       if (existing) {
         return prev.map((i) =>
-          i.id === product.id ? { ...i, qty: i.qty + 1 } : i
+          String(i.id) === String(product.id) ? { ...i, id: String(i.id), qty: i.qty + 1 } : i
         );
       }
-      return [...prev, { ...product, qty: 1 }];
+      return [...prev, { ...product, id: String(product.id), qty: 1 }];
     });
   }, []);
 
   const removeItem = useCallback((id) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    setItems((prev) => prev.filter((i) => String(i.id) !== String(id)));
   }, []);
 
   const updateQty = useCallback((id, qty) => {
     if (qty < 1) return;
     setItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, qty } : i))
+      prev.map((i) => (String(i.id) === String(id) ? { ...i, qty } : i))
     );
   }, []);
 

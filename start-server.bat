@@ -1,5 +1,5 @@
 @echo off
-cd /d "E:\web 2"
+cd /d "%~dp0"
 set "PATH=C:\Program Files\nodejs;%PATH%"
 echo ==========================================
 title Game Pixel - Local Server

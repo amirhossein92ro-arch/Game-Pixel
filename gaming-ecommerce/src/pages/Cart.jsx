@@ -31,14 +31,14 @@ export default function Cart() {
           {items.map((item) => (
             <div key={item.id} className="cart-item">
               <Link
-                to={`/product/${item.id}`}
+                to={`/product/${encodeURIComponent(item.id)}`}
                 className="cart-item__icon"
               >
                 <i className={`fa-solid ${item.icon}`} />
               </Link>
               <div className="cart-item__info">
                 <Link
-                  to={`/product/${item.id}`}
+                  to={`/product/${encodeURIComponent(item.id)}`}
                   className="cart-item__name"
                 >
                   {item.name}

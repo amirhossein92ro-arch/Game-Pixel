@@ -9,7 +9,7 @@ export default function ProductCard({ product }) {
 
   return (
     <div className="pcard">
-      <Link to={`/product/${product.id}`} className="pcard__link">
+      <Link to={`/product/${encodeURIComponent(product.id)}`} className="pcard__link">
         <div className="pcard__image">
           <i className={`fa-solid ${product.icon}`} />
           {product.tags.includes("new") && (

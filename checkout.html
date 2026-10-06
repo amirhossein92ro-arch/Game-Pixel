@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="css/admin.css">
     <style>
         .checkout-wizard { display:grid; gap:22px; }
         .checkout-progress { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; margin-bottom:2px; }
@@ -37,6 +37,7 @@
         .field-help { color:var(--text-soft); font-size:.7rem; margin-top:3px; }
         @media (max-width:700px) { .checkout-progress { grid-template-columns:1fr 1fr; } .checkout-progress button:last-child { grid-column:1/-1; } .checkout-step-actions { flex-direction:column; } }
     </style>
+    <link rel="stylesheet" href="css/rgb-text.css">
 </head>
 <body data-page="checkout">
     <a class="skip-link" href="#main-content">رفتن به محتوای اصلی</a>
@@ -65,7 +66,7 @@
     <main id="main-content" class="inner-page">
         <section class="container page-heading-block">
             <span class="eyebrow">SMART CHECKOUT</span>
-            <h1>تکمیل سفارش</h1>
+            <h1 class="rgb-text rgb-text-glow">تکمیل سفارش</h1>
             <p>از ورود تا ثبت نهایی، همه مراحل سفارش را در یک مسیر امن و شفاف انجام دهید.</p>
         </section>
 
@@ -80,7 +81,7 @@
                 </div>
                 <form id="checkoutForm" autocomplete="on" novalidate>
                     <section class="checkout-step" data-checkout-step="1" aria-labelledby="stepTitle1">
-                        <div class="form-section-heading"><span>۱</span><div><h2 id="stepTitle1">ورود یا ساخت حساب</h2><p>برای ذخیره سفارش و مشاهده تاریخچه وارد شوید.</p></div></div>
+                        <div class="form-section-heading"><span>۱</span><div><h2 id="stepTitle1" class="rgb-text">ورود یا ساخت حساب</h2><p>برای ذخیره سفارش و مشاهده تاریخچه وارد شوید.</p></div></div>
                         <div id="checkoutLoggedIn" class="checkout-account-card" hidden></div>
                         <div id="checkoutLoginFields">
                             <div class="field-row">
@@ -89,7 +90,7 @@
                             </div>
                             <div class="field-row">
                                 <label class="field"><span>موبایل ۱۱ رقمی</span><input id="checkoutAuthPhone" name="authPhone" type="tel" inputmode="numeric" maxlength="11" autocomplete="tel" dir="ltr" placeholder="09123456789" required><small class="field-help">فرمت صحیح: ۰۹۱۲۳۴۵۶۷۸۹</small></label>
-                                <label class="field"><span>رمز عبور دقیقاً ۴ رقم</span><input id="checkoutAuthPassword" name="authPassword" type="password" inputmode="numeric" maxlength="4" minlength="4" autocomplete="new-password" dir="ltr" required><small id="checkoutPasswordHint" class="field-help">فقط چهار رقم انگلیسی یا فارسی.</small></label>
+                                <label class="field"><span>رمز عبور حساب</span><input id="checkoutAuthPassword" name="authPassword" type="password" maxlength="72" autocomplete="current-password" dir="ltr" required><small id="checkoutPasswordHint" class="field-help">برای ساخت حساب جدید از صفحه پروفایل ثبت‌نام کنید.</small></label>
                             </div>
                         </div>
                         <div class="checkout-errors" id="checkoutLoginError" role="alert"></div>
@@ -97,7 +98,7 @@
                     </section>
 
                     <section class="checkout-step" data-checkout-step="2" aria-labelledby="stepTitle2" hidden>
-                        <div class="form-section-heading"><span>۲</span><div><h2 id="stepTitle2">اطلاعات گیرنده</h2><p>مشخصات ارسال نمایشی سفارش را وارد کنید.</p></div></div>
+                        <div class="form-section-heading"><span>۲</span><div><h2 id="stepTitle2" class="rgb-text">اطلاعات گیرنده</h2><p>مشخصات ارسال نمایشی سفارش را وارد کنید.</p></div></div>
                         <div class="field-row">
                             <label class="field"><span>نام گیرنده</span><input type="text" id="customerName" name="customerName" minlength="3" maxlength="80" autocomplete="shipping name" required></label>
                             <label class="field"><span>شماره موبایل</span><input type="tel" id="customerPhone" name="customerPhone" inputmode="numeric" maxlength="11" autocomplete="shipping tel" dir="ltr" placeholder="09123456789" required></label>
@@ -108,27 +109,23 @@
                     </section>
 
                     <section class="checkout-step" data-checkout-step="3" aria-labelledby="stepTitle3" hidden>
-                        <div class="form-section-heading"><span>۳</span><div><h2 id="stepTitle3">بررسی فاکتور</h2><p>اقلام، تخفیف و مبلغ نهایی را قبل از ثبت بررسی کنید.</p></div></div>
+                        <div class="form-section-heading"><span>۳</span><div><h2 id="stepTitle3" class="rgb-text">بررسی فاکتور</h2><p>اقلام، تخفیف و مبلغ نهایی را قبل از ثبت بررسی کنید.</p></div></div>
                         <div class="checkout-review-card" id="invoiceReview"></div>
                         <div class="checkout-errors" id="checkoutReviewError" role="alert"></div>
                         <div class="checkout-step-actions"><button class="secondary-button" type="button" data-checkout-prev="3"><i class="fa-solid fa-arrow-right"></i> بازگشت</button><button class="primary-button" type="button" data-checkout-next="3">ادامه به ثبت نهایی <i class="fa-solid fa-arrow-left"></i></button></div>
                     </section>
 
                     <section class="checkout-step" data-checkout-step="4" aria-labelledby="stepTitle4" hidden>
-                        <div class="form-section-heading"><span>۴</span><div><h2 id="stepTitle4">ثبت نهایی سفارش</h2><p>پرداخت کاملاً نمایشی است؛ هیچ اطلاعات بانکی ذخیره نمی‌شود.</p></div></div>
-                        <label class="field"><span>شماره کارت آزمایشی</span><div class="input-with-icon"><i class="fa-regular fa-credit-card" aria-hidden="true"></i><input type="text" id="cardNumber" name="cardNumber" inputmode="numeric" autocomplete="cc-number" maxlength="19" dir="ltr" placeholder="0000 0000 0000 0000" required></div></label>
-                        <div class="field-row">
-                            <label class="field"><span>تاریخ انقضا</span><input type="text" id="expiryDate" name="expiryDate" inputmode="numeric" autocomplete="cc-exp" maxlength="5" dir="ltr" placeholder="MM/YY" required></label>
-                            <label class="field"><span>CVV2</span><input type="password" id="cvv" name="cvv" inputmode="numeric" autocomplete="cc-csc" maxlength="4" dir="ltr" placeholder="•••" required></label>
-                        </div>
-                        <label class="field checkbox-field"><span><input id="acceptDemo" type="checkbox" required> شرایط پرداخت نمایشی را می‌پذیرم.</span></label>
+                        <div class="form-section-heading"><span>۴</span><div><h2 id="stepTitle4" class="rgb-text">ثبت نهایی سفارش</h2><p>پرداخت کاملاً نمایشی است؛ هیچ اطلاعات بانکی ذخیره نمی‌شود.</p></div></div>
+                        <p class="secure-note">ثبت سفارش در حالت TEST است؛ هیچ وجهی دریافت نمی‌شود و نیازی به اطلاعات کارت بانکی نیست.</p>
+                        <label class="field checkbox-field"><span><input id="acceptDemo" name="isAgreed" type="checkbox" required> شرایط پرداخت نمایشی را می‌پذیرم.</span></label>
                         <div class="checkout-errors" id="checkoutPaymentError" role="alert"></div>
                         <div class="checkout-step-actions"><button class="secondary-button" type="button" data-checkout-prev="4"><i class="fa-solid fa-arrow-right"></i> بازگشت</button><button class="primary-button pay-button" id="payButton" type="submit"><span>ثبت سفارش</span><span id="paymentAmount">۰ تومان</span></button></div>
-                        <p class="secure-note"><i class="fa-solid fa-lock" aria-hidden="true"></i> اطلاعات کارت فقط برای شبیه‌سازی لحظه‌ای استفاده می‌شود.</p>
+                        <p class="secure-note"><i class="fa-solid fa-lock" aria-hidden="true"></i> پرداخت واقعی پس از اتصال درگاه رسمی در دسترس خواهد بود.</p>
                     </section>
 
                     <section class="checkout-step" data-checkout-step="5" aria-labelledby="stepTitle5" hidden>
-                        <div class="form-section-heading"><span>۵</span><div><h2 id="stepTitle5">تاریخچه سفارشات</h2><p>کد پیگیری و خریدهای ثبت‌شده شما در این بخش قابل مشاهده است.</p></div></div>
+                        <div class="form-section-heading"><span>۵</span><div><h2 id="stepTitle5" class="rgb-text">تاریخچه سفارشات</h2><p>کد پیگیری و خریدهای ثبت‌شده شما در این بخش قابل مشاهده است.</p></div></div>
                         <div class="checkout-history-card" id="checkoutHistory"></div>
                         <div class="checkout-step-actions"><a class="secondary-button" href="profile.html" target="_blank" rel="noopener">مشاهده پروفایل <i class="fa-solid fa-user"></i></a><a class="primary-button" href="index.html#products">ادامه خرید <i class="fa-solid fa-arrow-left"></i></a></div>
                     </section>
@@ -149,18 +146,22 @@
     <section class="container payment-success" id="paymentSuccess" hidden aria-live="polite">
         <div class="success-ring"><i class="fa-solid fa-check" aria-hidden="true"></i></div>
         <span class="eyebrow">ORDER COMPLETE</span>
-        <h1>سفارش شما با موفقیت ثبت شد!</h1>
+        <h1 class="rgb-text rgb-text-glow">سفارش شما با موفقیت ثبت شد!</h1>
         <p>کد پیگیری اختصاصی سفارش در تاریخچه مرحله پنجم و پروفایل شما ذخیره شد.</p>
         <div class="payment-receipt glass-panel" id="paymentReceipt">
             <div class="receipt-heading"><div><span>WEB 2</span><strong>رسید سفارش</strong></div><span class="receipt-status"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> ثبت موفق</span></div>
             <dl class="receipt-details"><div><dt>کد پیگیری</dt><dd id="orderCode"></dd></div><div><dt>تاریخ</dt><dd id="receiptDate"></dd></div><div><dt>مبلغ</dt><dd id="receiptAmount"></dd></div></dl>
             <div class="receipt-products"><span>محصولات</span><ul id="receiptProducts"></ul></div>
         </div>
-        <div class="receipt-actions"><button class="primary-button" id="downloadReceipt" type="button"><i class="fa-solid fa-download" aria-hidden="true"></i> دانلود رسید</button><a class="secondary-button" href="profile.html" target="_blank" rel="noopener">پروفایل من <i class="fa-solid fa-user"></i></a></div>
+        <div class="receipt-actions"><button class="primary-button invoice-pdf-button" id="downloadReceipt" type="button"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> دریافت و مشاهده فاکتور رسمی (PDF)</button><a class="secondary-button" href="profile.html" target="_blank" rel="noopener">پروفایل من <i class="fa-solid fa-user"></i></a></div>
     </section>
 
     <footer class="site-footer compact-footer"><div class="container footer-inner"><p>© ۲۰۲۶ WEB 2 — فروشگاه نمایشی تجهیزات گیمینگ.</p><a href="cart.html">بازگشت به سبد خرید</a></div></footer>
     <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.12.1/html2pdf.bundle.min.js" referrerpolicy="no-referrer"></script>
+    <script src="js/invoice.js"></script>
+    <script src="js/api-config.js"></script><script src="js/session.js"></script><script src="js/site.js"></script>
+    <script src="js/wishlist.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
