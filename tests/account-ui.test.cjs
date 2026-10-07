@@ -29,7 +29,7 @@ test('account and admin DOM flow uses real API, wishlist cart and safe logout',a
             return response;
         };
         w.addEventListener('error',e=>errors.push(e.error?.stack||e.message));
-        for(const tag of w.document.querySelectorAll('script[src]')){const src=tag.getAttribute('src');if(!src.startsWith('https:'))vm.runInContext(fs.readFileSync(path.join(root,src),'utf8'),dom.getInternalVMContext(),{filename:src});}
+        for(const tag of w.document.querySelectorAll('script[src]')){const src=tag.getAttribute('src');if(!src.startsWith('https:')){const filePath=src.split(/[?#]/,1)[0];vm.runInContext(fs.readFileSync(path.join(root,filePath),'utf8'),dom.getInternalVMContext(),{filename:src});}}
         return w;
     }
     const fill=(w,id,values)=>{const form=w.document.getElementById(id);assert.ok(form,'form '+id);for(const [key,value]of Object.entries(values))form.elements.namedItem(key).value=value;return form;};

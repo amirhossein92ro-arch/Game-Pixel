@@ -282,6 +282,11 @@ test('all database products: API, home/search/category links, detail, cart and p
         assert.equal(preflight.status,204);
         assert.equal(preflight.headers.get('Access-Control-Allow-Origin'),liveOrigin);
         assert.equal(preflight.headers.get('Access-Control-Allow-Credentials'),'true');
+        const localAliasOrigin=`http://127.0.0.1:${port}`;
+        const localAliasPreflight=await fetch(base+'/api/auth/register',{method:'OPTIONS',headers:{Origin:localAliasOrigin,'Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'content-type'}});
+        assert.equal(localAliasPreflight.status,204);
+        assert.equal(localAliasPreflight.headers.get('Access-Control-Allow-Origin'),localAliasOrigin);
+        assert.equal(localAliasPreflight.headers.get('Access-Control-Allow-Credentials'),'true');
         const blocked=await fetch(base+'/api/products',{headers:{Origin:'https://example.invalid'}});
         assert.equal(blocked.headers.get('Access-Control-Allow-Origin'),null);
         assert.equal(blocked.status,403);
@@ -290,6 +295,19 @@ test('all database products: API, home/search/category links, detail, cart and p
         assert.equal(productionCatalog.status,200);
         assert.equal(productionCatalog.headers.get('Access-Control-Allow-Origin'),productionOrigin);
         assert.equal(productionCatalog.headers.get('Access-Control-Allow-Credentials'),'true');
+        const corsUser={name:'Allowed Origin User',email:'allowed-origin@example.invalid',phone:'09123334444',password:'Allowed-Origin-Password-2026'};
+        const corsRegister=await fetch(base+'/api/auth/register',{method:'POST',headers:{Origin:productionOrigin,'Content-Type':'application/json'},body:JSON.stringify(corsUser)});
+        assert.equal(corsRegister.status,201);
+        assert.equal(corsRegister.headers.get('Access-Control-Allow-Origin'),productionOrigin);
+        const corsPrincipal=await corsRegister.json(),corsCookie=corsRegister.headers.getSetCookie().map(c=>c.split(';')[0]).join('; ');
+        const corsProfile=await fetch(base+'/api/users/me',{method:'PUT',headers:{Origin:productionOrigin,Cookie:corsCookie,'X-CSRF-Token':corsPrincipal.csrfToken,'Content-Type':'application/json'},body:JSON.stringify({name:'Allowed Origin Profile'})});
+        assert.equal(corsProfile.status,200);
+        const corsForgot=await fetch(base+'/api/auth/forgot-password/request',{method:'POST',headers:{Origin:productionOrigin,'Content-Type':'application/json'},body:JSON.stringify({phone:corsUser.phone})});
+        assert.equal(corsForgot.status,200);
+        const corsLogout=await fetch(base+'/api/auth/logout',{method:'POST',headers:{Origin:productionOrigin,Cookie:corsCookie,'X-CSRF-Token':corsPrincipal.csrfToken,'Content-Type':'application/json'},body:'{}'});
+        assert.equal(corsLogout.status,204);
+        const corsLogin=await fetch(base+'/api/auth/login',{method:'POST',headers:{Origin:productionOrigin,'Content-Type':'application/json'},body:JSON.stringify({email:corsUser.email,password:corsUser.password})});
+        assert.equal(corsLogin.status,200);
         const sameServer=await fetch(base+'/api/products');
         assert.equal(sameServer.status,200);
         for(const id of ['1','2','3','8','10','20','40','60',...opaqueIds]){
@@ -391,4 +409,24 @@ test('all database products: API, home/search/category links, detail, cart and p
         assert.equal(offline.w.document.querySelector('.detail-info h1').textContent,offline.run('getProduct(60).name'));
         console.log(`Verified ${catalog.length} products including UUID/string IDs, 10 direct refreshes, cart/checkout refresh, wishlist and persisted order IDs.`);
     } finally {for(const w of windows)w.close();await stop();fs.rmSync(temp,{recursive:true,force:true});}
+});
+
+test('explicit production HTTP origin keeps credentialed CORS and cookies usable',async()=>{
+    const temp=fs.mkdtempSync(path.join(os.tmpdir(),'web2-http-origin-'));
+    const port=30000+Math.floor(Math.random()*1000),origin=`http://127.0.0.1:${port}`;
+    const child=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,NODE_ENV:'production',PORT:String(port),APP_ORIGIN:origin,ALLOWED_ORIGINS:origin,ALLOW_PRODUCTION_HTTP:'true',DEV_ADMIN_PASSWORD_ENABLED:'false',DATABASE_PATH:path.join(temp,'http.sqlite'),SEED_DATA_PATH:path.join(root,'data.json'),ADMIN_USERNAME:'cors-admin',ADMIN_PASSWORD:'production-http-admin-2026',TURNSTILE_SITE_KEY:'test-site-key',TURNSTILE_SECRET_KEY:'test-secret-key',SMS_PROVIDER:'generic',SMS_API_URL:'https://sms.example.invalid/send',SMS_API_KEY:'test-sms-key',SMS_TEMPLATE_ID:'test-template'},stdio:['ignore','pipe','pipe']});let stderr='';child.stderr.on('data',data=>{stderr+=String(data);});
+    try {
+        await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('startup timeout')),15000);child.once('exit',code=>{clearTimeout(timer);reject(Error(`startup ${code}: ${stderr.trim()}`));});child.stdout.on('data',data=>{if(String(data).includes('Server is running')){clearTimeout(timer);resolve();}});});
+        const login=await fetch(origin+'/api/admin/login',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({username:'cors-admin',password:'production-http-admin-2026'})});
+        assert.equal(login.status,200);
+        assert.equal(login.headers.get('Access-Control-Allow-Origin'),origin);
+        assert.equal(login.headers.get('Access-Control-Allow-Credentials'),'true');
+        const cookie=login.headers.get('set-cookie')||'';
+        assert.match(cookie,/HttpOnly/i);assert.match(cookie,/SameSite=Strict/i);assert.doesNotMatch(cookie,/;\s*Secure/i);
+        const blocked=await fetch(origin+'/api/products',{headers:{Origin:'https://attacker.invalid'}});
+        assert.equal(blocked.status,403);assert.equal(blocked.headers.get('Access-Control-Allow-Origin'),null);
+    } finally {
+        if(child.exitCode===null&&child.signalCode===null){const ended=once(child,'exit');child.kill();await ended;}
+        fs.rmSync(temp,{recursive:true,force:true});
+    }
 });
