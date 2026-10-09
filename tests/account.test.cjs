@@ -45,7 +45,7 @@ test('account API lifecycle, administrator integration and isolation of two user
             assert.equal((await a.request('/api/auth/logout','POST',{})).status,204);
             assert.equal((await a.request('/api/auth/login','POST',fields)).status,200);
             assert.equal((await admin.request('/api/admin/login','POST',{username:'admin',password:'account-test-admin-2026'})).status,200);
-            assert.equal((await a.request('/api/admin/tickets')).status,401);
+            assert.equal((await a.request('/api/admin/tickets')).status,403);
         });
         await t.test('profile validates fields and cannot change owner or privileges',async()=>{
             assert.equal((await a.request('/api/users/me','PUT',{firstName:'ا'})).status,400);
@@ -87,7 +87,7 @@ test('account API lifecycle, administrator integration and isolation of two user
             assert.equal((await b.request('/api/tickets')).data.length,0);
             assert.equal((await b.request('/api/tickets/'+ticket.id)).status,404);
             assert.equal((await b.request('/api/tickets/'+ticket.id+'/messages','POST',{message:'پیام غیرمجاز'})).status,404);
-            assert.equal((await a.request('/api/admin/tickets/'+ticket.id,'PUT',{status:'closed'})).status,401);
+            assert.equal((await a.request('/api/admin/tickets/'+ticket.id,'PUT',{status:'closed'})).status,403);
             assert.equal((await admin.request('/api/admin/tickets')).data.length,1);
             const answer=await admin.request('/api/admin/tickets/'+ticket.id,'PUT',{status:'answered',message:'پاسخ مدیر به درخواست تست شما'});assert.equal(answer.status,200);
             assert.equal((await a.request('/api/tickets/'+ticket.id)).data.messages[1].author,'admin');
@@ -103,7 +103,7 @@ test('account API lifecycle, administrator integration and isolation of two user
             assert.equal((await a.request('/api/tickets/'+ticket.id+'/messages','POST',{message:'درخواست بسته است'})).status,409);
             assert.equal((await a.request('/api/tickets','POST',{subject:'موضوع',category:'invalid',message:'تست اعتبارسنجی'})).status,400);
             assert.equal((await admin.request('/api/admin/notifications','POST',{userId:userA.id,title:'پیام فروشگاه',message:'پیام واقعی از مدیر برای حساب تست'})).status,201);
-            assert.equal((await a.request('/api/admin/notifications','POST',{userId:userB.id,title:'غیرمجاز',message:'پیام غیرمجاز'})).status,401);
+            assert.equal((await a.request('/api/admin/notifications','POST',{userId:userB.id,title:'غیرمجاز',message:'پیام غیرمجاز'})).status,403);
         });
         await t.test('orders and details, admin status update and event notifications',async()=>{
             assert.equal((await admin.request('/api/admin/orders/legacy-account-test-order','PUT',{status:'shipped'})).status,200);
@@ -114,7 +114,7 @@ test('account API lifecycle, administrator integration and isolation of two user
             await a.request('/api/checkout','POST',body);assert.equal((await a.request('/api/users/me/notifications')).data.items.length,count);
             assert.equal((await b.request('/api/orders/'+order.id)).status,404);
             assert.equal((await b.request('/api/orders')).data.length,0);
-            assert.equal((await b.request('/api/admin/orders/'+order.id,'PUT',{status:'shipped'})).status,401);
+            assert.equal((await b.request('/api/admin/orders/'+order.id,'PUT',{status:'shipped'})).status,403);
             await admin.request('/api/admin/orders/'+order.id,'PUT',{status:'shipped'});
             assert.equal((await a.request('/api/orders/'+order.id)).data.status,'shipped');
             let stats=(await a.request('/api/account/dashboard')).data.stats;assert.equal(stats.orders,1);assert.equal(stats.pending,0);

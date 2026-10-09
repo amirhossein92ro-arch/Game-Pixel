@@ -16,11 +16,6 @@ const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const DATA_PATH = process.env.SEED_DATA_PATH || path.join(__dirname, "data.json");
 const store = require("./lib/database.cjs").openDatabase(process.env.DATABASE_PATH || path.join(__dirname, "var", "web2.sqlite"), DATA_PATH);
 const STATIC_ROOT = __dirname;
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
-
-const ADMIN_SESSION_TTL_MS = 8 * 60 * 60 * 1000;
-const adminSessions = new Map();
-
 app.disable("x-powered-by");
 if (process.env.TRUST_PROXY) app.set("trust proxy", process.env.TRUST_PROXY === "true" ? 1 : process.env.TRUST_PROXY);
 app.use(helmet({
@@ -110,6 +105,7 @@ function readData() { return store.read(); }
 function writeData(data) { return store.write(data); }
 const security = require('./lib/commerce.cjs').installCommerce(app, store);
 const requireAdmin = security.requireAdmin;
+const requireAdminSession = security.requireAdminSession;
 function readProducts() {
     const data = readData();
     return Array.isArray(data.products) ? data.products : [];
@@ -345,6 +341,7 @@ app.delete("/api/products/:id", requireAdmin, deleteProduct);
 
 /* â”€â”€ Static files â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const staticOptions = {
+    dotfiles: 'deny',
     index: false,
     etag: true,
     maxAge: IS_PRODUCTION ? "1d" : 0,
@@ -357,7 +354,13 @@ const staticOptions = {
     }
 };
 app.use("/css", express.static(path.join(STATIC_ROOT, "css"), staticOptions));
-app.use("/js", express.static(path.join(STATIC_ROOT, "js"), staticOptions));
+const protectedAdminScripts = new Set([
+    "/admin.js", "/admin-actions.js", "/admin-console.js", "/admin-support.js", "/admin-users.js"
+]);
+app.use("/js", (req, res, next) => {
+    if (!protectedAdminScripts.has(req.path.toLowerCase())) return next();
+    return requireAdminSession(req, res, next);
+}, express.static(path.join(STATIC_ROOT, "js"), staticOptions));
 app.use("/img", express.static(path.join(STATIC_ROOT, "img"), staticOptions));
 ["style.css", "script.js", "products.js"].forEach((fileName) => {
     app.get(`/${fileName}`, (_req, res, next) => {
@@ -463,12 +466,19 @@ function sendPage(fileName, res, next) {
     });
 }
 
+function sendProtectedAdminPage(_req, res, next) {
+    res.set("Cache-Control", "no-store");
+    res.set("Content-Type", "text/html; charset=utf-8");
+    res.sendFile(path.join(STATIC_ROOT, "admin.html"), (error) => {
+        if (error) next(error);
+    });
+}
+
 const pageRoutes = {
     "/": "index.html",
     "/index": "index.html",
     "/index.html": "index.html",
-    "/admin": "admin.html",
-    "/admin.html": "admin.html",
+    "/admin-login": "admin-login.html",
     "/cart": "cart.html",
     "/cart.html": "cart.html",
     "/checkout": "checkout.html",
@@ -482,6 +492,11 @@ const pageRoutes = {
 Object.entries(pageRoutes).forEach(([route, fileName]) => {
     app.get(route, (_req, res, next) => sendPage(fileName, res, next));
 });
+
+// The dashboard document is never part of the public page map. Authentication,
+// account activity and the ADMIN/SUPER_ADMIN role are checked before sendFile.
+app.get("/admin", requireAdminSession, sendProtectedAdminPage);
+app.get(["/admin.html", "/admin.htm", "/admin/index.html"], (_req, res) => res.status(404).end());
 
 function getProducts(_req, res) {
     try {

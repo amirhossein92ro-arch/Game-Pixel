@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ورود مدیر فروشگاه Web 2">
+    <meta name="theme-color" content="#050816">
+    <meta name="robots" content="noindex,nofollow">
+    <title>ورود مدیریت | Web 2</title>
+    <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/rgb-text.css">
+</head>
+<body data-page="admin-login" class="admin-page">
+    <a class="skip-link" href="#main-content">رفتن به محتوای اصلی</a>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand" href="/" aria-label="بازگشت به فروشگاه Web 2">
+                <span class="brand-icon"><i class="fa-solid fa-gamepad" aria-hidden="true"></i></span>
+                <span><strong>WEB 2</strong><small>ADMIN LOGIN</small></span>
+            </a>
+            <a class="secondary-button admin-store-link" href="/"><i class="fa-solid fa-store"></i> مشاهده فروشگاه</a>
+        </div>
+    </header>
+    <main id="main-content" class="admin-main">
+        <section class="admin-login-view" id="adminLoginView">
+            <div class="admin-login-card glass-panel">
+                <div class="admin-login-icon"><i class="fa-solid fa-user-shield"></i></div>
+                <span class="eyebrow">SECURE AREA</span>
+                <h1 class="rgb-text rgb-text-glow">ورود به پنل مدیریت</h1>
+                <p>نام کاربری و رمز عبور مدیریت را وارد کنید.</p>
+                <form id="adminLoginForm">
+                    <label class="field"><span>نام کاربری</span><input id="adminUsername" name="username" type="text" autocomplete="username" required autofocus></label>
+                    <label class="field"><span>رمز عبور</span><input id="adminPassword" name="password" type="password" autocomplete="current-password" maxlength="72" minlength="12" required></label>
+                    <label class="field"><span>کد دومرحله‌ای (در صورت فعال بودن)</span><input id="adminOtp" name="otp" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"></label>
+                    <button class="primary-button" type="submit"><i class="fa-solid fa-arrow-right-to-bracket"></i> ورود به پنل</button>
+                </form>
+                <p id="adminLoginNotice" role="alert" aria-live="polite"></p>
+                <small class="admin-security-note"><i class="fa-solid fa-circle-info"></i> اعتبار ورود فقط در سرور بررسی می‌شود.</small>
+            </div>
+        </section>
+    </main>
+    <script src="js/admin-login.js"></script>
+</body>
+</html>

@@ -11,10 +11,12 @@ try{await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error
 await t.test('independent accounts, hashes and strict permission checks',async()=>{
 assert.equal((await superadmin.request('/api/admin/login','POST',{username:'admin',password:'test-super-password-2026'})).data.role,'SUPER_ADMIN');
 assert.equal((await user.request('/api/auth/register','POST',{name:'مدیریت تست',email:'admin-flow@example.invalid',phone:'09120008888',password:'test-user-password-2026'})).status,201);
-assert.equal((await user.request('/api/admin/stats')).status,401);
+assert.equal((await user.request('/api/admin/stats')).status,403);
 for(const role of ['ADMIN','ORDER_MANAGER','PRODUCT_MANAGER','SUPPORT']){const username='test_'+role;assert.equal((await superadmin.request('/api/admin/admins','POST',{username,role,password:'test-role-password-2026'})).status,201);const c=client();assert.equal((await c.request('/api/admin/login','POST',{username,password:'test-role-password-2026'})).status,200);roles[role]=c;}
 assert.equal((await roles.SUPPORT.request('/api/admin/products/1','DELETE',{})).status,403);
 assert.equal((await roles.SUPPORT.request('/api/admin/orders')).status,403);
+assert.equal((await roles.SUPPORT.request('/API/ADMIN/orders/')).status,403);
+assert.equal((await roles.ORDER_MANAGER.request('/API/ADMIN/orders/')).status,200);
 assert.equal((await roles.SUPPORT.request('/api/admin/users')).status,200);
 assert.equal((await roles.PRODUCT_MANAGER.request('/api/admin/admins','POST',{username:'illegal',role:'SUPER_ADMIN',password:'test-illegal-password'})).status,403);
 const admin=(await superadmin.request('/api/admin/admins')).data.find(a=>a.role==='ADMIN');assert.equal((await roles.ADMIN.request('/api/admin/admins/'+admin.id,'PUT',{role:'SUPER_ADMIN'})).status,403);

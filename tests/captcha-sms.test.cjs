@@ -5,9 +5,9 @@ const assert = require('node:assert/strict');
 const {createCaptchaService, SITEVERIFY_URL} = require('../lib/captcha.cjs');
 const {createSmsService, KAVENEGAR_BASE_URL} = require('../lib/sms.cjs');
 
-test('Turnstile development fallback is explicit and production fails closed', async () => {
+test('unconfigured Turnstile fails closed outside test mode and production requires keys', async () => {
     const development = createCaptchaService({NODE_ENV:'development'});
-    assert.equal(development.required, false);
+    assert.equal(development.required, true);
     assert.match(development.developmentMessage, /TURNSTILE_SITE_KEY/);
     assert.equal(await development.verify('', '127.0.0.1', 'login'), false);
     assert.throws(() => createCaptchaService({NODE_ENV:'production',APP_ORIGIN:'https://shop.example'}), /Production requires/);

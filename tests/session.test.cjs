@@ -37,3 +37,21 @@ test('expired session logout clears local state, but server failure preserves it
     await assert.rejects(api.logout(),/خطای سرور/);assert.equal(api.user.id,'test');
     status=401;await api.logout();assert.equal(api.user,null);assert.equal(api.csrfToken,null);
 });
+
+test('a delayed session read cannot overwrite a successful login and its CSRF token',async()=>{
+    let finishOldRead, reads=0;
+    const api=session(async url=>{
+        if(url.endsWith('/session')) {
+            if(++reads===2)return new Promise(resolve=>{finishOldRead=resolve;});
+            return Response.json({user:null,csrfToken:null});
+        }
+        return Response.json({user:{id:'signed-in'},csrfToken:'new-token'});
+    });
+    await api.ready;
+    const oldRead=api.refresh();
+    await api.authenticate('login',{});
+    finishOldRead(Response.json({user:null,csrfToken:null}));
+    await oldRead;
+    assert.equal(api.user.id,'signed-in');
+    assert.equal(api.csrfToken,'new-token');
+});

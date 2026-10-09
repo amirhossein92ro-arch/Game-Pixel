@@ -148,7 +148,7 @@ test('an old cached detail ID migrates only after backend 404 and canonical veri
 });
 
 test('central API configuration routes all API requests and preserves credential/CSRF scope',async()=>{
-    const p=page(),calls=[];
+    const p=page(),publicPage=page(),calls=[];
     try {
         p.dom.reconfigure({url:'http://127.0.0.1:5500/product.html?id=20'});
         p.w.Headers=Headers;
@@ -165,7 +165,30 @@ test('central API configuration routes all API requests and preserves credential
         await p.w.fetch('https://example.invalid/api/external');
         assert.equal(calls.at(-1).options.headers,undefined);
         assert.equal(calls.at(-1).url,'https://example.invalid/api/external');
-    } finally {p.w.close();}
+        publicPage.dom.reconfigure({url:'http://109.122.247.237:3000/profile.html'});
+        vm.runInContext(fs.readFileSync(path.join(root,'js/api-config.js'),'utf8'),publicPage.dom.getInternalVMContext());
+        assert.equal(publicPage.w.Web2Config.API_BASE_URL,'');
+        assert.equal(publicPage.w.Web2Config.apiUrl('/api/auth/register'),'http://109.122.247.237:3000/api/auth/register');
+    } finally {p.w.close();publicPage.w.close();}
+});
+test('same-origin API requests do not depend on the cross-origin allowlist',async()=>{
+    const temp=fs.mkdtempSync(path.join(os.tmpdir(),'web2-same-origin-'));
+    const port=28000+Math.floor(Math.random()*1000),base=`http://localhost:${port}`;
+    const child=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,PORT:String(port),DATABASE_PATH:path.join(temp,'test.sqlite'),SEED_DATA_PATH:path.join(root,'data.json'),ADMIN_PASSWORD:'same-origin-test-password',APP_ORIGIN:'http://configured.example',ALLOWED_ORIGINS:'',DEV_FRONTEND_ORIGINS:'',NODE_ENV:'test'},stdio:['ignore','pipe','pipe']});
+    try {
+        await new Promise((resolve,reject)=>{
+            const timer=setTimeout(()=>reject(Error('startup timeout')),15000);
+            child.once('exit',code=>{clearTimeout(timer);reject(Error('startup '+code));});
+            child.stdout.on('data',data=>{if(String(data).includes('Server is running')){clearTimeout(timer);resolve();}});
+        });
+        const sameOrigin=await fetch(base+'/api/auth/register',{method:'POST',headers:{Origin:base,'Content-Type':'application/json'},body:'{}'});
+        assert.equal(sameOrigin.status,400);
+        assert.notEqual((await sameOrigin.json()).error,'مبدأ درخواست مجاز نیست.');
+        const attacker=await fetch(base+'/api/products',{headers:{Origin:'https://attacker.invalid'}});
+        assert.equal(attacker.status,403);
+    } finally {
+        if(child.exitCode===null&&child.signalCode===null){const ended=once(child,'exit');child.kill();await ended;}
+    }
 });
 test('API snapshot wins over stale storage, concurrent reloads and empty catalogs',async()=>{
     const p=page(),api=[{id:1,name:'API product',price:900,stock:7}];

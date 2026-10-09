@@ -1,6 +1,6 @@
 "use strict";
 window.Web2 = {
-    user: null, csrfToken: null, adminCsrf: null,
+    user: null, csrfToken: null, adminCsrf: null, sessionVersion: 0, sessionError: null,
     async request(url, options = {}) {
         let response;
         try {
@@ -20,19 +20,26 @@ window.Web2 = {
         return data;
     },
     async refresh() {
+        const version = ++this.sessionVersion;
         const data = await this.request('/api/auth/session');
+        if (version !== this.sessionVersion) return this.user;
         this.user = data.user; this.csrfToken = data.csrfToken;
+        this.sessionError = null;
         return this.user;
     },
     async authenticate(mode, fields) {
         if (!['login', 'register'].includes(mode)) throw new Error('عملیات ورود نامعتبر است.');
         await this.ready;
+        await this.refresh();
+        ++this.sessionVersion;
         const data = await this.request(`/api/auth/${mode}`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(fields)});
         this.user = data.user; this.csrfToken = data.csrfToken;
         window.dispatchEvent(new Event('web2:auth')); return data.user;
     },
     async logout() {
         await this.ready;
+        await this.refresh();
+        ++this.sessionVersion;
         try { await this.request('/api/auth/logout', {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}); }
         catch (error) { if (error.status !== 401) throw error; }
         this.user = null; this.csrfToken = null;
@@ -60,5 +67,5 @@ window.fetch = async (input, options = {}) => {
 };
 // Remove legacy profile/order caches, including plaintext passwords from the demo.
 for (const key of ['gp_user','web2_orders']) {try {localStorage.removeItem(key);} catch {}}
-Web2.ready = Web2.refresh().catch(() => null);
+Web2.ready = Web2.refresh().catch(error => { Web2.sessionError = error; return null; });
 window.addEventListener('focus', () => Web2.refresh().then(() => window.dispatchEvent(new Event('web2:auth'))).catch(() => {}));

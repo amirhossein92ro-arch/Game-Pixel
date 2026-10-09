@@ -25,7 +25,7 @@ npm start
 
 ### رمز ادمین Development/Test
 
-برای حساب bootstrap موجود، `ADMIN_PASSWORD=12345` فقط در `NODE_ENV=development` یا `test` و با `DEV_ADMIN_PASSWORD_ENABLED=true` پذیرفته می‌شود. این مقادیر فقط در `.env` سمت سرور قرار می‌گیرند؛ رمز با bcrypt (cost 12) در جدول `admin_accounts` ذخیره می‌شود و حساب تکراری ساخته نمی‌شود. Login در `http://localhost:3000/admin.html` است؛ نام پیش‌فرض `admin` است. در Production باید `DEV_ADMIN_PASSWORD_ENABLED=false` و رمز حداقل ۱۲ کاراکتری مجزا تنظیم شود؛ تنظیم توسعه در Production باعث توقف startup می‌شود. محدودیت‌های نقش، CSRF، نشست و تلاش‌های ورود تغییری نکرده‌اند.
+Bootstrap credentials require a strong password of at least 12 characters in every environment. No development exception is supported.
 
 برای بررسی تمام محصولات سرور روشن، `npm run verify:products` را اجرا کنید (یا `npm run verify:products -- http://localhost:PORT`). این ابزار تمام IDهای API، endpoint تک‌محصول، لینک‌های Home و رندر Product Detail را بررسی می‌کند و در صورت ناسازگاری با exit code ناموفق خارج می‌شود.
 

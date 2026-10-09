@@ -38,6 +38,8 @@ test('account and admin DOM flow uses real API, wishlist cart and safe logout',a
     try{
         await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(Error('Startup timed out')),15000);server.once('exit',code=>{clearTimeout(timeout);reject(Error('Server exit '+code));});server.stdout.on('data',data=>{if(String(data).includes('Server is running')){clearTimeout(timeout);resolve();}});server.stderr.on('data',()=>{});});
         let w=createPage('profile.html');await until(()=>w.document.getElementById('profileAuth'));
+        await until(()=>w.document.querySelector('[data-captcha-status]')?.textContent==='');
+        assert.equal(w.document.querySelector('#profileAuth button[type="submit"]').disabled,false,'optional CAPTCHA must allow authentication');
         const mode=w.document.getElementById('profileAuthMode');mode.value='register';mode.dispatchEvent(new w.Event('change',{bubbles:true}));
         const fields={name:'کاربر تست UI',phone:'09120003333',email:'account-ui@example.invalid',password:'account-ui-password-2026'};
         const auth=fill(w,'profileAuth',fields);submit(w,auth);submit(w,auth);

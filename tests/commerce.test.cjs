@@ -73,7 +73,8 @@ test('real HTTP commerce flow, security, transactions and restart persistence',a
             for(const p of products.data)for(const k of ['image','status','createdAt','updatedAt'])assert.ok(p[k]);
             for(const route of ['/api/admin/products','/api/admin/stats','/api/admin/orders','/api/admin/users','/api/admin/discounts'])assert.equal((await anonymous.request(route)).status,401);
             for(const route of ['/data.json','/var/web2.sqlite','/.env','/lib/commerce.cjs','/.git/config'])assert.equal((await anonymous.request(route)).status,404);
-            for(const route of ['/','/product.html?id=10','/cart.html','/checkout.html','/profile.html','/admin.html','/js/session.js','/js/admin.js'])assert.equal((await anonymous.request(route)).status,200);
+            for(const route of ['/','/product.html?id=10','/cart.html','/checkout.html','/profile.html','/admin-login','/js/session.js'])assert.equal((await anonymous.request(route)).status,200);
+            assert.equal((await anonymous.request('/admin.html')).status,404);
             assert.ok(products.headers.get('content-security-policy'));
         });
         const fields={name:'کاربر تست',email:'tester@example.invalid',phone:'09120000000',password:'test-user-password-only'};
@@ -86,7 +87,7 @@ test('real HTTP commerce flow, security, transactions and restart persistence',a
             assert.equal((await user.request('/api/users/me','PUT',{name:'تست'},{Origin:'https://attacker.invalid'})).status,403);
             const changed=await user.request('/api/users/me','PUT',{name:'تست ویرایش',addresses:[{name:'گیرنده تست',phone:fields.phone,address:'نشانی آزمایشی شماره یک'}],role:'admin'});
             assert.equal(changed.status,200);assert.equal(changed.data.role,'user');assert.equal(changed.data.addresses.length,1);
-            assert.equal((await user.request('/api/admin/stats')).status,401);
+            assert.equal((await user.request('/api/admin/stats')).status,403);
             const inspect=new DatabaseSync(database);const account=inspect.prepare('SELECT password_hash FROM accounts WHERE email=?').get(fields.email);assert.notEqual(account.password_hash,fields.password);assert.match(account.password_hash,/^\$2/);inspect.close();
         });
         let product,order;
@@ -101,6 +102,42 @@ test('real HTTP commerce flow, security, transactions and restart persistence',a
             const inactive=await admin.request(`/api/admin/products/${product.id}`,'PUT',{status:'inactive'});assert.equal(inactive.status,200);
             assert.equal((await anonymous.request(`/api/products/${product.id}`)).status,404);
             assert.equal((await admin.request(`/api/admin/products/${product.id}`,'PUT',{status:'active'})).status,200);
+        });
+        await t.test('admin namespace rejects forged, expired and revoked sessions on every route spelling',async()=>{
+            const paths=['/api/admin/products','/API/ADMIN/products/','/api/admin/orders','/api/admin/users','/api/admin/stats','/api/admin/session/','/API/ADMIN/SESSION','/api/admin/unknown'];
+            for(const url of paths){
+                assert.equal((await anonymous.request(url)).status,401,url);
+                assert.equal((await user.request(url)).status,403,'customer '+url);
+                assert.equal((await anonymous.request(url,'GET',undefined,{Cookie:'web2_admin=forged-token'})).status,401,'forged '+url);
+            }
+            for(const url of ['/api/admin/session/','/API/ADMIN/SESSION'])assert.equal((await admin.request(url)).status,200,url);
+            for(const method of ['POST','PUT','PATCH','DELETE']){
+                assert.equal((await anonymous.request('/API/ADMIN/products/',method,{})).status,401,method);
+                assert.equal((await user.request('/api/products'+(method==='POST'?'':'/'+product.id),method,{})).status,method==='PATCH'?404:403,'legacy '+method);
+                assert.equal((await admin.request('/API/ADMIN/products/',method,{}, {'X-CSRF-Token':'forged'})).status,403,'csrf '+method);
+            }
+            const expiredToken='e'.repeat(64),crypto=require('node:crypto'),inspect=new DatabaseSync(database);
+            inspect.prepare('INSERT INTO sessions VALUES(?,?,?,?,?)').run(crypto.createHash('sha256').update(expiredToken).digest('hex'),'bootstrap-admin','admin','expired-csrf',Date.now()-1);
+            inspect.close();
+            assert.equal((await anonymous.request('/api/admin/session','GET',undefined,{Cookie:'web2_admin='+expiredToken})).status,401);
+            const transient=client();
+            await transient.request('/api/admin/login','POST',{username:'admin',password:'test-admin-password-only'});
+            const oldCookie=transient.cookie;
+            assert.equal((await transient.request('/api/admin/logout','POST',{})).status,204);
+            assert.equal((await anonymous.request('/api/admin/products','GET',undefined,{Cookie:oldCookie})).status,401);
+            assert.equal((await admin.request('/api/admin/unknown')).status,403,'unknown permissions fail closed even for SUPER_ADMIN');
+            // A customer cookie must not interfere with CSRF validation for admin URL variants.
+            const both=await admin.request('/API/ADMIN/products/'+product.id+'/', 'PUT',{stock:3},{Cookie:admin.cookie+'; '+user.cookie});
+            assert.equal(both.status,200);
+            for(const url of ['/api/admin/products','/API/ADMIN/SESSION'])assert.equal((await admin.request(url)).headers.get('cache-control'),'no-store');
+            let throttled=false;
+            for(let i=0;i<31;i++){
+                const url=i%2?'/API/ADMIN/LOGIN/':'/api/admin/login';
+                const result=await anonymous.request(url,'POST',{});
+                assert.ok([401,429].includes(result.status));
+                if(result.status===429){throttled=true;assert.ok(Number(result.headers.get('retry-after'))>0);}
+            }
+            assert.equal(throttled,true,'login route variants share a rate limit');
         });
         const payload={items:[{id:product.id,quantity:2}],recipientName:'گیرنده تست',recipientPhone:fields.phone,recipientAddress:'نشانی تست سفارش شماره یک',isAgreed:true,discountCode:'WEB2',total:1,price:1};
         await t.test('server quotes prices, rejects stock/duplicates/card data, idempotency and ownership',async()=>{
@@ -137,10 +174,10 @@ test('real HTTP commerce flow, security, transactions and restart persistence',a
             assert.equal(restored.data.user.email,fields.email);assert.ok(restored.data.csrfToken);
             assert.equal((await user.request('/api/orders/'+order.id)).status,200);
             const account=(await user.request('/api/users/me')).data;
-            assert.equal((await admin.request('/api/admin/users/'+account.id,'PUT',{role:'user',banned:true})).status,200);
+            assert.equal((await admin.request('/api/admin/users/'+account.id,'PUT',{role:'user',banned:true,confirm:true})).status,200);
             assert.equal((await user.request('/api/orders')).status,401);
             await admin.request('/api/admin/users/'+account.id,'PUT',{role:'user',banned:false});
-            assert.equal((await user.request('/api/auth/logout','POST',{})).status,204);
+            assert.equal((await user.request('/api/auth/logout','POST',{})).status,401,'disabled accounts lose old sessions even after re-enabling');
             assert.equal((await user.request('/api/orders')).status,401);
             assert.equal((await user.request('/api/auth/login','POST',{email:fields.email,password:fields.password})).status,200);
             assert.equal((await user.request('/api/contact','POST',{name:'تست',email:fields.email,subject:'آزمایشی',message:'پیام آزمایشی فقط برای تست'})).status,201);

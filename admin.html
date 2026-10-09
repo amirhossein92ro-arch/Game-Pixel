@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#050816">
     <title>پنل مدیریت | Web 2</title>
     <meta name="robots" content="noindex,nofollow">
-    <link rel="canonical" href="/admin.html">
+    <link rel="canonical" href="/admin">
     <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,27 +35,6 @@
     </header>
 
     <main id="main-content" class="admin-main">
-        <section class="admin-login-view" id="adminLoginView">
-            <div class="admin-login-card glass-panel">
-                <div class="admin-login-icon"><i class="fa-solid fa-user-shield"></i></div>
-                <span class="eyebrow">SECURE AREA</span>
-                <h1 class="rgb-text rgb-text-glow">ورود به پنل مدیریت</h1>
-                <p>برای مدیریت محصولات و مشاهده پیام‌های کاربران، نام کاربری و رمز عبور را وارد کنید.</p>
-                <form id="adminLoginForm">
-                    <label class="field">
-                        <span>نام کاربری</span>
-                        <input id="adminUsername" name="username" type="text" autocomplete="username" value="admin" required autofocus>
-                    </label>
-                    <label class="field">
-                        <span>رمز عبور</span>
-                        <input id="adminPassword" name="password" type="password" autocomplete="current-password" placeholder="رمز عبور مدیریت" maxlength="72" required>
-                    </label>
-                    <label class="field"><span>کد دومرحله‌ای (در صورت فعال بودن)</span><input id="adminOtp" name="otp" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"></label><button class="primary-button" type="submit"><i class="fa-solid fa-arrow-right-to-bracket"></i> ورود به پنل</button>
-                </form>
-                <small class="admin-security-note"><i class="fa-solid fa-circle-info"></i> ورود مدیر به‌صورت امن در سرور بررسی می‌شود.</small>
-            </div>
-        </section>
-
         <div class="container admin-dashboard" id="adminDashboard" hidden>
             <section class="admin-welcome admin-reveal">
                 <div>
@@ -151,8 +130,12 @@
             <section class="admin-tab-panel" data-admin-panel="users" hidden>
                 <div class="glass-panel admin-data-panel">
                     <div class="admin-panel-heading"><span class="admin-heading-icon"><i class="fa-solid fa-users-gear"></i></span><div><h2 class="rgb-text">مدیریت کاربران</h2><p>نقش، وضعیت دسترسی و سابقه خرید کاربران را کنترل کنید.</p></div></div>
-                    <div class="admin-toolbar"><label class="admin-search"><i class="fa-solid fa-magnifying-glass"></i><input id="adminUserSearch" type="search" placeholder="جست‌وجوی نام، ایمیل یا موبایل"></label></div>
-                    <div class="admin-responsive-table" id="adminUsers" aria-live="polite"></div>
+                    <form class="admin-toolbar admin-user-filters" id="adminUserFilters" role="search">
+<label class="admin-search"><span class="sr-only">جست‌وجوی کاربران</span><input id="adminUserSearch" type="search" maxlength="120" placeholder="جست‌وجوی نام، ایمیل یا موبایل"></label>
+<label>نقش<select id="adminUserRole"><option value="">همه نقش‌ها</option><option value="user">کاربر</option><option value="ADMIN">مدیر</option><option value="SUPER_ADMIN">مدیر ارشد</option><option value="ORDER_MANAGER">مدیر سفارش</option><option value="PRODUCT_MANAGER">مدیر محصول</option><option value="SUPPORT">پشتیبانی</option></select></label>
+<label>وضعیت<select id="adminUserStatus"><option value="">همه وضعیت‌ها</option><option value="active">فعال</option><option value="disabled">غیرفعال</option></select></label>
+<label>مرتب‌سازی<select id="adminUserSort"><option value="newest">جدیدترین</option><option value="oldest">قدیمی‌ترین</option><option value="name">نام</option></select></label><button class="secondary-button" type="submit">جست‌وجو</button></form>
+                    <button id="adminUsersRefresh" class="secondary-button" type="button">تازه‌سازی کاربران</button><p id="adminUsersNotice" role="status"></p><div class="admin-responsive-table" id="adminUsers" aria-live="polite" aria-busy="false"></div><nav class="admin-user-pagination" id="adminUserPagination" aria-label="صفحه‌های کاربران"></nav>
                 </div>
             </section>
         </div>
@@ -166,5 +149,6 @@
     <script src="js/admin-console.js"></script><script src="js/admin-actions.js"></script><script src="script.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/admin-support.js"></script>
+    <script src="js/admin-users.js"></script>
 </body>
 </html>

@@ -16,10 +16,28 @@ const notFound = require("./middleware/notFound.middleware");
 const app = express();
 
 // CORS — مبدأ فرانت‌اند محلی (با ویرگول چند مقدار مجاز است).
-const allowedOrigins = process.env.CLIENT_URL
-  ? process.env.CLIENT_URL.split(",").map((s) => s.trim())
-  : "*";
-app.use(cors({ origin: allowedOrigins, credentials: false }));
+const allowedOrigins = new Set(
+  (process.env.CLIENT_URL || "").split(",").map((value) => value.trim()).filter(Boolean)
+);
+for (const origin of allowedOrigins) {
+  let url;
+  try { url = new URL(origin); } catch { throw new Error("CLIENT_URL must contain valid HTTP(S) origins."); }
+  if (!["http:", "https:"].includes(url.protocol) || url.origin !== origin) {
+    throw new Error("CLIENT_URL must contain exact HTTP(S) origins without paths or wildcards.");
+  }
+}
+app.use(cors({
+  origin(origin, callback) {
+    // Requests without Origin (for example CLI clients) are not browser CORS requests.
+    if (!origin) return callback(null, false);
+    if (allowedOrigins.has(origin)) return callback(null, true);
+    const error = new Error("Origin is not allowed by CORS.");
+    error.status = 403;
+    return callback(error);
+  },
+  // The frontend uses fetch with credentials: 'include'. Never pair this with '*'.
+  credentials: true
+}));
 
 // پردازش بدنه درخواست‌ها با محدودیت اندازه برای امنیت اولیه.
 app.use(express.json({ limit: "100kb" }));

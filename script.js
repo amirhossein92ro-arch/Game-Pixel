@@ -3111,6 +3111,7 @@ function renderAdminOrders() {
 }
 
 function renderAdminUsers() {
+    if (window.Web2Users) return Web2Users.load();
     const container = document.getElementById("adminUsers");
     if (!container) return;
     const query = document.getElementById("adminUserSearch")?.value.trim().toLowerCase() || "";
@@ -3134,7 +3135,7 @@ async function loadAdminDashboardData() {
     return loadAdminDashboardData.pending=(async()=>{const results = await Promise.allSettled([
         adminRequest("/api/admin/stats"),
         Web2Admin.can("orders.read")?adminRequest("/api/admin/orders"):Promise.resolve([]),
-        Web2Admin.can("customers.read")||Web2Admin.can("customers.limited")?adminRequest("/api/admin/users"):Promise.resolve([])
+        !window.Web2Users && (Web2Admin.can("customers.read")||Web2Admin.can("customers.limited"))?adminRequest("/api/admin/users"):Promise.resolve([])
     ]);const [stats,orders,users]=results.map((r,i)=>{if(r.status==='fulfilled')return r.value;const target=document.getElementById(['adminMetrics','adminOrders','adminUsers'][i]);if(target)target.textContent=r.reason.message;showToast(r.reason.message,'error');return i===0?{}:[];});
     adminOrders = Array.isArray(orders) ? orders : [];
     adminUsers = Array.isArray(users) ? users : [];

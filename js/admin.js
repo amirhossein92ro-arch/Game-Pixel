@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         try{if(button.dataset.adminTab==='discounts')await loadDiscounts();else if(['overview','orders','users'].includes(button.dataset.adminTab))await loadAdminDashboardData();}catch(error){showToast(error.message,'error');}
     });
     for(const id of ['adminOrderSearch','adminOrderFilter'])document.getElementById(id)?.addEventListener(id.endsWith('Search')?'input':'change',renderAdminOrders);
-    document.getElementById('adminUserSearch')?.addEventListener('input',renderAdminUsers);
+
     dashboard.addEventListener('change',async e=>{
         const order=e.target.closest('[data-order-status]'),role=e.target.closest('[data-user-role]');
         try{

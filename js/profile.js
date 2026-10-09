@@ -16,6 +16,7 @@ function accountNotice(text,kind='success') {
 }
 async function profileRequest(url,options={}) {
     const read=!options.method||options.method==='GET';
+    if(!read){await Web2.refresh();++Web2.sessionVersion;}
     if(read&&accountState.reads.has(url))return accountState.reads.get(url);
     const owner=Web2.user?.id;
     const promise=Web2.request(url,options).then(data=>{
@@ -42,7 +43,7 @@ function accountAuth() {
 }
 const accountRecoveryState={phone:'',challengeId:'',resetToken:'',resendAt:0,timer:null};
 let accountCaptchaConfigPromise;
-function accountCaptchaConfig(){return accountCaptchaConfigPromise||(accountCaptchaConfigPromise=Web2.request('/api/auth/config'));}
+function accountCaptchaConfig(){return accountCaptchaConfigPromise||(accountCaptchaConfigPromise=Web2.request('/api/auth/config').catch(error=>{accountCaptchaConfigPromise=null;throw error;}));}
 function accountTurnstileReady(){
     if(window.turnstile)return Promise.resolve();
     return new Promise((resolve,reject)=>{
@@ -64,7 +65,8 @@ async function accountRenderCaptcha(form){
         const config=await accountCaptchaConfig();
         if(!form.isConnected)return;
         if(config.captchaTestMode){input.value='test-valid-captcha';host.textContent='تأیید امنیتی حالت آزمایشی';accountCaptchaSubmit(form,true);return;}
-        if(!config.captchaRequired){input.value='';host.textContent=config.developmentMessage||'Cloudflare Turnstile در محیط توسعه تنظیم نشده است.';accountCaptchaStatus(form,'برای فعال‌سازی CAPTCHA کلیدهای Turnstile را در .env وارد کنید.','warning');accountCaptchaSubmit(form,false);return;}
+        if(!config.captchaRequired){input.value='';host.textContent='';accountCaptchaStatus(form,'');accountCaptchaSubmit(form,true);return;}
+        if(!config.captchaConfigured){host.textContent=config.developmentMessage||'تأیید امنیتی روی سرور تنظیم نشده است.';accountCaptchaStatus(form,'تأیید امنیتی روی سرور باید تنظیم شود.','error');accountCaptchaSubmit(form,false);return;}
         accountCaptchaSubmit(form,false);
         await accountTurnstileReady();if(!form.isConnected)return;
         host.textContent='';const action=accountCaptchaAction(form);host.dataset.action=action;
@@ -72,10 +74,11 @@ async function accountRenderCaptcha(form){
     }catch(error){host.textContent=error.message;host.dataset.error='true';accountCaptchaStatus(form,'بارگذاری CAPTCHA ممکن نشد.','error');accountCaptchaSubmit(form,false);}
 }
 async function accountCaptchaToken(form,data){
+    await Web2.refresh();
     const config=await accountCaptchaConfig();
     const token=form.querySelector('[name="captchaToken"]')?.value||'';
     if(config.captchaRequired&&!token)throw new Error('لطفاً تأیید کنید ربات نیستید.');
-    data.captchaToken=token||'development-mock';return data;
+    data.captchaToken=token;return data;
 }
 function accountResetCaptcha(form){
     if(!form?.isConnected)return;
@@ -280,6 +283,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
     await Web2.ready;accountBind();
     window.addEventListener('web2:auth',()=>{if((Web2.user?.id||null)!==accountState.userId)accountBoot();});
     await accountBoot();
+    if(Web2.sessionError)accountNotice(Web2.sessionError.message,'error');
     // Refresh server-driven sections on focus without replacing profile/address forms while editing.
     window.addEventListener('focus',()=>{
         if(Web2.user&&['dashboard','orders','notifications'].includes(accountState.section))accountLoadSection();
