@@ -25,7 +25,7 @@ test('first-party journey events, trusted checkout, admin scope and retention',a
     const report=await admin.call('/api/admin/analytics?range=7d');assert.equal(report.status,200);
     const j=report.data.journey;assert.equal(j.funnel.productViews,2);assert.equal(j.funnel.cartAdds,1);assert.equal(j.funnel.cartViews,1);assert.equal(j.funnel.checkoutStarts,1);assert.equal(j.funnel.ordersCreated,1);assert.equal(j.zeroResultSearches,1);
     assert.ok(j.failures.some(x=>x.code==='OUT_OF_STOCK'));assert.equal(report.data.stats.totalRevenue,0);
-    assert.equal((await admin.call('/api/admin/analytics?range=custom&start=2020-01-01&end=2021-01-01')).status,400);
+    const invalidRange=await admin.call('/api/admin/analytics?range=custom&start=2020-01-01&end=2021-01-01');assert.equal(invalidRange.status,400,JSON.stringify(invalidRange.data));
     const db=h.openDatabase();
     const rows=db.prepare('SELECT * FROM analytics_events').all();assert.ok(rows.length>0);
     assert.doesNotMatch(JSON.stringify(rows),/password|csrf|session|09120000001|example\.invalid|secret|recipient|delivery address/i);

@@ -12,5 +12,6 @@ module.exports = db => Object.freeze({
     failureCounts:(...values)=>execute(db,"SELECT failure_code,count(*) n FROM analytics_events WHERE type='checkout_validation_failed' AND created_at>=? AND created_at<? GROUP BY failure_code ORDER BY n DESC",'all',values),
     zeroSearches:(...values)=>execute(db,"SELECT count(*) n FROM analytics_events WHERE type='search' AND result_count=0 AND created_at>=? AND created_at<?",'get',values),
     productCounts:(...values)=>execute(db,"SELECT product_id,type,count(*) n FROM analytics_events WHERE product_id IS NOT NULL AND created_at>=? AND created_at<? GROUP BY product_id,type",'all',values),
-    categoryCounts:(...values)=>execute(db,"SELECT category,type,count(*) n FROM analytics_events WHERE category IS NOT NULL AND created_at>=? AND created_at<? GROUP BY category,type",'all',values)
+    categoryCounts:(...values)=>execute(db,"SELECT category,type,count(*) n FROM analytics_events WHERE category IS NOT NULL AND created_at>=? AND created_at<? GROUP BY category,type",'all',values),
+    dailyJourney:(...values)=>execute(db,"SELECT substr(created_at,1,10) date,type,count(*) n FROM analytics_events WHERE type IN ('checkout_started','checkout_validation_failed','order_created') AND created_at>=? AND created_at<? GROUP BY date,type ORDER BY date",'all',values)
 });
