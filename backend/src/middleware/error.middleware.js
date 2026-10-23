@@ -7,15 +7,16 @@ function createError(status, message) {
 
 // middleware نهایی مدیریت خطا — پیام تمیز بدون لو دادن جزئیات حساس.
 function errorHandler(err, _req, res, _next) {
-  const status = err.status || 500;
+  const status = Number.isInteger(err.status)&&err.status>=400&&err.status<600 ? err.status : 500;
+  if(err.type==='entity.parse.failed')return res.status(400).json({message:'Invalid JSON body.'});
+  if(err.type==='entity.too.large')return res.status(413).json({message:'Request body is too large.'});
+  if(err.name==='VersionError')return res.status(409).json({message:'The record changed; retry the request.'});
 
   // خطای اعتبارسنجی Mongoose
   if (err.name === "ValidationError" && err.errors) {
     return res.status(400).json({
       message: "داده‌های ارسالی نامعتبر است.",
-      errors: Object.fromEntries(
-        Object.entries(err.errors).map(([k, v]) => [k, v.message])
-      )
+      errors: Object.keys(err.errors)
     });
   }
 
@@ -33,10 +34,10 @@ function errorHandler(err, _req, res, _next) {
   }
 
   if (status >= 500) {
-    console.error("[error]", err);
+    console.error("[error] Request failed.");
   }
 
-  res.status(status).json({ message: err.message || "خطای سرور رخ داد." });
+  res.status(status).json({ message: status >= 500 ? "Server error." : err.message || "خطای سرور رخ داد." });
 }
 
 module.exports = { createError, errorHandler };

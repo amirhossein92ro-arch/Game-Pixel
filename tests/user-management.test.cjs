@@ -115,7 +115,8 @@ test('secure user management, real sessions, audit, and admin DOM actions',async
             assert.equal((await admin.request(url(registered[1].id,'/orders'))).data[0].id,order.id);
             assert.equal((await admin.request(url(registered[1].id),'DELETE',{confirm:true})).status,403);
             assert.equal((await superadmin.request(url(registered[1].id),'DELETE',{})).status,400);
-            assert.equal((await superadmin.request(url(registered[1].id),'DELETE',{confirm:true})).status,204);
+            assert.equal((await superadmin.request(url(registered[1].id),'DELETE',{confirm:true})).status,400);
+            assert.equal((await superadmin.request(url(registered[1].id),'DELETE',{confirm:true,confirmationPhrase:'DELETE'})).status,204);
             assert.equal((await second.request('/api/users/me')).status,401);assert.equal((await admin.request(url(registered[1].id))).status,404);
             const verify=new DatabaseSync(database);assert.equal(JSON.parse(verify.prepare('SELECT payload FROM orders WHERE id=?').get(order.id).payload).userDeleted,true);verify.close();
             const logs=(await superadmin.request('/api/admin/audit')).data.items;
@@ -124,10 +125,10 @@ test('secure user management, real sessions, audit, and admin DOM actions',async
         });
         await t.test('real admin DOM: Persian badges, search, details, editing, reset confirmation and password clearing',async()=>{
             const errors=[],dom=new JSDOM(fs.readFileSync(path.join(root,'admin.html'),'utf8'),{url:base+'/admin.html',runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:new VirtualConsole()}),w=dom.window;windows.push(w);
-            w.Headers=Headers;w.AbortController=AbortController;w.TextEncoder=TextEncoder;w.structuredClone=structuredClone;w.Element.prototype.scrollIntoView=function(){};
+            w.Headers=Headers;w.AbortController=AbortController;w.AbortSignal=AbortSignal;w.AbortController=AbortController;w.TextEncoder=TextEncoder;w.structuredClone=structuredClone;w.Element.prototype.scrollIntoView=function(){};
             w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;};
             w.fetch=async(input,options={})=>fetch(new URL(input,base),{...options,headers:{...Object.fromEntries(new Headers(options.headers)),Cookie:superadmin.cookie,Origin:base}});w.addEventListener('error',e=>errors.push(e.message));
-            for(const tag of w.document.querySelectorAll('script[src]')){const src=tag.getAttribute('src');if(!src.startsWith('https:'))vm.runInContext(fs.readFileSync(path.join(root,src),'utf8'),dom.getInternalVMContext(),{filename:src});}
+            for(const tag of w.document.querySelectorAll('script[src]')){const src=tag.getAttribute('src');if(!src.startsWith('https:'))vm.runInContext(fs.readFileSync(path.join(root,src.split(/[?#]/,1)[0]),'utf8'),dom.getInternalVMContext(),{filename:src});}
             async function until(fn){for(let i=0;i<350;i++){if(fn())return;await new Promise(r=>setTimeout(r,20));}throw Error('DOM timeout '+fn+' errors '+errors+' notice '+w.document.getElementById('adminUsersNotice').textContent+' box '+w.document.getElementById('adminUsers').textContent+' role '+w.Web2Admin.principal?.role);}
             await until(()=>!w.document.getElementById('adminDashboard').hidden);w.document.querySelector('[data-admin-tab="users"]').click();await until(()=>w.document.querySelector('.admin-users-table'));
             assert.equal(w.document.documentElement.dir,'rtl');assert.ok(w.document.getElementById('adminUsers').textContent.includes('مدیر ارشد'));

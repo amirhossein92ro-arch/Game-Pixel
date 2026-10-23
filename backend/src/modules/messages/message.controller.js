@@ -4,7 +4,8 @@ const { createError } = require("../../middleware/error.middleware");
 // POST /api/messages — ثبت پیام تماس (عمومی)
 async function createMessage(req, res, next) {
   try {
-    const { name, email, subject, message } = req.body;
+    const input=require('../../utils/input');
+    const name=input.text(req.body.name,2,60),email=input.email(req.body.email),subject=input.text(req.body.subject,2,120),message=input.text(req.body.message,5,2000);
     if (!name || !email || !subject || !message) {
       throw createError(400, "تمام فیلدها (نام، ایمیل، موضوع، متن) الزامی هستند.");
     }

@@ -1,0 +1,31 @@
+# Temporary bare-IP entry point when no domain or certificate exists.
+# Historical diagnostic only. Do not retain this HTTP application proxy in the
+# Phase 22 final architecture; redirect the verified IP to the canonical HTTPS
+# domain after TLS works. See phase22-https.md C and G.
+# This cannot satisfy the application's production HTTPS requirement.
+# Do not enable a redirect or HSTS until trusted HTTPS is working.
+# Replace the IP with the VPS address verified at deployment time.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name 109.122.247.237;
+    server_tokens off;
+    access_log /var/log/nginx/web2-access.log web2_safe;
+    error_log /var/log/nginx/web2-error.log warn;
+    client_max_body_size 1m;
+    client_body_timeout 15s;
+    client_header_timeout 15s;
+    send_timeout 30s;
+    keepalive_timeout 30s;
+    large_client_header_buffers 4 16k;
+    limit_req_status 429;
+    include /etc/nginx/snippets/web2-sensitive-locations.conf;
+
+    location ~ ^/api/(?:admin/login|auth/(?:login|forgot-password/(?:request|verify|reset)))$ {
+        limit_req zone=web2_auth burst=10 nodelay;
+        include /etc/nginx/snippets/web2-proxy.conf;
+    }
+    location / {
+        include /etc/nginx/snippets/web2-proxy.conf;
+    }
+}

@@ -1,10 +1,16 @@
 /* Account styles use the store's theme tokens and stay inside the profile page. */
+#profileApp :is(button,select,.account-back-link){min-height:44px;}
+#profileApp .account-back-link{display:inline-flex;align-items:center;}
+#profileApp .account-empty{line-height:1.9;}
+#profileApp .account-notice[data-kind="error"]{border-inline-start:3px solid var(--danger);}
+#profileApp :is(input,textarea,select):focus-visible{outline:3px solid var(--cyan);outline-offset:3px;}
+@media(max-width:640px){#profileApp :is(input,textarea,select){font-size:16px;}#profileApp .account-actions{flex-wrap:wrap;}#profileApp .account-auth{padding:20px 16px;}}
 body[data-page="profile"] .profile-page {min-height:calc(100vh - 80px);padding:40px 0 70px;}
 body[data-page="profile"] .profile-page>.container {width:min(1240px,calc(100% - 40px));}
 .account-layout {display:grid;grid-template-columns:240px minmax(0,1fr);gap:26px;align-items:start;}
 .account-sidebar {position:sticky;top:105px;padding:24px 16px;border-radius:22px;}
 .account-identity {text-align:center;padding:0 0 22px;border-bottom:1px solid var(--line);margin-bottom:15px;overflow-wrap:anywhere;}
-.account-avatar {display:inline-grid;place-items:center;width:72px;height:72px;flex-shrink:0;border-radius:22px;border:1px solid var(--cyan);background:linear-gradient(140deg,rgba(0,212,255,.12),rgba(139,92,246,.16));color:var(--cyan);font-size:1.8rem;box-shadow:0 0 28px rgba(0,212,255,.12);}
+.account-avatar {display:inline-grid;place-items:center;width:72px;height:72px;flex-shrink:0;border-radius:22px;border:1px solid rgba(0,212,255,.38);background:var(--surface-solid);color:var(--cyan);font-size:1.8rem;box-shadow:none;}
 .account-identity strong {display:block;margin-top:12px;}
 .account-identity small {display:block;color:var(--text-soft);font-size:.72rem;margin-top:5px;}
 .account-nav {display:grid;gap:5px;}
@@ -18,11 +24,11 @@ body[data-page="profile"] .profile-page>.container {width:min(1240px,calc(100% -
 .account-eyebrow {font-size:.7rem;letter-spacing:2px;color:var(--cyan);display:block;margin-bottom:7px;}
 .account-topbar h1 {font-size:1.4rem;}
 .account-topbar .secondary-button {font-size:.78rem;padding:10px 14px;}
-.account-panel {padding:26px;border:1px solid var(--line);border-radius:22px;background:var(--surface);backdrop-filter:blur(18px);margin-bottom:20px;}
+.account-panel {padding:26px;border:1px solid var(--line);border-radius:22px;background:var(--surface-solid);margin-bottom:20px;box-shadow:var(--shadow);}
 .account-panel h2 {font-size:1.04rem;margin-bottom:14px;}
 .account-panel h3 {font-size:.95rem;}
 .account-muted {color:var(--text-soft);font-size:.82rem;line-height:1.9;}
-.account-welcome {display:flex;align-items:center;gap:22px;position:relative;overflow:hidden;background:linear-gradient(115deg,rgba(139,92,246,.12),rgba(0,212,255,.05)),var(--surface);border-top:2px solid var(--purple);}
+.account-welcome {display:flex;align-items:center;gap:22px;position:relative;overflow:hidden;background:linear-gradient(115deg,rgba(139,92,246,.07),transparent),var(--surface-solid);border-top:2px solid var(--purple);}
 .account-welcome h2 {font-size:1.5rem;margin:8px 0;}
 .account-welcome .account-avatar {width:88px;height:88px;}
 .account-welcome>div {min-width:0;overflow-wrap:anywhere;}
@@ -100,7 +106,7 @@ body.light-theme .account-badge.pending,body.light-theme .account-badge.open {co
 .account-message.admin {border-inline-start:3px solid var(--cyan);}
 .account-message p {white-space:pre-wrap;overflow-wrap:anywhere;font-size:.85rem;line-height:2;margin:10px 0;}
 .account-dialog {border:1px solid var(--line);border-radius:22px;background:var(--surface-solid);color:var(--text);padding:28px;width:min(700px,calc(100% - 32px));max-height:85vh;overflow:auto;margin:auto;box-shadow:var(--shadow);}
-.account-dialog::backdrop {background:rgba(0,0,0,.7);backdrop-filter:blur(5px);}
+.account-dialog::backdrop {background:rgba(0,0,0,.76);}
 .account-dialog>header {display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:24px;}
 .account-dialog h2 {font-size:1.1rem;}
 .account-table-wrap {overflow:auto;margin:20px 0;}
@@ -114,5 +120,5 @@ body.light-theme .account-badge.pending,body.light-theme .account-badge.open {co
 @keyframes account-enter {from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 @media(max-width:1000px){.account-layout{grid-template-columns:200px minmax(0,1fr);gap:18px}.account-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.account-grid{grid-template-columns:1fr}.account-panel{padding:22px}}
 @media(max-width:768px){body[data-page="profile"] .profile-page{padding-top:20px}.account-layout{grid-template-columns:1fr}.account-sidebar{position:static;padding:14px}.account-identity{display:none}.account-nav{display:flex;overflow-x:auto;gap:8px;padding-bottom:5px;scrollbar-width:thin}.account-nav button{flex:0 0 auto;width:auto;white-space:nowrap;padding:10px;font-size:.77rem}.account-nav button.account-logout{margin:0;border-top:0}.account-count{margin-inline-start:0}.account-topbar{margin-top:6px}.account-welcome{gap:14px}.account-welcome .account-avatar{width:60px;height:60px;font-size:1.5rem}.account-welcome h2{font-size:1.2rem}.account-form{grid-template-columns:1fr}.account-wishlist{grid-template-columns:1fr}.account-row{gap:12px}.account-topbar h1{font-size:1.15rem}}
-@media(max-width:420px){body[data-page="profile"] .profile-page>.container{width:calc(100% - 24px)}.account-panel{padding:18px}.account-stat{padding:15px}.account-stat strong{font-size:1.5rem}.account-welcome{align-items:start}.account-welcome .account-avatar{display:none}.account-auth{padding:24px 14px}.account-dialog{padding:20px}.account-row>.account-actions{width:100%}.account-form{gap:14px}.account-form input,.account-form select{padding:11px 12px;font-size:.82rem}.account-captcha{transform-origin:center;}}
+@media(max-width:420px){body[data-page="profile"] .profile-page>.container{width:calc(100% - 24px)}.account-panel{padding:18px;box-shadow:none}.account-stat{padding:15px}.account-stat strong{font-size:1.5rem}.account-welcome{align-items:start}.account-welcome .account-avatar{display:none}.account-auth{padding:24px 14px}.account-dialog{padding:20px}.account-row>.account-actions{width:100%}.account-form{gap:14px}.account-form input,.account-form select{padding:11px 12px;font-size:.82rem}.account-captcha{transform-origin:center;}}
 @media(prefers-reduced-motion:reduce){.account-section{animation:none}.account-nav button{transition:none}}

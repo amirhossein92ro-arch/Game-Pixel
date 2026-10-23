@@ -1,0 +1,17 @@
+# Include inside the HTTPS server, before optional regex static-cache locations.
+# Defense in depth: the application has its own public-file allowlists.
+# HTTP ACME must have its own ^~ /.well-known/acme-challenge/ location.
+# Do not exempt the whole .well-known directory from hidden-file protection.
+location ~ (?:^|/)\. {
+    access_log off;
+    log_not_found off;
+    return 404;
+}
+location ~* ^/(?:lib|storage|scripts|deploy|tests|docs|node_modules|var|backups?|logs?|coverage|private|config|tmp|temp|backend|gaming-store|gaming-ecommerce)(?:/|$) {
+    access_log off;
+    return 404;
+}
+location ~* (?:^/(?:server\.js|package(?:-lock)?\.json|data\.json|README\.md|release-manifest\.json)$|\.(?:sqlite3?(?:-(?:wal|shm|journal))?|db(?:-(?:wal|shm|journal))?|log|bak|backup|sql|pem|key|p12|pfx|conf|ini|toml|ya?ml|cjs|map|tmp|temp|sw[op]|old|orig|rej|save)$|~$) {
+    access_log off;
+    return 404;
+}

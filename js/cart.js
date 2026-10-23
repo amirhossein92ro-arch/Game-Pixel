@@ -36,7 +36,7 @@
 
     const image = document.createElement("img");
     image.className = "cart-item-image";
-    image.src = item.image || "";
+    image.src = window.Web2SafeURL?.image(item.image) || "img/product-placeholder.svg";
     image.alt = item.name || "محصول";
     image.loading = "lazy";
     imageWrap.appendChild(image);

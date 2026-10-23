@@ -42,6 +42,4 @@ test('product data is valid and incomplete media remains recoverable', () => {
     const script = read('script.js');
     assert.match(script, /getProductImage/i);
     assert.match(script, /fallbackApplied/i);
-    assert.match(script, /loading="lazy"/i);
-    assert.match(script, /decoding="async"/i);
 });

@@ -1,0 +1,78 @@
+# Final HTTPS virtual host. Replace every YOUR_DOMAIN with the real apex domain.
+# www.YOUR_DOMAIN redirects to the canonical apex matching APP_ORIGIN.
+# Install deploy/nginx-rate-limits.conf.example in /etc/nginx/conf.d/web2-rate-limits.conf
+# and deploy/nginx-proxy.conf.example in /etc/nginx/snippets/web2-proxy.conf.
+# Install sensitive-locations and upstream snippets too; see phase22-https.md.
+# Enable only after both names resolve correctly, the certificate paths below
+# exist (check certbot certificates for a possible -0001 lineage), and nginx -t passes.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name YOUR_DOMAIN www.YOUR_DOMAIN;
+    server_tokens off;
+    access_log /var/log/nginx/web2-access.log web2_safe;
+    error_log /var/log/nginx/web2-error.log warn;
+    client_max_body_size 1m;
+    client_body_timeout 15s;
+    client_header_timeout 15s;
+    send_timeout 30s;
+    include /etc/nginx/snippets/web2-sensitive-locations.conf;
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/lib/letsencrypt;
+        default_type text/plain;
+        try_files $uri =404;
+        limit_except GET { deny all; }
+    }
+    location / { return 308 https://YOUR_DOMAIN$request_uri; }
+}
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name YOUR_DOMAIN;
+    ssl_certificate /etc/letsencrypt/live/YOUR_DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/YOUR_DOMAIN/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    server_tokens off;
+    access_log /var/log/nginx/web2-access.log web2_safe;
+    error_log /var/log/nginx/web2-error.log warn;
+    client_max_body_size 1m;
+    client_body_timeout 15s;
+    client_header_timeout 15s;
+    send_timeout 30s;
+    keepalive_timeout 30s;
+    large_client_header_buffers 4 16k;
+    limit_req_status 429;
+    # Express owns CSP, nosniff, frame/referrer/permissions policy and opt-in HSTS.
+    # Do not add or hide duplicate application security headers here.
+    # Never serve files from this repository directly.
+    include /etc/nginx/snippets/web2-sensitive-locations.conf;
+    location ~ ^/api/(?:admin/login|auth/(?:login|forgot-password/(?:request|verify|reset)))$ {
+        proxy_cache off;
+        limit_req zone=web2_auth burst=10 nodelay;
+        include /etc/nginx/snippets/web2-proxy.conf;
+    }
+    # Optional static cache: install both static-cache and static-locations examples,
+    # then uncomment this include.
+    # include /etc/nginx/snippets/web2-static-locations.conf;
+    location / {
+        proxy_cache off;
+        include /etc/nginx/snippets/web2-proxy.conf;
+    }
+}
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name www.YOUR_DOMAIN;
+    ssl_certificate /etc/letsencrypt/live/YOUR_DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/YOUR_DOMAIN/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    server_tokens off;
+    access_log /var/log/nginx/web2-access.log web2_safe;
+    error_log /var/log/nginx/web2-error.log warn;
+    client_max_body_size 1m;
+    client_body_timeout 15s;
+    client_header_timeout 15s;
+    send_timeout 30s;
+    include /etc/nginx/snippets/web2-sensitive-locations.conf;
+    location / { return 308 https://YOUR_DOMAIN$request_uri; }
+}

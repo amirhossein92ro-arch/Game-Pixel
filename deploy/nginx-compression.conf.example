@@ -1,0 +1,7 @@
+# Install in /etc/nginx/conf.d/web2-compression.conf after testing nginx -t.
+# Compress text sent by Nginx, including proxied HTML/API responses.
+gzip on;
+gzip_vary on;
+gzip_min_length 1024;
+gzip_comp_level 5;
+gzip_types text/plain text/css text/javascript application/javascript application/json application/xml image/svg+xml;

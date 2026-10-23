@@ -53,10 +53,10 @@ test('development admin is updated in place; real API and login form enforce aut
         const dashboardResponse=await fetch(base+'/admin',{headers:{Cookie:browser.cookie},redirect:'manual'});assert.equal(dashboardResponse.status,200);
         const html=await dashboardResponse.text(),errors=[];
         dom=new JSDOM(html,{url:base+'/admin',runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:new VirtualConsole()});
-        const w=dom.window;w.Headers=Headers;w.structuredClone=structuredClone;w.Element.prototype.scrollIntoView=function(){};
+        const w=dom.window;w.Headers=Headers;w.AbortController=AbortController;w.AbortSignal=AbortSignal;w.structuredClone=structuredClone;w.Element.prototype.scrollIntoView=function(){};
         w.fetch=async(input,options={})=>{const headers=new Headers(options.headers);headers.set('Origin',base);if(browser.cookie)headers.set('Cookie',browser.cookie);const response=await fetch(new URL(input,base),{...options,headers});if(response.headers.getSetCookie().length)browser.cookie=response.headers.getSetCookie().map(c=>c.split(';')[0]).join('; ');return response;};
         w.addEventListener('error',event=>errors.push(event.message));
-        for(const tag of w.document.querySelectorAll('script[src]')){const src=tag.getAttribute('src');if(!src.startsWith('https:'))vm.runInContext(fs.readFileSync(path.join(root,src),'utf8'),dom.getInternalVMContext(),{filename:src});}
+        for(const tag of w.document.querySelectorAll('script[src]')){const src=tag.getAttribute('src');if(!src.startsWith('https:'))vm.runInContext(fs.readFileSync(path.join(root,src.split(/[?#]/,1)[0]),'utf8'),dom.getInternalVMContext(),{filename:src});}
         await until(()=>vm.runInContext('setupAdminPanel.bound',dom.getInternalVMContext()));
         await until(()=>!w.document.getElementById('adminDashboard').hidden);
         assert.ok(w.Web2Admin.principal.role==='SUPER_ADMIN');

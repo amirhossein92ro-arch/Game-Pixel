@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily WEB 2 SQLite backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=15m
+Unit=web2-backup.service
+
+[Install]
+WantedBy=timers.target

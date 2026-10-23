@@ -1,0 +1,18 @@
+{
+  "_format": "web2-portable/v1",
+  "users": [{"id":"customer-01","name":"Migration fixture","email":"fixture@example.invalid","phone":"09120000001","role":"user","banned":false,"passwordHash":"$2b$12$uJbYKWiNFXiFSNTybLV2y.fUPnWxXVdOKtpTgCO.oZRNgL4FKae1i","createdAt":"2025-01-01T00:00:00.000Z","updatedAt":"2025-01-02T00:00:00.000Z","addresses":[{"id":"address-01","name":"Fixture","address":"Temporary fixture address","isDefault":true}]}],
+  "adminAccounts": [{"id":"admin-01","username":"fixture-admin","role":"SUPER_ADMIN","active":true,"totpRequired":false,"passwordHash":"$2b$12$uJbYKWiNFXiFSNTybLV2y.fUPnWxXVdOKtpTgCO.oZRNgL4FKae1i","createdAt":"2025-01-01T00:00:00.000Z"}],
+  "products": [{"id":"product-01","name":"Current fixture name","category":"fixture","price":150000,"stock":5,"status":"active","createdAt":"2025-01-01T00:00:00.000Z","revision":0}],
+  "discounts": [{"id":"discount-01","code":"MIGRATE","type":"percent","value":10,"active":true,"uses":1,"maxUses":10,"createdAt":"2025-01-01T00:00:00.000Z"}],
+  "orders": [{"id":"order-01","code":"WEB2-FIXTURE-01","userId":"customer-01","items":[{"id":"product-01","name":"Historical product name","price":125000,"unitPrice":125000,"quantity":2,"lineTotal":250000}],"subtotal":250000,"discount":25000,"shippingCost":30000,"total":255000,"discountId":"discount-01","discountCode":"MIGRATE","status":"pending","paymentStatus":"test","paymentMethod":"test-card","paymentProvider":"test","paymentReference":"TEST-WEB2-FIXTURE-01","createdAt":"2025-01-02T00:00:00.000Z","updatedAt":"2025-01-02T00:00:00.000Z"}],
+  "notifications": [{"id":"notification-01","userId":"customer-01","type":"order","title":"Fixture","message":"Fixture order created","resourceId":"order-01","createdAt":"2025-01-02T00:00:00.000Z","readAt":null}],
+  "auditLogs": [{"id":41,"actorId":"admin-01","actorUsername":"fixture-admin","actorRole":"SUPER_ADMIN","action":"PRODUCT_UPDATED","targetType":"product","targetId":"product-01","details":{"stock":5},"createdAt":"2025-01-02T00:00:00.000Z"}],
+  "settings": [{"id":"site-config","value":{"storeName":"Migration fixture","maintenance":false}}],
+  "messages": [{"id":"message-01","name":"Fixture","message":"Temporary fixture message"}],
+  "posts": [{"id":"post-01","title":"Fixture post","content":"Fixture body"}],
+  "comments": [{"id":"comment-01","text":"Fixture comment"}],
+  "tickets": [{"id":"ticket-01","userId":"customer-01","subject":"Fixture ticket","category":"general","status":"open","createdAt":"2025-01-02T00:00:00.000Z","updatedAt":"2025-01-02T00:00:00.000Z"}],
+  "ticketMessages": [{"id":"reply-01","ticketId":"ticket-01","author":"user","message":"Fixture reply","createdAt":"2025-01-02T00:00:00.000Z"}],
+  "wishlist": [{"userId":"customer-01","productId":"product-01","createdAt":"2025-01-02T00:00:00.000Z"}],
+  "idempotencyKeys": [{"userId":"customer-01","purpose":"checkout","key":"fixture-migration-0001","orderId":"order-01","requestHash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","createdAt":1735776000000,"expiresAt":1735862400000}]
+}

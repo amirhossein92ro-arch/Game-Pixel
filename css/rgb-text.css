@@ -1,29 +1,27 @@
 /* Shared typography only: no font, dimensions or layout changes. */
 .rgb-text {
-    --heading-rgb-duration: 7s;
-    --heading-rgb: linear-gradient(110deg, #00d4ff, #8b5cf6, #ff00ff, #00ff66, #00d4ff);
-    --heading-glow: 0 0 12px rgb(0 212 255 / 14%);
+    --heading-rgb: linear-gradient(110deg, #61e7ff 8%, #9b8cff 92%);
+    --heading-glow: 0 0 8px rgb(0 212 255 / 10%);
     color: #00d4ff;
     -webkit-text-fill-color: currentColor;
 }
 body.light-theme .rgb-text {
     /* Darker equivalents keep colored lettering readable on light surfaces. */
-    --heading-rgb: linear-gradient(110deg, #006b8f, #6d28d9, #a300a3, #007a35, #006b8f);
-    --heading-glow: 0 0 6px rgb(0 107 143 / 8%);
+    --heading-rgb: linear-gradient(110deg, #006b8f 8%, #5b35b5 92%);
+    --heading-glow: 0 0 6px rgb(0 107 143 / 6%);
     color: #006b8f;
 }
 .rgb-text-glow { text-shadow: var(--heading-glow); }
 .rgb-text-hero {
-    --heading-rgb-duration: 6s;
-    --heading-glow: 0 0 18px rgb(0 212 255 / 20%), 0 0 28px rgb(139 92 246 / 10%);
+    --heading-glow: 0 0 12px rgb(0 212 255 / 12%);
 }
 body .web2-intro .rgb-text {
     /* Intro always has a dark backdrop, including when the store theme is light. */
-    --heading-rgb: linear-gradient(110deg, #00d4ff, #8b5cf6, #ff00ff, #00ff66, #00d4ff);
-    --heading-glow: 0 0 18px rgb(0 212 255 / 22%);
+    --heading-rgb: linear-gradient(110deg, #61e7ff 8%, #9b8cff 92%);
+    --heading-glow: 0 0 16px rgb(0 212 255 / 18%);
     color: #00d4ff;
 }
-.web2-intro .intro-logo.rgb-text { --heading-glow: 0 0 26px rgb(0 212 255 / 35%), 0 0 38px rgb(139 92 246 / 18%); }
+.web2-intro .intro-logo.rgb-text { --heading-glow: 0 0 14px rgb(0 212 255 / 16%); }
 .rgb-text :where(span, strong),
 .hero-content h1.rgb-text span,
 .web2-intro .intro-logo.rgb-text span {
@@ -34,39 +32,27 @@ body .web2-intro .rgb-text {
     text-shadow: inherit;
 }
 
-@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+@supports (background-clip: text) or (-webkit-background-clip: text) {
     .rgb-text,
     body.light-theme .rgb-text,
     body .web2-intro .rgb-text {
         background-image: var(--heading-rgb);
-        background-size: 300% 300%;
+        background-size: 100% 100%;
         background-repeat: no-repeat;
         background-clip: text;
         -webkit-background-clip: text;
         color: transparent;
         -webkit-text-fill-color: transparent;
-        animation: web2-heading-rgb var(--heading-rgb-duration) ease-in-out infinite;
-    }
-    /* The parent paints a continuous gradient across lines and emphasized spans. */
-    .home-ready .hero-content h1.rgb-text {
-        animation: intro-arrive .8s both, web2-heading-rgb 6s ease-in-out infinite;
-    }
-    .web2-intro .intro-content h1.rgb-text {
-        animation: intro-arrive .65s .3s both, web2-heading-rgb 5s ease-in-out infinite;
-    }
-    .web2-intro .intro-logo.rgb-text {
-        animation: web2-heading-rgb 7s ease-in-out infinite;
     }
 }
-@keyframes web2-heading-rgb {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
+@media (max-width: 768px) {
+    .rgb-text-glow { text-shadow: none; }
 }
 @media (prefers-reduced-motion: reduce) {
     .rgb-text,
     .home-ready .hero-content h1.rgb-text,
     .web2-intro .intro-content h1.rgb-text,
-    .web2-intro .intro-logo.rgb-text { animation: none !important; background-position: 50% 50%; }
+    .web2-intro .intro-logo.rgb-text { animation: none !important; }
 }
 @media (forced-colors: active) {
     .rgb-text { background: none !important; color: CanvasText !important; -webkit-text-fill-color: CanvasText !important; text-shadow: none !important; animation: none !important; }

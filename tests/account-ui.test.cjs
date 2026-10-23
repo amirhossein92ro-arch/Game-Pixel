@@ -5,26 +5,28 @@ const {JSDOM,VirtualConsole}=require('jsdom');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {spawn}=require('node:child_process');
 const vm=require('node:vm');
+const {totp}=require('../lib/admin-security.cjs');
 const root=path.join(__dirname,'..');
 test('account and admin DOM flow uses real API, wishlist cart and safe logout',async()=>{
     const temp=fs.mkdtempSync(path.join(os.tmpdir(),'web2-account-ui-'));
     const port=23000+Math.floor(Math.random()*1000),base=`http://localhost:${port}`;
-    const server=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,PORT:String(port),APP_ORIGIN:base,DATABASE_PATH:path.join(temp,'ui.sqlite'),ADMIN_PASSWORD:'account-ui-admin-2026',NODE_ENV:'test',PAYMENT_MODE:'test'},stdio:['ignore','pipe','pipe']});
+    const server=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,PORT:String(port),APP_ORIGIN:base,DATABASE_PATH:path.join(temp,'ui.sqlite'),ADMIN_PASSWORD:'account-ui-admin-2026',ACCOUNT_TOTP_KEY:'a'.repeat(64),NODE_ENV:'test',PAYMENT_MODE:'test'},stdio:['ignore','pipe','pipe']});
     const windows=[],errors=[],requests=[];
     let cookie='',adminCookie='',adminCsrf='';
-    async function until(fn){for(let i=0;i<350;i++){const result=fn();if(result)return result;await new Promise(r=>setTimeout(r,20));}throw Error('UI condition timed out: '+fn.toString()+'; errors: '+errors.join('; '));}
+    async function until(fn){for(let i=0;i<350;i++){const result=fn();if(result)return result;await new Promise(r=>setTimeout(r,20));}throw Error('UI condition timed out: '+fn.toString()+'; errors: '+errors.join('; ')+'; admin list: '+windows.at(-1)?.document.getElementById('adminTicketList')?.textContent+'; toast: '+windows.at(-1)?.document.getElementById('toastContainer')?.textContent+'; ticket requests: '+JSON.stringify(requests.filter(r=>r.path==='/api/admin/tickets')));}
     function createPage(file,admin=false,query=''){
         const console=new VirtualConsole();console.on('jsdomError',e=>{if(!/navigation/.test(e.message))errors.push(e.message);});
         const dom=new JSDOM(fs.readFileSync(path.join(root,file),'utf8'),{url:base+'/'+file+query,runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:console});
-        const w=dom.window;windows.push(w);w.Headers=Headers;w.TextEncoder=TextEncoder;
+        const w=dom.window;windows.push(w);w.Headers=Headers;w.AbortController=AbortController;w.AbortSignal=AbortSignal;w.TextEncoder=TextEncoder;
         w.Element.prototype.scrollIntoView=function(){};
         w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
         w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'));};
         w.fetch=async(input,options={})=>{
             const url=new URL(typeof input==='string'?input:input.url,base),headers=new Headers(options.headers);
             headers.set('Origin',base);const current=admin?adminCookie:cookie;if(current)headers.set('Cookie',current);
-            requests.push({file,path:url.pathname,method:options.method||'GET'});
-            const response=await fetch(url,{...options,headers});
+            const request={file,path:url.pathname,method:options.method||'GET'};requests.push(request);
+            const response=await fetch(url,{...options,headers});request.status=response.status;
+            if(response.status>=400&&url.pathname==='/api/admin/tickets')errors.push('Tickets API '+response.status+': '+await response.clone().text());
             const cookies=response.headers.getSetCookie();if(cookies.length){if(admin)adminCookie=cookies.map(c=>c.split(';')[0]).join('; ');else cookie=cookies.map(c=>c.split(';')[0]).join('; ');}
             return response;
         };
@@ -99,9 +101,24 @@ test('account and admin DOM flow uses real API, wishlist cart and safe logout',a
         assert.equal(w.document.querySelector('[data-account-name]').textContent,'Player UI');
         // Reconstructing the page restores the server session; it does not read a profile from storage.
         const restored=createPage('profile.html');await until(()=>restored.document.querySelector('.account-stats'));assert.equal(restored.document.querySelector('[data-account-name]').textContent,'Player UI');
+        await section(restored,'security');
+        assert.ok(restored.document.getElementById('accountStartTwoFactor'));
+        submit(restored,fill(restored,'accountStartTwoFactor',{currentPassword:fields.password}));
+        await until(()=>restored.document.getElementById('accountConfirmTwoFactor'));
+        const secret=restored.document.querySelector('#accountFactorSetup code').textContent;
+        submit(restored,fill(restored,'accountConfirmTwoFactor',{code:totp(secret)}));
+        await until(()=>restored.document.getElementById('accountDialog')?.open);
+        assert.equal(restored.document.querySelector('#accountFactorSetup code'),null,'setup secret disappears after confirmation');
+        restored.document.querySelector('#accountDialog [data-account-action="close-dialog"]').click();
+        restored.document.querySelector('[data-account-action="logout"]').click();await until(()=>restored.document.getElementById('profileAuth'));
+        submit(restored,fill(restored,'profileAuth',{email:fields.email,password:fields.password}));
+        await until(()=>restored.document.getElementById('accountTwoFactorLogin'));
+        assert.equal(restored.Web2.user,null,'password alone does not authenticate');
+        submit(restored,fill(restored,'accountTwoFactorLogin',{code:totp(secret,Date.now()+30000)}));
+        await until(()=>restored.document.querySelector('.account-stats'));
         assert.deepEqual(errors,[]);
     }finally{
         windows.forEach(w=>w.close());if(server.exitCode===null){const done=new Promise(r=>server.once('exit',r));server.kill();await done;}
-        if(path.dirname(path.resolve(temp))!==path.resolve(os.tmpdir()))throw Error('Unsafe cleanup');fs.rmSync(temp,{recursive:true,force:true});
+        if(path.dirname(path.resolve(temp))!==path.resolve(os.tmpdir()))throw Error('Unsafe cleanup');fs.rmSync(temp,{recursive:true,force:true,maxRetries:10,retryDelay:100});
     }
 });

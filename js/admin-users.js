@@ -31,13 +31,13 @@ document.addEventListener('DOMContentLoaded', () => {
     async function activity() {
         if (!Web2Admin.can('audit.read')) return;
         const host = document.getElementById('adminUserActivity');
-        try {const data = await adminRequest('/api/admin/audit');host.innerHTML = '<h2>فعالیت اخیر مدیریت</h2>' + data.items.slice(0,8).map(log => '<article class="admin-console-row"><strong>' + esc(log.admin) + '</strong><bdi>' + esc(log.action) + '</bdi><bdi>' + esc(log.targetId) + '</bdi><time>' + date(log.createdAt) + '</time></article>').join('');host.hidden = false;} catch(error) {host.textContent = error.message;}
+        try {const data = await adminRequest('/api/admin/audit?page=1&pageSize=8');host.innerHTML = '<h2>فعالیت اخیر مدیریت</h2>' + data.items.slice(0,8).map(log => '<article class="admin-console-row"><strong>' + esc(log.admin) + '</strong><bdi>' + esc(log.action) + '</bdi><bdi>' + esc(log.targetId) + '</bdi><time>' + date(log.createdAt) + '</time></article>').join('');host.hidden = false;} catch(error) {host.textContent = error.message;}
     }
     const activityHost = document.createElement('section');activityHost.id = 'adminUserActivity';activityHost.className = 'glass-panel admin-data-panel';activityHost.hidden = true;document.querySelector('[data-admin-panel="overview"]').append(activityHost);
     window.addEventListener('web2:admin-ready',activity);
     window.Web2Users = {load};
     function render() {
-        if (!rows.length) {box.innerHTML = '<div class="admin-empty-state"><h3>کاربری یافت نشد</h3></div>';return;}
+        if (!rows.length) {box.innerHTML = '<div class="admin-empty-state"><h3>کاربری یافت نشد</h3><p>عبارت جستجو یا فیلتر نقش و وضعیت را تغییر دهید.</p><button class="secondary-button" type="button" data-users-clear>پاک کردن فیلترها</button></div>';return;}
         const headers = ['کاربر','ایمیل','موبایل','نقش','وضعیت','تاریخ عضویت','آخرین ورود','سفارش‌ها','مجموع خرید','عملیات'];
         box.innerHTML = '<table class="admin-table admin-users-table"><caption class="sr-only">حساب‌های ثبت‌شده و عملیات مدیریت</caption><thead><tr>' + headers.map(h => '<th scope="col">' + h + '</th>').join('') + '</tr></thead><tbody>' + rows.map(u => {
             const button = (action,label) => '<button type="button" class="secondary-button" data-um-action="' + action + '" data-um-id="' + esc(u.id) + '">' + label + '</button>';
@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.append(d);d.showModal();form.querySelector('input,select,[data-dialog-close]')?.focus();return d;
     }
     box.addEventListener('click',async e => {
+        if(e.target.closest('[data-users-clear]')){filters.reset();page=1;load();return;}
         if (e.target.closest('[data-users-retry]')) {load();return;}
         const button = e.target.closest('[data-um-action]');if (!button || button.disabled) return;
         const u = rows.find(u => u.id === button.dataset.umId);if (!u) return;button.disabled = true;
@@ -68,14 +69,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (action === 'view') {const detail = await adminRequest(api(u.id));dialog('جزئیات حساب','<dl class="admin-user-detail">' + Object.entries({شناسه:detail.id,نام:detail.name,ایمیل:detail.email,موبایل:detail.phone,نقش:roles[detail.role],وضعیت:detail.banned ? 'غیرفعال' : 'فعال','تاریخ عضویت':date(detail.joinDate),'آخرین ورود':date(detail.lastLogin),'تعداد سفارش':detail.orderCount,'مجموع خرید تأییدشده':formatPrice(detail.totalSpent)}).map(([k,v]) => '<dt>' + esc(k) + '</dt><dd><bdi>' + esc(v || '—') + '</bdi></dd>').join('') + '</dl>');}
             if (action === 'orders') {const orders = await adminRequest(api(u.id,'/orders'));dialog('سفارش‌های ' + u.name,orders.map(o => '<article class="admin-console-row"><strong>' + esc(o.code || o.id) + '</strong><span>' + esc(adminStatusLabel(o.status)) + '</span><span>' + formatPrice(o.total) + '</span><time>' + date(o.createdAt) + '</time></article>').join('') || '<p>سفارشی ثبت نشده است.</p>');}
             if (action === 'edit') {
-                const fields = u.kind === 'admin' ? [['username','نام کاربری',u.username]] : [['name','نام',u.name],['email','ایمیل',u.email],['phone','موبایل',u.phone]];
-                dialog('ویرایش ' + u.name,fields.map(([key,label,value]) => '<label class="field"><span>' + label + '</span><input name="' + key + '" value="' + esc(value) + '" required maxlength="' + (key === 'email' ? '200' : key === 'phone' ? '11' : '100') + '" ' + (key === 'email' ? 'type="email" dir="ltr"' : key === 'phone' ? 'inputmode="tel" pattern="09[0-9]{9}" dir="ltr"' : '') + '></label>').join(''),form => adminRequest(api(u.id),json('PATCH',Object.fromEntries(new FormData(form)))));
+                const fields = u.kind === 'admin' ? [['username','نام کاربری',u.username],['email','ایمیل مدیر (اختیاری)',u.email]] : [['name','نام',u.name],['email','ایمیل',u.email],['phone','موبایل',u.phone]];
+                dialog('ویرایش ' + u.name,fields.map(([key,label,value]) => '<label class="field"><span>' + label + '</span><input name="' + key + '" value="' + esc(value) + '" ' + (u.kind === 'admin' && key === 'email' ? '' : 'required') + ' maxlength="' + (key === 'email' ? '200' : key === 'phone' ? '11' : '100') + '" ' + (key === 'email' ? 'type="email" dir="ltr"' : key === 'phone' ? 'inputmode="tel" pattern="09[0-9]{9}" dir="ltr"' : '') + '></label>').join(''),form => adminRequest(api(u.id),json('PATCH',Object.fromEntries(new FormData(form)))));
             }
             if (action === 'role') dialog('تغییر نقش ' + u.name,'<label class="field"><span>نقش</span><select name="role">' + (u.kind === 'admin' ? ['ADMIN','SUPER_ADMIN'] : ['user','ADMIN','SUPER_ADMIN']).map(role => '<option value="' + role + '" ' + (u.role === role ? 'selected' : '') + '>' + roles[role] + '</option>').join('') + '</select></label><p>نشست‌های قبلی باطل می‌شوند. مدیر جدید با ایمیل و رمز حساب از فرم ورود مدیریت وارد می‌شود.</p>',async form => {const confirmation = await confirmed(u,'نقش و دسترسی این حساب تغییر کند؟');if (!confirmation) throw Error('عملیات لغو شد.');await adminRequest(api(u.id,'/role'),json('PATCH',{role:form.elements.role.value,...confirmation}));});
             if (action === 'reset') dialog('ریست رمز ' + u.name,'<p>رمز فعلی نمایش داده نمی‌شود. رمز موقت را از یک مسیر امن به کاربر بدهید. همه نشست‌ها پایان می‌یابند.</p><label class="field"><span>رمز موقت جدید</span><input name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="72"></label><small>حداقل ۱۲ کاراکتر، شامل حرف، عدد و نماد؛ حداکثر ۷۲ بایت.</small>',async form => {const confirmation = await confirmed(u,'رمز این حساب ریست شود و همه نشست‌ها پایان یابد؟');if (!confirmation) throw Error('عملیات لغو شد.');await adminRequest(api(u.id,'/reset-password'),json('POST',{password:form.elements.password.value,...confirmation}));});
             if (['status','logout','delete'].includes(action)) {
-                const message = action === 'delete' ? 'آیا مطمئن هستید که میخواهید این حساب را حذف کنید؟ این عملیات قابل بازگشت نیست.' : action === 'logout' ? 'همه نشست‌های ' + u.name + ' پایان یابد؟' : 'وضعیت دسترسی ' + u.name + ' تغییر کند؟';
+                const message = action === 'delete' ? 'حساب «'+u.name+'» حذف شود؟ این عملیات قابل بازگشت نیست؛ سوابق سفارش حفظ می‌شود.' : action === 'logout' ? 'همه نشست‌های ' + u.name + ' پایان یابد؟' : u.banned ? 'دسترسی حساب «'+u.name+'» فعال شود؟' : 'حساب «'+u.name+'» غیرفعال شود؟ همه نشست‌های آن پایان می‌یابند.';
                 const confirmation = await confirmed(u,message);if (!confirmation) return;
+                if(action==='delete'){if(!await Web2Admin.confirmPhrase('حذف این حساب قابل بازگشت نیست.','DELETE'))return;confirmation.confirmationPhrase='DELETE';}
                 const suffix = action === 'status' ? '/status' : action === 'logout' ? '/logout-all' : '';
                 await adminRequest(api(u.id,suffix),json(action === 'delete' ? 'DELETE' : action === 'status' ? 'PATCH' : 'POST',{...confirmation,...(action === 'status' ? {status:u.banned ? 'active' : 'disabled'} : {})}));
                 await load();await activity();showToast('عملیات انجام شد.');

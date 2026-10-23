@@ -5,6 +5,7 @@ window.Web2Wishlist = {
     sync(){document.querySelectorAll('[data-wishlist-product]').forEach(b=>{
         const active=this.has(b.dataset.wishlistProduct);
         b.classList.toggle('is-favorite',active);b.setAttribute('aria-pressed',String(active));
+        const icon=b.querySelector('[data-wishlist-icon]');if(icon)icon.textContent=active?'♥':'♡';
         b.setAttribute('aria-label',active?'حذف از علاقه‌مندی‌ها':'افزودن به علاقه‌مندی‌ها');
         b.title=active?'حذف از علاقه‌مندی‌ها':'افزودن به علاقه‌مندی‌ها';
     });},

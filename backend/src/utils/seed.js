@@ -16,11 +16,14 @@ async function seedAdmin() {
     console.error("ADMIN_EMAIL و ADMIN_PASSWORD را در فایل .env تنظیم کنید.");
     process.exit(1);
   }
+  require('../../../lib/request-security.cjs').password(password);
+  require('./input').email(email);
 
   const existing = await User.findOne({ email });
   if (existing) {
     if (existing.role !== "admin") {
       existing.role = "admin";
+      existing.sessionVersion=(existing.sessionVersion||0)+1;
       await existing.save();
       console.log(`کاربر «${email}» به نقش ادمین ارتقا یافت.`);
     } else {
@@ -36,6 +39,6 @@ async function seedAdmin() {
 }
 
 seedAdmin().catch((err) => {
-  console.error(err);
+  console.error('Administrator seed failed.');
   process.exit(1);
 });

@@ -5,7 +5,10 @@ const { createError } = require("../../middleware/error.middleware");
 async function createPaymentRequest(req, res, next) {
   try {
     const { amount, orderId } = req.body;
-    if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) {
+    const order=await require('../orders/order.model').findOne({_id:require('../../utils/input').id(orderId),user:req.user._id});
+    if(!order)throw createError(404,'Order not found.');
+    if(order.status==='cancelled'||order.paymentStatus!=='unpaid')throw createError(409,'Order is not payable.');
+    if (amount!==undefined&&require('../../utils/input').integer(amount,1,Number.MAX_SAFE_INTEGER)!==order.totalPrice) {
       throw createError(400, "مبلغ پرداخت نامعتبر است.");
     }
 
@@ -14,9 +17,9 @@ async function createPaymentRequest(req, res, next) {
       return res.json({
         enabled: false,
         message: "درگاه پرداخت فعلاً غیرفعال است (پاسخ نمایشی).",
-        amount: Number(amount),
-        orderId: orderId || null,
-        authority: "DEMO-AUTHORITY",
+        amount: order.totalPrice,
+        orderId: String(order._id),
+        authority: null,
         paymentUrl: null
       });
     }

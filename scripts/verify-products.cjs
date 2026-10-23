@@ -12,6 +12,10 @@ async function json(path){
 }
 async function main(){
     const payload=await json('/api/products'),products=Array.isArray(payload)?payload:payload.products;
+    // Reuse only public GET snapshots within this read-only run. Each product's
+    // endpoint and each page/session still hit the server, while fresh/stale DOM
+    // checks do not redownload the same catalog/settings hundreds of times.
+    const publicReads=new Map();
     assert.ok(Array.isArray(products));
     assert.ok(products.length>=50,'Catalog must contain at least 50 products');
     const requiredCategories=['موس گیمینگ','کیبورد گیمینگ','هدست','مانیتور','دسته بازی','صندلی گیمینگ','میکروفون','تجهیزات استریم','قطعات کامپیوتر','لوازم جانبی گیمینگ'];
@@ -31,7 +35,16 @@ async function main(){
         w.fetch=async(input,options={})=>{
             const url=new URL(typeof input==='string'?input:input.url,base),headers=new Headers(options.headers);
             headers.set('Origin',base);if(cookie)headers.set('Cookie',cookie);
-            const result=await fetch(url,{...options,headers});
+            const cacheable=!cookie&&(options.method||'GET').toUpperCase()==='GET'&&url.origin===new URL(base).origin
+                &&!url.search&&['/api/products','/api/site-settings'].includes(url.pathname);
+            let pending=cacheable&&publicReads.get(url.href);
+            if(!pending){pending=fetch(url,{...options,headers});if(cacheable)publicReads.set(url.href,pending);}
+            let result;
+            try{
+                const response=await pending;
+                if(cacheable&&!response.ok)publicReads.delete(url.href);
+                result=cacheable?response.clone():response;
+            }catch(error){if(cacheable)publicReads.delete(url.href);throw error;}
             const cookies=result.headers.getSetCookie();if(cookies.length)cookie=cookies.map(c=>c.split(';')[0]).join('; ');
             return result;
         };
@@ -57,9 +70,9 @@ async function main(){
     fallbackProbe.dispatchEvent(new home.window.Event('error'));
     assert.match(fallbackProbe.getAttribute('src'),/img\/product-placeholder\.svg$/,'Broken images do not switch to the placeholder');
     try{
-        for(const href of links){const id=new URL(href,base).searchParams.get('id');assert.ok(ids.has(id),'Card has no backend product: '+id);assert.equal(href,'product.html?id='+encodeURIComponent(id),'Invalid card link');}
+        for(const href of links){const id=new URL(href,base).searchParams.get('id');assert.ok(ids.has(id),'Card has no backend product: '+id);assert.equal(href,'/product.html?id='+encodeURIComponent(id),'Invalid card link');}
         for(const product of products){
-            const id=String(product.id),result={id,name:product.name,link:'product.html?id='+encodeURIComponent(id),status:null,freshDetail:false,staleCacheDetail:false,reason:null};
+            const id=String(product.id),result={id,name:product.name,link:'/product.html?id='+encodeURIComponent(id),status:null,freshDetail:false,staleCacheDetail:false,reason:null};
             try{
                 const response=await fetch(new URL('/api/products/'+encodeURIComponent(id),base));result.status=response.status;
                 assert.equal(response.status,200,'Single-product endpoint');assert.match(response.headers.get('content-type'),/application\/json/);

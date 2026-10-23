@@ -5,13 +5,15 @@ const assert = require('node:assert/strict');
 const {createCaptchaService, SITEVERIFY_URL} = require('../lib/captcha.cjs');
 const {createSmsService, KAVENEGAR_BASE_URL} = require('../lib/sms.cjs');
 
-test('unconfigured Turnstile fails closed outside test mode and production requires keys', async () => {
+test('unconfigured Turnstile starts safely and fails closed outside test mode', async () => {
     const development = createCaptchaService({NODE_ENV:'development'});
     assert.equal(development.required, true);
     assert.match(development.developmentMessage, /TURNSTILE_SITE_KEY/);
     assert.equal(await development.verify('', '127.0.0.1', 'login'), false);
-    assert.throws(() => createCaptchaService({NODE_ENV:'production',APP_ORIGIN:'https://shop.example'}), /Production requires/);
     assert.throws(() => createCaptchaService({NODE_ENV:'development',TURNSTILE_SITE_KEY:'public-only'}), /configured together/);
+    const missing=createCaptchaService({NODE_ENV:'production'});
+    assert.equal(missing.required,true);assert.equal(missing.configured,false);
+    assert.equal(await missing.verify('anything','127.0.0.1','login'),false);
 });
 
 test('Turnstile sends tokens only to official Siteverify and checks action and hostname', async () => {
@@ -34,7 +36,9 @@ test('Turnstile sends tokens only to official Siteverify and checks action and h
 test('SMS mock is development-only and never exposes an OTP in production', async () => {
     const mock=createSmsService({NODE_ENV:'development'});
     assert.equal((await mock.sendOtp({phone:'09120000000',code:'123456',expiresInSeconds:120})).mockCode,'123456');
-    assert.throws(()=>createSmsService({NODE_ENV:'production'}),/real SMS_PROVIDER/);
+    const production=createSmsService({NODE_ENV:'production'});
+    assert.equal(production.mock,false);assert.equal(production.provider,'unconfigured');
+    await assert.rejects(production.sendOtp({phone:'09120000000',code:'123456',expiresInSeconds:120}),error=>error.status===503&&!/123456/.test(error.message));
 });
 
 test('Kavenegar adapter uses official Verify Lookup contract', async () => {

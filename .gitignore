@@ -10,4 +10,5 @@ var/
 *.log
 .backup*/
 coverage/
+.runtime/
 dist/

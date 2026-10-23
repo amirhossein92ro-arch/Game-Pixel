@@ -1,0 +1,163 @@
+{
+  "at": "2026-10-19T18:24:31.868Z",
+  "node": "v24.21.0",
+  "platform": "win32",
+  "fixture": {
+    "products": 400,
+    "reads": 300,
+    "writes": 50
+  },
+  "notes": [
+    "Local synthetic storage operations, not HTTP/VPS capacity or a before/after application benchmark.",
+    "JSON measurements exercise offline seed/import tools; live production storage already uses SQLite.",
+    "Writes include each adapter's durable commit; transactions and validation remain enabled.",
+    "No production data or runtime configuration is read or changed. Explicit GC is used when available."
+  ],
+  "drivers": {
+    "legacyJsonTools": {
+      "reads": {
+        "operations": 300,
+        "elapsedMs": 579.276,
+        "operationsPerSecond": 517.8878462080253,
+        "averageMs": 1.9278796666666638,
+        "p95Ms": 5.006200000000035,
+        "p99Ms": 6.635600000000068,
+        "cpuMs": 423,
+        "memoryBefore": {
+          "rss": 62447616,
+          "heapTotal": 17866752,
+          "heapUsed": 5992704,
+          "external": 2239651,
+          "arrayBuffers": 143611
+        },
+        "memoryAfter": {
+          "rss": 71012352,
+          "heapTotal": 23896064,
+          "heapUsed": 6158288,
+          "external": 4138275,
+          "arrayBuffers": 143627
+        }
+      },
+      "writes": {
+        "operations": 50,
+        "elapsedMs": 570.2262000000001,
+        "operationsPerSecond": 87.68450134350192,
+        "averageMs": 11.394157999999988,
+        "p95Ms": 16.521000000000186,
+        "p99Ms": 21.118799999999965,
+        "cpuMs": 436,
+        "memoryBefore": {
+          "rss": 71090176,
+          "heapTotal": 24158208,
+          "heapUsed": 6070744,
+          "external": 2239671,
+          "arrayBuffers": 143627
+        },
+        "memoryAfter": {
+          "rss": 72196096,
+          "heapTotal": 24158208,
+          "heapUsed": 6141088,
+          "external": 2239671,
+          "arrayBuffers": 143627
+        }
+      }
+    },
+    "runtimeSqlite": {
+      "reads": {
+        "operations": 300,
+        "elapsedMs": 11.126599999999826,
+        "operationsPerSecond": 26962.41439433472,
+        "averageMs": 0.03679399999999911,
+        "p95Ms": 0.036100000000033106,
+        "p99Ms": 0.09090000000014697,
+        "cpuMs": 0,
+        "memoryBefore": {
+          "rss": 72196096,
+          "heapTotal": 23896064,
+          "heapUsed": 6133040,
+          "external": 2239671,
+          "arrayBuffers": 143627
+        },
+        "memoryAfter": {
+          "rss": 72196096,
+          "heapTotal": 23896064,
+          "heapUsed": 6190184,
+          "external": 2239671,
+          "arrayBuffers": 143627
+        }
+      },
+      "writes": {
+        "operations": 50,
+        "elapsedMs": 85.5818999999999,
+        "operationsPerSecond": 584.2356853493561,
+        "averageMs": 1.7092220000000133,
+        "p95Ms": 5.14240000000018,
+        "p99Ms": 5.857300000000123,
+        "cpuMs": 48,
+        "memoryBefore": {
+          "rss": 72204288,
+          "heapTotal": 23896064,
+          "heapUsed": 6135040,
+          "external": 2239671,
+          "arrayBuffers": 143627
+        },
+        "memoryAfter": {
+          "rss": 71446528,
+          "heapTotal": 23896064,
+          "heapUsed": 6165600,
+          "external": 2239671,
+          "arrayBuffers": 143627
+        }
+      }
+    },
+    "normalizedRehearsal": {
+      "reads": {
+        "operations": 300,
+        "elapsedMs": 13.065900000000056,
+        "operationsPerSecond": 22960.530847473095,
+        "averageMs": 0.04307133333333544,
+        "p95Ms": 0.0706000000000131,
+        "p99Ms": 0.5795000000000528,
+        "cpuMs": 16,
+        "memoryBefore": {
+          "rss": 71733248,
+          "heapTotal": 23896064,
+          "heapUsed": 6157152,
+          "external": 2239671,
+          "arrayBuffers": 143627
+        },
+        "memoryAfter": {
+          "rss": 71667712,
+          "heapTotal": 23896064,
+          "heapUsed": 6220080,
+          "external": 2239671,
+          "arrayBuffers": 143627
+        }
+      },
+      "writes": {
+        "operations": 50,
+        "elapsedMs": 90.37830000000008,
+        "operationsPerSecond": 553.230144846716,
+        "averageMs": 1.804452000000001,
+        "p95Ms": 5.151299999999992,
+        "p99Ms": 5.459700000000112,
+        "cpuMs": 32,
+        "memoryBefore": {
+          "rss": 71680000,
+          "heapTotal": 23896064,
+          "heapUsed": 6164176,
+          "external": 2239671,
+          "arrayBuffers": 143627
+        },
+        "memoryAfter": {
+          "rss": 71446528,
+          "heapTotal": 23896064,
+          "heapUsed": 6193488,
+          "external": 2239671,
+          "arrayBuffers": 143627
+        }
+      }
+    }
+  },
+  "integrity": "ok"
+}

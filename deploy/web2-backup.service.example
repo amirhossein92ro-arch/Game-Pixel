@@ -1,0 +1,11 @@
+[Unit]
+Description=WEB 2 verified SQLite backup
+
+[Service]
+Type=oneshot
+User=web2
+Group=web2
+WorkingDirectory=/srv/web2
+ExecStart=/usr/bin/node /srv/web2/scripts/backup.cjs
+NoNewPrivileges=true
+UMask=0077

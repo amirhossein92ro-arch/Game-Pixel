@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Web 2؛ فروشگاه نمایشی تجهیزات گیمینگ با تجربه خرید مدرن">
+    <meta name="description" content="WEB 2؛ فروشگاه تجهیزات گیمینگ برای بررسی کیبورد، موس، هدست و لوازم ستاپ؛ مشاهده مشخصات، قیمت و موجودی محصولات.">
     <meta name="theme-color" content="#050816">
     <meta name="color-scheme" content="dark light">
-    <title>Web 2 | فروشگاه گیمینگ</title>
+    <title>WEB 2 | فروشگاه تجهیزات گیمینگ</title>
+    <meta name="robots" content="index,follow">
     <link rel="canonical" href="/">
     <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
     <meta property="og:type" content="website">
@@ -16,18 +17,18 @@
     <meta property="og:image" content="/img/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=20261007-card-visibility">
-    <link rel="stylesheet" href="css/intro.css?v=20261007-visibility">
-    <link rel="stylesheet" href="css/rgb-text.css">
+    <link rel="stylesheet" href="style.css?v=f5b42c57ab798af9">
+    <link rel="stylesheet" href="css/intro.css?v=0c1d8f92b4a69d24">
+    <link rel="stylesheet" href="css/rgb-text.css?v=e4a270a35e255916">
 </head>
 <body data-page="home">
     <a class="skip-link" href="#main-content">رفتن به محتوای اصلی</a>
 
     <header class="site-header">
         <div class="container header-inner">
-            <a class="brand" href="index.html" aria-label="صفحه اصلی Web 2">
+            <a class="brand" href="/" aria-label="صفحه اصلی Web 2">
                 <span class="brand-icon"><i class="fa-solid fa-gamepad" aria-hidden="true"></i></span>
                 <span><strong>WEB 2</strong><small>GAMING STORE</small></span>
             </a>
@@ -37,8 +38,8 @@
             </button>
 
             <nav class="main-nav" id="mainNav" aria-label="ناوبری اصلی">
-                <a class="active" href="index.html" aria-current="page">خانه</a>
-                <a href="#products">محصولات</a>
+                <a class="active" href="/" aria-current="page">خانه</a>
+                <a href="/products">محصولات</a>
                 <a href="cart.html">سبد خرید</a>
                 <a href="#about">درباره ما</a>
                 <a href="#contact">تماس با ما</a>
@@ -58,8 +59,6 @@
 
     <main id="main-content">
         <section class="hero">
-            <div class="hero-glow hero-glow-one"></div>
-            <div class="hero-glow hero-glow-two"></div>
             <div class="container hero-layout">
                 <div class="hero-content">
                     <span class="eyebrow"><i class="fa-solid fa-bolt" aria-hidden="true"></i> تجهیزات حرفه‌ای برای بازی حرفه‌ای</span>
@@ -70,9 +69,9 @@
                         <a class="secondary-button" href="#about">داستان Web 2</a>
                     </div>
                     <div class="hero-stats" aria-label="ویژگی‌های فروشگاه">
-                        <div><strong id="homeProductCount">۸</strong><span>محصول منتخب</span></div>
-                        <div><strong>۲۴/۷</strong><span>تجربه آنلاین</span></div>
-                        <div><strong>۱۰۰٪</strong><span>خرید نمایشی امن</span></div>
+                        <div><strong id="homeProductCount">—</strong><span>محصول در کاتالوگ</span></div>
+                        <div><strong>حساب شما</strong><span>پیگیری سفارش و پشتیبانی</span></div>
+                        <div><strong>آزمایشی</strong><span>بدون دریافت وجه</span></div>
                     </div>
                 </div>
 
@@ -100,11 +99,11 @@
                 <div class="section-heading compact-heading">
                     <div>
                         <span class="eyebrow">CHOOSE YOUR GEAR</span>
-                        <h2 class="rgb-text">دسته‌بندی‌های محبوب</h2>
+                        <h2 class="rgb-text">دسته‌بندی محصولات</h2>
                     </div>
                     <p>سریع‌تر به تجهیزات موردنیاز ستاپ خود برسید.</p>
                 </div>
-                <div class="category-grid" id="categoryGrid" aria-label="دسته‌بندی محصولات"></div>
+                <div class="category-grid" id="categoryGrid" aria-label="دسته‌بندی محصولات"><!-- SEO:CATEGORIES --></div>
             </div>
         </section>
 
@@ -113,19 +112,19 @@
                 <div class="section-heading">
                     <div>
                         <span class="eyebrow">FEATURED LOADOUT</span>
-                        <h2 class="rgb-text">محصولات ویژه و پرفروش‌ترین‌ها</h2>
+                        <h2 class="rgb-text">پیشنهادهای فروشگاه</h2>
                     </div>
-                    <p>انتخاب‌هایی با امتیاز بالا، محبوبیت بیشتر و کیفیت مناسب برای ارتقای ستاپ.</p>
+                    <p>ویژگی‌ها و قیمت تجهیزات را مقایسه کنید و گزینه مناسب ستاپ خود را پیدا کنید.</p>
                 </div>
-                <div class="spotlight-grid" id="featuredGrid" aria-live="polite"></div>
+                <div class="spotlight-grid" id="featuredGrid" aria-live="polite"><!-- SEO:FEATURED --></div>
             </div>
         </section>
 
         <section class="container promo-banner" aria-label="تخفیف ویژه">
             <div class="promo-copy">
                 <span class="promo-kicker"><i class="fa-solid fa-bolt"></i> NEON DROP</span>
-                <h2 class="rgb-text">ارتقای ستاپ با تخفیف آزمایشی</h2>
-                <p>کد <strong>WEB2</strong> را در سبد خرید وارد کنید و ۱۰٪ تخفیف نمایشی بگیرید.</p>
+                <h2 class="rgb-text">انتخاب روشن، هزینه شفاف</h2>
+                <p>کد تخفیف دارید؟ اعتبار و شرایط آن را در سبد بررسی کنید و پیش از ثبت، مبلغ نهایی را ببینید.</p>
             </div>
             <a class="primary-button" href="#products">شروع خرید <i class="fa-solid fa-arrow-down"></i></a>
         </section>
@@ -140,11 +139,12 @@
                     <p>هر چیزی که برای ارتقای تجربه بازی و تکمیل ستاپ خود نیاز دارید.</p>
                 </div>
                 <div class="product-toolbar glass-panel" aria-label="جستجو و فیلتر محصولات">
-                    <label class="product-search">
-                        <span class="sr-only">جستجوی محصول</span>
+                    <div class="product-search" role="search">
+                        <label class="sr-only" for="productSearch">جستجوی محصول</label>
                         <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                        <input id="productSearch" type="search" placeholder="جستجوی سریع محصول..." autocomplete="off">
-                    </label>
+                        <input id="productSearch" type="search" placeholder="نام، برند یا ویژگی محصول…" autocomplete="off" aria-controls="productGrid">
+                        <button id="clearProductSearch" type="button" class="search-clear" aria-label="پاک کردن جستجو" hidden>×</button>
+                    </div>
                     <label class="toolbar-field">
                         <span>دسته‌بندی</span>
                         <select id="categoryFilter"><option value="all">همه دسته‌ها</option></select>
@@ -161,27 +161,27 @@
                     <label class="toolbar-field">
                         <span>مرتب‌سازی</span>
                         <select id="productSort">
-                            <option value="popular">محبوب‌ترین</option>
+                            <option value="popular">پیشنهاد فروشگاه</option>
                             <option value="price-asc">ارزان‌ترین</option>
                             <option value="price-desc">گران‌ترین</option>
-                            <option value="rating">بالاترین امتیاز</option>
                         </select>
                     </label>
                 </div>
                 <div class="product-results-meta">
-                    <span id="productResultsCount"></span>
+                    <span id="productResultsCount" role="status"></span><label class="stock-filter"><input id="inStockOnly" type="checkbox"> فقط موجود</label>
                     <button class="text-button" id="clearProductFilters" type="button" hidden><i class="fa-solid fa-rotate-left"></i> پاک کردن فیلترها</button>
                 </div>
-                <div class="product-grid" id="productGrid" aria-live="polite"></div>
+                <div id="activeProductFilters" class="active-product-filters" aria-label="فیلترهای فعال"></div>
+                <div class="product-grid" id="productGrid" aria-live="polite"><!-- SEO:PRODUCTS --></div>
             </div>
         </section>
 
         <section class="section benefits-section" aria-label="مزایای فروشگاه">
             <div class="container benefits-grid">
-                <article><span><i class="fa-solid fa-shield-halved"></i></span><div><h3>پرداخت امن</h3><p>فرایند پرداخت نمایشی، سریع و بدون ذخیره اطلاعات بانکی.</p></div></article>
-                <article><span><i class="fa-solid fa-truck-fast"></i></span><div><h3>ارسال سریع</h3><p>آماده‌سازی سریع سفارش و ارسال رایگان در نسخه نمایشی.</p></div></article>
-                <article><span><i class="fa-solid fa-headset"></i></span><div><h3>پشتیبانی حرفه‌ای</h3><p>همراهی برای انتخاب بهتر تجهیزات مناسب ستاپ شما.</p></div></article>
-                <article><span><i class="fa-solid fa-medal"></i></span><div><h3>انتخاب مطمئن</h3><p>محصولات منتخب با امتیاز و بازخورد کاربران.</p></div></article>
+                <article><span><i class="fa-solid fa-shield-halved"></i></span><div><h3>حساب و نشست امن</h3><p>ورود به حساب برای مدیریت سفارش‌ها؛ رمز عبور در مرورگر ذخیره نمی‌شود.</p></div></article>
+                <article><span><i class="fa-solid fa-receipt"></i></span><div><h3>هزینه شفاف</h3><p>جمع کالا، تخفیف و ارسال را پیش از ثبت سفارش بررسی کنید.</p></div></article>
+                <article><span><i class="fa-solid fa-headset"></i></span><div><h3>گفتگوی پشتیبانی</h3><p><a href="/profile.html?section=support">ثبت و پیگیری درخواست از حساب کاربری</a></p></div></article>
+                <article><span><i class="fa-solid fa-box-open"></i></span><div><h3>وضعیت سفارش</h3><p>کد پیگیری و وضعیت ثبت‌شده سفارش در حساب شما در دسترس است.</p></div></article>
             </div>
         </section>
 
@@ -223,7 +223,7 @@
                     <label class="field"><span>موضوع</span><input type="text" name="subject" minlength="3" maxlength="100" placeholder="موضوع پیام" required></label>
                     <label class="field"><span>پیام شما</span><textarea name="message" rows="5" minlength="10" maxlength="1000" placeholder="پیام خود را بنویسید..." required></textarea></label>
                     <button class="primary-button" type="submit">ارسال پیام <i class="fa-solid fa-paper-plane"></i></button>
-                    <p class="form-storage-note"><i class="fa-solid fa-database"></i> پیام شما به‌صورت محلی در همین مرورگر ثبت می‌شود.</p>
+                    <p class="form-storage-note">پیام برای فروشگاه ارسال می‌شود. برای گفتگوی قابل پیگیری از <a href="/profile.html?section=support">پشتیبانی حساب</a> استفاده کنید.</p>
                 </form>
             </div>
         </section>
@@ -231,7 +231,7 @@
 
     <footer class="site-footer">
         <div class="container footer-inner">
-            <a class="brand footer-brand" href="index.html">
+            <a class="brand footer-brand" href="/">
                 <span class="brand-icon"><i class="fa-solid fa-gamepad"></i></span>
                 <span><strong>WEB 2</strong><small>GAMING STORE</small></span>
             </a>
@@ -247,11 +247,12 @@
 
     <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
     <button class="back-to-top" id="backToTop" type="button" aria-label="بازگشت به بالای صفحه"><i class="fa-solid fa-arrow-up"></i></button>
-    <script src="js/api-config.js"></script><script src="js/session.js"></script>
-    <link rel="stylesheet" href="css/admin.css">
-    <script src="js/intro.js?v=20261007-visibility"></script>
-    <script src="js/site.js"></script>
-    <script src="js/wishlist.js"></script>
-    <script src="script.js"></script>
+    <script src="js/safe-url.js?v=8a4e6ba3632f381b"></script>
+    <script src="js/api-config.js?v=a0de1bf4a2df75df"></script><script src="js/session.js?v=eb17a1b68af430c2"></script>
+    <link rel="stylesheet" href="css/admin.css?v=741b5c4559af438e">
+    <script src="js/intro.js?v=d6aa4e1416c8fd24"></script>
+    <script src="js/site.js?v=6cf24f98869fd3c2"></script>
+    <script src="js/wishlist.js?v=82b037d2da2f8760"></script>
+    <script src="script.js?v=4bcdc7f1a229b089"></script>
 </body>
 </html>

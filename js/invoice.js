@@ -84,13 +84,15 @@
     function openPrintableFallback(source, target) {
         const element = createInvoiceElement(source);
         target.document.open();
-        target.document.write(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><title>فاکتور ${safe(source.code || source.orderCode)}</title><link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet"><style>body{margin:0;background:#020713}.printbar{position:sticky;top:0;z-index:4;padding:10px;text-align:center;background:#101b31;color:white;font-family:Vazirmatn}.printbar button{font:inherit;padding:8px 18px;border:0;border-radius:9px;background:#00d4ff;cursor:pointer}@media print{.printbar{display:none}}</style></head><body><div class="printbar">پیش‌نمایش فاکتور — <button onclick="print()">چاپ / ذخیره PDF</button></div>${element.outerHTML}</body></html>`);
+        target.document.write(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><title>فاکتور ${safe(source.code || source.orderCode)}</title><link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet"><style>body{margin:0;background:#020713}.printbar{position:sticky;top:0;z-index:4;padding:10px;text-align:center;background:#101b31;color:white;font-family:Vazirmatn}.printbar button{font:inherit;padding:8px 18px;border:0;border-radius:9px;background:#00d4ff;cursor:pointer}@media print{.printbar{display:none}}</style></head><body><div class="printbar">پیش‌نمایش فاکتور — <button id="printInvoice" type="button">چاپ / ذخیره PDF</button></div>${element.outerHTML}</body></html>`);
         target.document.close();
+        target.document.getElementById('printInvoice').addEventListener('click', () => target.print());
     }
 
     async function open(source) {
-        const target = window.open("", "_blank", "noopener");
+        const target = window.open("", "_blank");
         if (!target) throw new Error("مرورگر باز شدن تب فاکتور را مسدود کرده است.");
+        target.opener = null;
         target.document.write("<title>در حال ساخت فاکتور…</title><body style='background:#050816;color:white;font-family:Tahoma;display:grid;place-items:center;height:100vh'>در حال ساخت فاکتور PDF…</body>");
         if (typeof window.html2pdf !== "function") {
             openPrintableFallback(source, target);

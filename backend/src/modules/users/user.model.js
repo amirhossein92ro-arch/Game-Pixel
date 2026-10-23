@@ -20,10 +20,12 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, "رمز عبور الزامی است."],
-      minlength: [6, "رمز حداقل ۶ کاراکتر باشد."],
+      minlength: [12, "رمز حداقل ۱۲ کاراکتر باشد."],
       select: false // به‌صورت پیش‌فرض در خروجی کوئری نمی‌آید
     },
-    role: { type: String, enum: ["user", "admin"], default: "user" }
+    role: { type: String, enum: ["user", "admin"], default: "user" },
+    banned: {type:Boolean,default:false},
+    sessionVersion: {type:Number,default:0}
   },
   { timestamps: true }
 );
@@ -32,7 +34,8 @@ const userSchema = new mongoose.Schema(
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   const bcrypt = require("bcryptjs");
-  const salt = await bcrypt.genSalt(10);
+  require('../../../../lib/request-security.cjs').password(this.password);
+  const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });

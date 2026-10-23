@@ -1,30 +1,82 @@
-﻿"use strict";
+"use strict";
 
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const bcrypt = require("bcrypt");
 const helmet = require("helmet");
+const requestSecurity = require('./lib/request-security.cjs');
+const {publicAsset} = require('./lib/public-assets.cjs');
+const operationalLog = require('./lib/operational-log.cjs');
+
+function fatalProcessError(error,category){
+    const reason=typeof error?.message==='string'&&/^Production (?:requires HTTPS APP_ORIGIN|allows HTTPS origins only)/.test(error.message)?'Production requires HTTPS':undefined;
+    operationalLog.write('process-crash',{level:'error',category,code:error?.code,productionOriginRequired:!!reason});
+    try{require('./lib/ops-state.cjs').createState().update('last-crash',()=>({time:new Date().toISOString(),category}));}catch{}
+    process.exit(1);
+}
+process.once('uncaughtException',error=>fatalProcessError(error,'uncaught-exception'));
+process.once('unhandledRejection',error=>fatalProcessError(error,'unhandled-rejection'));
 
 if (fs.existsSync(path.join(__dirname, '.env'))) process.loadEnvFile(path.join(__dirname, '.env'));
 
 const app = express();
-const PORT = Number.parseInt(process.env.PORT || "3000", 10) || 3000;
-const HOST = process.env.HOST || "0.0.0.0";
-const IS_PRODUCTION = process.env.NODE_ENV === "production";
-const DATA_PATH = process.env.SEED_DATA_PATH || path.join(__dirname, "data.json");
-const store = require("./lib/database.cjs").openDatabase(process.env.DATABASE_PATH || path.join(__dirname, "var", "web2.sqlite"), DATA_PATH);
+const runtimeConfig=require('./lib/runtime-config.cjs');
+const {port:PORT,host:HOST,production:IS_PRODUCTION}=runtimeConfig.validateRuntime();
+for(const code of runtimeConfig.productionWarnings())operationalLog.write('configuration-warning',{level:'warn',category:'configuration',code});
+const store = require('./storage/index.cjs').openStorage({root:__dirname});
 const STATIC_ROOT = __dirname;
 app.disable("x-powered-by");
-if (process.env.TRUST_PROXY) app.set("trust proxy", process.env.TRUST_PROXY === "true" ? 1 : process.env.TRUST_PROXY);
+app.set('json escape', true);
+app.use((req,res,next)=>{req.requestId=crypto.randomUUID();res.setHeader('X-Request-ID',req.requestId);next();});
+const monitoring=require('./lib/monitoring.cjs').createMonitoring();
+monitoring.start();
+app.use(monitoring.observe);
+const storageReady=require('./lib/monitoring.cjs').readiness(store,{filename:require('./storage/config.cjs').configuration().filename,onFailure:error=>monitoring.error(null,Object.assign(new Error('Storage unavailable.'),{code:'STORAGE_FAILURE'}),503)});
+const maintenance=setInterval(()=>{try{const now=Date.now();store.cleanup();require('./lib/journey-analytics.cjs').createJourneyAnalytics(store).cleanup();store.transaction(()=>{store.access('runtime').deleteSessionsByExpires(now);store.access('runtime').deletePendingAuthByExpires(now);store.access('runtime').updateAccountFactorsByPendingUntil(now);store.access('runtime').deletePasswordResetChallengesByExpiresAtAndUsedAt(now-86400000);store.access('runtime').deleteLoginFailuresByWindowEndsAndLockedUntil(now,now);store.access('runtime').deleteRequestBudgetsByResetsAt(now);});}catch(error){monitoring.error(null,error,500);operationalLog.write('maintenance-failure',{level:'error',category:'maintenance'});}},3600000);
+maintenance.unref();
+if(process.env.TRUST_PROXY){
+ const proxy=process.env.TRUST_PROXY;
+ if(proxy==='true'||/^\d+$/.test(proxy)||proxy.split(',').some(value=>['*','0.0.0.0/0','::/0'].includes(value.trim())))throw Error('TRUST_PROXY must identify trusted proxy addresses, for example loopback.');
+ app.set('trust proxy',proxy.split(',').map(v=>v.trim()));
+}
+app.use((req,res,next)=>{
+    if (/^\/(?:api(?:\/|$)|admin(?:[.\/-]|$)|profile(?:[.\/-]|$)|account(?:[.\/-]|$)|auth(?:[.\/-]|$)|login(?:[.\/-]|$)|register(?:[.\/-]|$)|(?:forgot|reset)-password(?:[.\/-]|$)|password-reset(?:[.\/-]|$)|orders(?:\/|$)|cart(?:[.\/-]|$)|checkout(?:[.\/-]|$)|health$|ready$)/i.test(req.path)) {
+        res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    }
+    if(req.url.length>8192)return res.status(414).json({error:'Request URL is too long.'});
+    // Reject traversal before Express decodes or normalizes the URL.
+    try { requestSecurity.canonicalPath(req.url.split(/[?#]/,1)[0]); }
+    catch { return res.set('X-Robots-Tag','noindex, nofollow').status(404).end(); }
+    next();
+});
+// Keep private project files outside the public URL space, even if a broad
+// static mount is added later. Only the explicit /admin route serves the UI.
+app.use((req, res, next) => {
+    let pathname;
+    try { pathname = decodeURIComponent(req.path).toLowerCase(); }
+    catch { return res.set('X-Robots-Tag','noindex, nofollow').status(404).end(); }
+    const segments = pathname.split('/').filter(Boolean);
+    if (segments.some(segment =>
+        segment === 'admin.html' || segment === 'server.js' ||
+        segment === '.env' || segment.startsWith('.env.') ||
+        segment === '.git' || segment.startsWith('.backup-') ||
+        segment === 'data.json' || segment === 'var' ||
+        segment === 'logs' || segment === 'log' || segment.endsWith('.log')
+    )) return res.set('X-Robots-Tag','noindex, nofollow').status(404).end();
+    next();
+});
 app.use(helmet({
     crossOriginEmbedderPolicy: false,
-    strictTransportSecurity: IS_PRODUCTION ? undefined : false,
+    xFrameOptions: {action:'deny'},
+    // Enable only after the real HTTPS origin and renewal have been verified.
+    strictTransportSecurity: runtimeConfig.hstsOptions(),
     referrerPolicy: {policy: "strict-origin-when-cross-origin"},
     contentSecurityPolicy: {directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://challenges.cloudflare.com"],
+        scriptSrc: ["'self'", "https://challenges.cloudflare.com/turnstile/"],
+        scriptSrcAttr: ["'none'"],
+        objectSrc: ["'none'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
         imgSrc: ["'self'", "data:", "https:"],
@@ -33,6 +85,26 @@ app.use(helmet({
         frameAncestors: ["'none'"], baseUri: ["'self'"], formAction: ["'self'"]
     }}
 }));
+// Count requests before parsing bodies or invoking CAPTCHA/bcrypt.
+const requestLimit = requestSecurity.limiter({limit:800});
+const loginLimit = requestSecurity.limiter({limit:30,windowMs:15*60000});
+const registerLimit = requestSecurity.limiter({limit:10,windowMs:15*60000});
+const credentialLimit = requestSecurity.limiter({limit:10,windowMs:15*60000});
+app.use((req,res,next)=>{
+    res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');
+    if(/^\/api(?:\/|$)/i.test(req.path))res.setHeader('Cache-Control','no-store');
+    if(/^\/(?:admin(?:[.\/-]|$)|profile(?:\.html)?\/?$|cart(?:\.html)?\/?$|checkout(?:\.html)?\/?$)/i.test(req.path)){res.setHeader('Cache-Control','no-store');res.vary('Cookie');}
+    try {
+        requestLimit(req.ip);
+        if(!['GET','HEAD','OPTIONS'].includes(req.method)) {
+            const p=requestSecurity.canonicalPath(req.path);
+            if(/^\/api\/(?:auth|admin)\/login$/.test(p))loginLimit(req.ip+':'+p);
+            if(p==='/api/auth/register')registerLimit(req.ip);
+            if(p==='/api/users/me/password'||p==='/api/users/me'&&req.method==='PUT'&&(req.headers['content-length']||req.headers['transfer-encoding']))credentialLimit(req.ip+':'+p);
+        }
+        next();
+    } catch(error) { next(error); }
+});
 
 /*
  * Express normally adds a charset for JSON and text responses, but static
@@ -58,21 +130,11 @@ app.use((_req, res, next) => {
 });
 
 // Keep request parsing deliberately small; product artwork should normally be a URL or optimized data image.
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: true, limit: "256kb", parameterLimit: 100 }));
-app.use((req, _res, next) => {
-    if (!req.body || typeof req.body !== "object") return next();
-    const queue = [req.body];
-    while (queue.length) {
-        const value = queue.pop();
-        if (!value || typeof value !== "object") continue;
-        for (const key of Object.keys(value)) {
-            if (["__proto__", "prototype", "constructor"].includes(key)) return next(Object.assign(new Error("ساختار درخواست نامعتبر است."), {status: 400}));
-            if (value[key] && typeof value[key] === "object") queue.push(value[key]);
-        }
-    }
-    next();
-});
+app.use(express.json({ limit: "1mb", inflate:false }));
+app.use(express.urlencoded({ extended: false, limit: "256kb", parameterLimit: 100, inflate:false }));
+app.use((req,_res,next)=>{try{require('./lib/request-security.cjs').shape(req.body);next();}catch(e){next(e);}});
+app.get('/health',(_req,res)=>res.set('Cache-Control','no-store').json({status:'ok'}));
+app.get('/ready',(_req,res)=>{res.set('Cache-Control','no-store');if(storageReady())return res.json({status:'ok'});res.status(503).json({status:'unavailable'});});
 
 function repairMojibake(value) {
     if (typeof value === "string") {
@@ -97,42 +159,23 @@ function repairMojibake(value) {
     return value;
 }
 
-function emptyData() {
-    return { products: [], messages: [], users: [], orders: [] };
-}
-
-function readData() { return store.read(); }
-function writeData(data) { return store.write(data); }
 const security = require('./lib/commerce.cjs').installCommerce(app, store);
 const requireAdmin = security.requireAdmin;
 const requireAdminSession = security.requireAdminSession;
+app.get('/api/admin/system-status',requireAdmin,(req,res)=>{
+    if(req.admin.role!=='SUPER_ADMIN')return res.status(403).json({error:'Super admin required.'});
+    res.set('Cache-Control','no-store').json(monitoring.status());
+});
 function readProducts() {
-    const data = readData();
-    return Array.isArray(data.products) ? data.products : [];
-}
-
-function writeProducts(products) {
-    if (!Array.isArray(products)) {
-        throw new TypeError("Products must be an array");
-    }
-    const data = readData();
-    data.products = products;
-    writeData(data);
+    return store.list('products').filter(product=>!product.deletedAt);
 }
 
 /* â”€â”€ Generic data helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function readCollection(name) {
-    const data = readData();
-    return Array.isArray(data[name]) ? data[name] : [];
+    return store.list(name);
 }
 function writeCollection(name, items) {
-    if (!Array.isArray(items)) throw new TypeError(`${name} must be an array`);
-    const data = readData();
-    data[name] = items;
-    writeData(data);
-}
-function getNextId(items) {
-    return items.reduce((h, i) => { const id = Number(i && i.id); return Number.isFinite(id) ? Math.max(h, id) : h; }, 0) + 1;
+    return store.replace(name,items);
 }
 
 /* â”€â”€ Posts helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -143,6 +186,13 @@ function normalisePost(body, existing = null, forcedId) {
     const id = forcedId !== undefined ? forcedId : src.id;
     const title = asTrimmedString(src.title);
     if (!title || title.length > 200) return null;
+    const limits={slug:200,content:20000,excerpt:1000,category:80,author:100,image:500,createdAt:40};
+    if(Object.entries(limits).some(([key,max])=>src[key]!==undefined&&(typeof src[key]!=='string'||src[key].length>max)))return null;
+    if(src.status!==undefined&&!['published','draft','archived'].includes(src.status)||src.commentStatus!==undefined&&!['open','closed'].includes(src.commentStatus))return null;
+    if(src.tags!==undefined&&(!Array.isArray(src.tags)||src.tags.length>30||src.tags.some(tag=>typeof tag!=='string'||tag.length>80)))return null;
+    if(src.views!==undefined&&(!Number.isSafeInteger(Number(src.views))||Number(src.views)<0))return null;
+    if(src.image&&safeProductImage(src.image)!==src.image)return null;
+    if(src.createdAt&&!Number.isFinite(Date.parse(src.createdAt)))return null;
     return {
         id, title,
         slug: asTrimmedString(src.slug) || title.replace(/\s+/g, "-").replace(/[^\w\u0600-\u06FF-]/g, ""),
@@ -168,6 +218,10 @@ function normaliseComment(body, existing = null, forcedId) {
     const id = forcedId !== undefined ? forcedId : src.id;
     const content = asTrimmedString(src.content);
     if (!content || content.length > 2000) return null;
+    if(src.status!==undefined&&!['pending','approved','rejected'].includes(src.status))return null;
+    if(src.author!==undefined&&(typeof src.author!=='string'||src.author.length>100)||src.email!==undefined&&(typeof src.email!=='string'||src.email.length>200||src.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(src.email)))return null;
+    if(['postId','parentId'].some(key=>src[key]!=null&&(!Number.isSafeInteger(Number(src[key]))||Number(src[key])<0)))return null;
+    if(src.createdAt!==undefined&&(typeof src.createdAt!=='string'||!Number.isFinite(Date.parse(src.createdAt))))return null;
     return {
         id, content,
         postId: Number(src.postId) || 0,
@@ -234,7 +288,7 @@ function normaliseOrder(body, existing = null, forcedId) {
 function getAdminStats(req,res){try{res.json(security.stats(req.admin));}catch(e){sendError(res,e,"خطا در آمار");}}
 
 /* â”€â”€ CRUD: Posts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-function getPosts(_req, res) { try { res.json(readPosts()); } catch (e) { sendError(res, e, "Ø®Ø·Ø§"); } }
+function getPosts(_req, res) { try { require('./lib/listing.cjs').respond(_req,res,store.search.posts(_req.query)); } catch (e) { sendError(res, e, "Ø®Ø·Ø§"); } }
 function getPost(req, res) {
     try {
         const found = readPosts().find(p => String(p.id) === String(req.params.id));
@@ -244,66 +298,50 @@ function getPost(req, res) {
 }
 function createPost(req, res) {
     try {
-        const posts = readPosts();
-        const post = normalisePost(req.body, null, getNextId(posts));
+        const post = normalisePost(req.body, null, store.nextId('posts'));
         if (!post) { const e = new Error("Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ù†ÙˆØ´ØªÙ‡ Ù…Ø¹ØªØ¨Ø± Ù†ÛŒØ³Øª"); e.statusCode = 400; throw e; }
-        writePosts([...posts, post]);
+        store.put('posts',post,{insert:true});
         res.status(201).json(post);
     } catch (e) { sendError(res, e, "Ø®Ø·Ø§ Ø¯Ø± Ø°Ø®ÛŒØ±Ù‡"); }
 }
 function updatePost(req, res) {
     try {
-        const posts = readPosts();
-        const idx = posts.findIndex(p => String(p.id) === String(req.params.id));
-        if (idx < 0) { const e = new Error("Ù¾ÛŒØ¯Ø§ Ù†Ø´Ø¯"); e.statusCode = 404; throw e; }
-        const updated = normalisePost(req.body, posts[idx], posts[idx].id);
+        const updated = store.mutate('posts',req.params.id,current=>{
+        const updated = normalisePost(req.body, current, current.id);
         if (!updated) { const e = new Error("Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ù…Ø¹ØªØ¨Ø± Ù†ÛŒØ³Øª"); e.statusCode = 400; throw e; }
-        posts[idx] = updated;
-        writePosts(posts);
+        return updated;});
         res.json(updated);
     } catch (e) { sendError(res, e, "Ø®Ø·Ø§ Ø¯Ø± ÙˆÛŒØ±Ø§ÛŒØ´"); }
 }
 function deletePost(req, res) {
     try {
-        let posts = readPosts();
-        const idx = posts.findIndex(p => String(p.id) === String(req.params.id));
-        if (idx < 0) { const e = new Error("Ù¾ÛŒØ¯Ø§ Ù†Ø´Ø¯"); e.statusCode = 404; throw e; }
-        posts.splice(idx, 1);
-        writePosts(posts);
+        store.remove('posts',req.params.id);
         res.status(204).end();
     } catch (e) { sendError(res, e, "Ø®Ø·Ø§ Ø¯Ø± Ø­Ø°Ù"); }
 }
 
 /* â”€â”€ CRUD: Comments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-function getComments(_req, res) { try { res.json(readComments()); } catch (e) { sendError(res, e, "Ø®Ø·Ø§"); } }
+function getComments(_req, res) { try { require('./lib/listing.cjs').respond(_req,res,require('./lib/listing.cjs').collectionPage(store,'comments',_req.query,{defaultSize:Object.keys(_req.query).length?20:100})); } catch (e) { sendError(res, e, "Ø®Ø·Ø§"); } }
 function createComment(req, res) {
     try {
-        const comments = readComments();
-        const comment = normaliseComment(req.body, null, getNextId(comments));
+        const comment = normaliseComment(req.body, null, store.nextId('comments'));
         if (!comment) { const e = new Error("Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ù†Ø¸Ø± Ù…Ø¹ØªØ¨Ø± Ù†ÛŒØ³Øª"); e.statusCode = 400; throw e; }
-        writeComments([...comments, comment]);
+        store.put('comments',comment,{insert:true});
         res.status(201).json(comment);
     } catch (e) { sendError(res, e, "Ø®Ø·Ø§"); }
 }
 function updateComment(req, res) {
     try {
-        const comments = readComments();
-        const idx = comments.findIndex(c => String(c.id) === String(req.params.id));
-        if (idx < 0) { const e = new Error("Ù¾ÛŒØ¯Ø§ Ù†Ø´Ø¯"); e.statusCode = 404; throw e; }
-        const updated = normaliseComment(req.body, comments[idx], comments[idx].id);
+        const updated = store.mutate('comments',req.params.id,current=>{
+        const updated = normaliseComment(req.body, current, current.id);
         if (!updated) { const e = new Error("Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ù…Ø¹ØªØ¨Ø± Ù†ÛŒØ³Øª"); e.statusCode = 400; throw e; }
-        comments[idx] = updated;
-        writeComments(comments);
+        return updated;});
         res.json(updated);
     } catch (e) { sendError(res, e, "Ø®Ø·Ø§"); }
 }
 function deleteComment(req, res) {
     try {
-        let comments = readComments();
-        const idx = comments.findIndex(c => String(c.id) === String(req.params.id));
-        if (idx < 0) { const e = new Error("Ù¾ÛŒØ¯Ø§ Ù†Ø´Ø¯"); e.statusCode = 404; throw e; }
-        comments.splice(idx, 1);
-        writeComments(comments);
+        store.remove('comments',req.params.id);
         res.status(204).end();
     } catch (e) { sendError(res, e, "Ø®Ø·Ø§"); }
 }
@@ -344,42 +382,49 @@ const staticOptions = {
     dotfiles: 'deny',
     index: false,
     etag: true,
-    maxAge: IS_PRODUCTION ? "1d" : 0,
+    maxAge: 0,
     setHeaders: (res, filePath) => {
         const ext = path.extname(filePath).toLowerCase();
+        setAssetCache(res,filePath);
         if (ext === ".html") res.setHeader("Content-Type", "text/html; charset=utf-8");
         else if (ext === ".json") res.setHeader("Content-Type", "application/json; charset=utf-8");
-        else if (ext === ".js") res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+        else if (ext === ".js") {res.setHeader("Content-Type", "application/javascript; charset=utf-8");if(path.basename(filePath).startsWith('admin'))res.setHeader('Cache-Control','no-store');}
         else if (ext === ".css") res.setHeader("Content-Type", "text/css; charset=utf-8");
+        else if (ext === ".svg") res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
     }
 };
-app.use("/css", express.static(path.join(STATIC_ROOT, "css"), staticOptions));
+const publicStyleFiles = new Set(['/account.css','/admin.css','/commerce.css','/intro.css','/rgb-text.css']);
+const publicScriptFiles = new Set(['admin.js','admin-actions.js','admin-console.js','admin-support.js','admin-users.js','admin-login.js','api-config.js','intro.js','invoice.js','profile.js','session.js','site.js','wishlist.js','safe-url.js'].map(name=>'/'+name));
+app.use("/css", publicAsset(path.join(STATIC_ROOT, "css"),['.css'],publicStyleFiles), express.static(path.join(STATIC_ROOT, "css"), staticOptions));
+const setAssetCache=require('./lib/asset-cache.cjs').assetCache(STATIC_ROOT,['style.css','script.js','products.js',...[...publicStyleFiles].map(file=>'css'+file),...[...publicScriptFiles].map(file=>'js'+file)],IS_PRODUCTION);
 const protectedAdminScripts = new Set([
     "/admin.js", "/admin-actions.js", "/admin-console.js", "/admin-support.js", "/admin-users.js"
 ]);
-app.use("/js", (req, res, next) => {
-    if (!protectedAdminScripts.has(req.path.toLowerCase())) return next();
+app.use("/js", publicAsset(path.join(STATIC_ROOT, "js"),['.js'],publicScriptFiles), (req, res, next) => {
+    if (!protectedAdminScripts.has(decodeURIComponent(req.path).toLowerCase())) return next();
+    res.set('Cache-Control','no-store');
     return requireAdminSession(req, res, next);
 }, express.static(path.join(STATIC_ROOT, "js"), staticOptions));
-app.use("/img", express.static(path.join(STATIC_ROOT, "img"), staticOptions));
+app.use("/img", publicAsset(path.join(STATIC_ROOT, "img"),['.png','.jpg','.jpeg','.webp','.gif','.svg','.avif','.ico']), express.static(path.join(STATIC_ROOT, "img"), staticOptions));
 ["style.css", "script.js", "products.js"].forEach((fileName) => {
-    app.get(`/${fileName}`, (_req, res, next) => {
-        res.sendFile(path.join(STATIC_ROOT, fileName), (error) => { if (error) next(error); });
+    app.get(`/${fileName}`, publicAsset(STATIC_ROOT,[".js",".css"],new Set(["/"+fileName])), (_req, res, next) => {
+        staticOptions.setHeaders(res,path.join(STATIC_ROOT,fileName));
+        res.sendFile(path.join(STATIC_ROOT, fileName), staticOptions, (error) => { if (error) next(error); });
+    });
+});
+// Search Console HTML verification can be placed at the public root by the
+// operator. Only Google's verification filename shape is served; no token ships.
+app.get(/^\/google[a-z0-9]{8,64}\.html$/i, (req, res, next) => {
+    const fileName = req.path.slice(1);
+    return publicAsset(STATIC_ROOT,['.html'],new Set(['/'+fileName.toLowerCase()]))(req,res,() => {
+        res.set('Cache-Control','no-cache');
+        res.sendFile(path.join(STATIC_ROOT,fileName), staticOptions, error => {if(error)next(error);});
     });
 });
 
 // Existing route definitions remain below
 function getNextProductId(products) {
-    const highest = products.reduce((highest, product) => {
-        // Only the legacy decimal sequence participates in ID allocation.
-        const key = String(product?.id ?? '');
-        const sequence = /^[1-9][0-9]*$/.test(key) ? Number(key) : 0;
-        return Number.isSafeInteger(sequence) ? Math.max(highest, sequence) : highest;
-    }, 0);
-    const saved = store.db.prepare("SELECT payload FROM settings WHERE id='product-sequence'").get();
-    const next = Math.max(highest, Number(saved?.payload || 0)) + 1;
-    store.db.prepare("INSERT OR REPLACE INTO settings VALUES('product-sequence',?)").run(String(next));
-    return String(next);
+    return store.nextId('products');
 }
 
 function asTrimmedString(value, fallback = "") {
@@ -388,7 +433,18 @@ function asTrimmedString(value, fallback = "") {
 
 function safeProductImage(value) {
     const image = String(value || "img/product-placeholder.svg");
-    return /^(?:img\/[a-zA-Z0-9_.\/-]+|https:\/\/[^\s<>"']+|data:image\/(?:png|jpeg|webp|gif);base64,[a-zA-Z0-9+/=]+)$/.test(image) ? image : "img/product-placeholder.svg";
+    const dataImage = /^data:image\/(png|jpeg|webp|gif);base64,([a-zA-Z0-9+/=]+)$/.exec(image);
+    if (dataImage) {
+        const bytes = Buffer.from(dataImage[2], 'base64');
+        if (bytes.length < 12 || bytes.length > 700000 || bytes.toString('base64') !== dataImage[2]) return "img/product-placeholder.svg";
+        const type = dataImage[1];
+        const signature = type === 'png' ? bytes.subarray(0,8).equals(Buffer.from('89504e470d0a1a0a','hex'))
+            : type === 'jpeg' ? bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
+            : type === 'gif' ? ['GIF87a','GIF89a'].includes(bytes.toString('ascii',0,6))
+            : bytes.toString('ascii',0,4) === 'RIFF' && bytes.toString('ascii',8,12) === 'WEBP';
+        if (!signature) return "img/product-placeholder.svg";
+    }
+    return require('./js/safe-url.js').image(image) || "img/product-placeholder.svg";
 }
 function normaliseProduct(input, existing = null, forcedId = undefined) {
     const body = input && typeof input === "object" && !Array.isArray(input) ? input : {};
@@ -400,11 +456,20 @@ function normaliseProduct(input, existing = null, forcedId = undefined) {
     if (!name || name.length > 200 || !Number.isSafeInteger(price) || price <= 0) {
         return null;
     }
+    const limits={name:200,title:200,brand:100,tag:100,shortDescription:300,description:5000,guarantee:200,category:80,image:900000};
+    if(Object.entries(limits).some(([key,max])=>body[key]!==undefined&&(typeof body[key]!=='string'||body[key].length>max)))return null;
+    if(body.features!==undefined&&(!Array.isArray(body.features)||body.features.length>40||body.features.some(feature=>typeof feature!=='string'||feature.length>300)))return null;
+    if(body.image&&safeProductImage(body.image)!==body.image)return null;
+    if(price>1e12||Number(source.stock)>1000000)return null;
 
     const stockValue = Number(source.stock);
     const ratingValue = Number(source.rating);
     const reviewsValue = Number(source.reviews);
     const discountValue = Number(source.discount);
+    if(['price','stock','rating','reviews','discount'].some(key=>body[key]!==undefined&&!(typeof body[key]==='number'||typeof body[key]==='string'&&/^\d+(?:\.\d+)?$/.test(body[key]))))return null;
+    if(source.discount!==undefined&&(!Number.isSafeInteger(discountValue)||discountValue<0||discountValue>99))return null;
+    if(source.rating!==undefined&&(!Number.isFinite(ratingValue)||ratingValue<0||ratingValue>5))return null;
+    if(source.reviews!==undefined&&(!Number.isSafeInteger(reviewsValue)||reviewsValue<0))return null;
     if (source.status && !["active", "inactive"].includes(source.status)) return null;
     if (!Number.isSafeInteger(stockValue) || stockValue < 0) return null;
     if (typeof source.image === 'string' && source.image.length > 3 * 1024 * 1024) return null;
@@ -419,7 +484,7 @@ function normaliseProduct(input, existing = null, forcedId = undefined) {
         id: String(id),
         name,
         price: Math.round(price),
-        discount: Number.isFinite(discountValue) ? Math.min(99, Math.max(0, Math.round(discountValue))) : 0,
+        discount: Number.isSafeInteger(discountValue) ? discountValue : 0,
         stock: Number.isFinite(stockValue) ? Math.max(0, Math.floor(stockValue)) : 0,
         rating: Number.isFinite(ratingValue) ? Math.min(5, Math.max(0, ratingValue)) : 0,
         reviews: Number.isFinite(reviewsValue) ? Math.max(0, Math.floor(reviewsValue)) : 0,
@@ -430,7 +495,7 @@ function normaliseProduct(input, existing = null, forcedId = undefined) {
         shortDescription: asTrimmedString(source.shortDescription || source.description).slice(0,300),
         description: asTrimmedString(source.description).slice(0,5000),
         features,
-        guarantee: asTrimmedString(source.guarantee, "گارانتی فروشگاه").slice(0,200),
+        guarantee: asTrimmedString(source.guarantee).slice(0,200),
         category: asTrimmedString(source.category, "Ù…Ø­ØµÙˆÙ„"),
         image: safeProductImage(source.image),
         status: source.status || "active",
@@ -450,16 +515,21 @@ function validateProductPayload(body, existing = null, forcedId = undefined) {
 }
 
 function sendError(res, error, fallbackMessage) {
-    const statusCode = Number.isInteger(error && error.statusCode) ? error.statusCode : 500;
+    const statusCode = error?.statusCode || error?.status || 500;
+    if(error.retryAfter)res.set('Retry-After',String(error.retryAfter));
+    if(statusCode>=500)logServerError(res.req,'product',error);
     if (res.headersSent) return;
     res.status(statusCode).json({
         error: statusCode >= 500 ? 'خطای سرور؛ دوباره تلاش کنید.' : repairMojibake(error.message || fallbackMessage)
     });
 }
+function logServerError(req,category,error){
+    monitoring.error(req,error,error?.status||error?.statusCode||500);
+}
 
 function sendPage(fileName, res, next) {
     const filePath = path.join(STATIC_ROOT, fileName);
-    res.set("Cache-Control", "no-cache");
+    if (!res.getHeader("Cache-Control")) res.set("Cache-Control", "no-cache");
     res.set("Content-Type", "text/html; charset=utf-8");
     res.sendFile(filePath, (error) => {
         if (error) next(error);
@@ -468,23 +538,21 @@ function sendPage(fileName, res, next) {
 
 function sendProtectedAdminPage(_req, res, next) {
     res.set("Cache-Control", "no-store");
+    res.vary('Cookie');
     res.set("Content-Type", "text/html; charset=utf-8");
     res.sendFile(path.join(STATIC_ROOT, "admin.html"), (error) => {
         if (error) next(error);
     });
 }
 
+const seo = require('./lib/seo.cjs').installSeo(app, {store, root:STATIC_ROOT});
 const pageRoutes = {
-    "/": "index.html",
-    "/index": "index.html",
-    "/index.html": "index.html",
     "/admin-login": "admin-login.html",
+    "/admin-login.html": "admin-login.html",
     "/cart": "cart.html",
     "/cart.html": "cart.html",
     "/checkout": "checkout.html",
     "/checkout.html": "checkout.html",
-    "/product": "product.html",
-    "/product.html": "product.html",
     "/profile": "profile.html",
     "/profile.html": "profile.html"
 };
@@ -498,15 +566,15 @@ Object.entries(pageRoutes).forEach(([route, fileName]) => {
 app.get("/admin", requireAdminSession, sendProtectedAdminPage);
 app.get(["/admin.html", "/admin.htm", "/admin/index.html"], (_req, res) => res.status(404).end());
 
-function getProducts(_req, res) {
+function getProducts(req, res) {
     try {
-        return res
-            .type("application/json")
-            .json(readProducts().filter(p => _req.path.startsWith("/api/admin/") || p.status !== "inactive"));
-    } catch (error) {
-        console.error("[products] read failed:", error.message);
-        return sendError(res, error, "Ø®Ø·Ø§ Ø¯Ø± Ø®ÙˆØ§Ù†Ø¯Ù† data.json");
-    }
+        const {collectionPage,respond}=require('./lib/listing.cjs');
+        const admin=/^\/api\/admin\//i.test(req.path),q=String(req.query.q||'').trim().toLowerCase(),category=String(req.query.category||''),stock=String(req.query.stock||''),status=String(req.query.status||''),sort=String(req.query.sort||'newest'),view=String(req.query.view||'');
+        if(q.length>120||category.length>80||!['','low','out','available'].includes(stock)||!['','active','inactive'].includes(status)||!['newest','oldest','name','stock_asc','stock_desc','popular','price_asc','price_desc','rating'].includes(sort)||!['','summary','full'].includes(view))return res.status(400).json({error:'فیلتر نامعتبر است.'});
+        const result=store.search.products(req.query,{admin,q,category,stock,status,sort,view});
+        result.items=result.items.map(publicProduct);
+        return respond(req,res,result);
+    } catch(error) {return sendError(res,error,'خطا در دریافت محصولات');}
 }
 
 function createProduct(req, res) {
@@ -515,19 +583,19 @@ function createProduct(req, res) {
             const products = readProducts();
             const product = validateProductPayload(req.body, null, getNextProductId(products));
             if (products.some(p => p.name === product.name)) throw Object.assign(new Error('نام محصول تکراری است.'), {statusCode:409});
-            writeProducts([...products, product]);
+            const saved=store.put('products',product,{insert:true});
             security.adminSecurity.audit(req.admin,'PRODUCT_CREATED','product',product.id);req.auditRecorded=true;
-            return product;
+            return saved;
         });
         return res.status(201).type("application/json").json(product);
     } catch (error) {
-        console.error("[products] create failed:", error.message);
         return sendError(res, error, "Ø®Ø·Ø§ Ø¯Ø± Ø°Ø®ÛŒØ±Ù‡ Ù…Ø­ØµÙˆÙ„");
     }
 }
 
 function updateProduct(req, res) {
     try {
+        const updated=store.transaction(()=>{
         const products = readProducts();
         const index = products.findIndex(
             (product) => String(product && product.id) === String(req.params.id)
@@ -540,54 +608,45 @@ function updateProduct(req, res) {
 
         const current = products[index];
         const updated = validateProductPayload(req.body, current, current.id);
+        store.assertRevision(current,req.body.revision,true);
         if (products.some(p => String(p.id) !== String(current.id) && p.name === updated.name)) throw Object.assign(new Error('نام محصول تکراری است.'), {statusCode:409});
-        products[index] = updated;
-        store.transaction(()=>{writeProducts(products);for(const [key,action]of [['price','PRODUCT_PRICE_CHANGED'],['stock','PRODUCT_STOCK_CHANGED']])if(current[key]!==updated[key])security.adminSecurity.audit(req.admin,action,'product',current.id,{previous:current[key],value:updated[key]});security.adminSecurity.audit(req.admin,'PRODUCT_UPDATED','product',current.id);req.auditRecorded=true;});
+        const saved=store.put('products',updated);for(const [key,action]of [['price','PRODUCT_PRICE_CHANGED'],['stock','PRODUCT_STOCK_CHANGED']])if(current[key]!==updated[key])security.adminSecurity.audit(req.admin,action,'product',current.id,{previous:current[key],value:updated[key]});security.adminSecurity.audit(req.admin,'PRODUCT_UPDATED','product',current.id);req.auditRecorded=true;
+        return saved;});
         return res.type("application/json").json(updated);
     } catch (error) {
-        console.error("[products] update failed:", error.message);
         return sendError(res, error, "Ø®Ø·Ø§ Ø¯Ø± ÙˆÛŒØ±Ø§ÛŒØ´ Ù…Ø­ØµÙˆÙ„");
     }
 }
 
 function deleteProduct(req, res) {
     try {
-        const products = readProducts();
-        const index = products.findIndex(
-            (product) => String(product && product.id) === String(req.params.id)
-        );
-        if (index < 0) {
-            const notFound = new Error("Ù…Ø­ØµÙˆÙ„ Ù¾ÛŒØ¯Ø§ Ù†Ø´Ø¯");
-            notFound.statusCode = 404;
-            throw notFound;
-        }
-
-        products.splice(index, 1);
-        // Empty product lists are valid: a complete CRUD API must allow the
-        // final item to be deleted without corrupting data.json.
-        store.transaction(()=>{writeProducts(products);security.adminSecurity.audit(req.admin,'PRODUCT_DELETED','product',req.params.id);req.auditRecorded=true;});
+        if(req.body?.confirm!==true||req.body?.confirmationPhrase!=='DELETE')throw Object.assign(new Error('برای حذف محصول، عبارت DELETE را وارد کنید.'),{statusCode:400});
+        store.transaction(()=>{store.remove('products',req.params.id,{expectedRevision:req.body.revision,requireRevision:true});security.adminSecurity.audit(req.admin,'PRODUCT_DELETED','product',req.params.id);req.auditRecorded=true;});
         return res.status(204).end();
     } catch (error) {
-        console.error("[products] delete failed:", error.message);
         return sendError(res, error, "Ø®Ø·Ø§ Ø¯Ø± Ø­Ø°Ù Ù…Ø­ØµÙˆÙ„");
     }
 }
 
 function getProductById(req, res) {
     try {
-        const product = readProducts().find(
-            (item) => String(item && item.id) === String(req.params.id)
-        );
-        if (!product || (product.status === "inactive" && !req.path.startsWith("/api/admin/"))) {
+        const product = store.get('products',req.params.id);
+        if (!product || product.deletedAt || (product.status !== "active" && !/^\/api\/admin\//i.test(req.path))) {
             const notFound = new Error("Ù…Ø­ØµÙˆÙ„ Ù¾ÛŒØ¯Ø§ Ù†Ø´Ø¯");
             notFound.statusCode = 404;
             throw notFound;
         }
-        return res.type("application/json").json(product);
+        return res.type("application/json").json(publicProduct(product));
     } catch (error) {
-        console.error("[products] read-one failed:", error.message);
         return sendError(res, error, "Ø®Ø·Ø§ Ø¯Ø± Ø®ÙˆØ§Ù†Ø¯Ù† Ù…Ø­ØµÙˆÙ„");
     }
+}
+
+function publicProduct(product) {
+    const allowed=['id','name','title','price','discount','stock','rating','reviews','brand','icon','accent','tag',
+        'shortDescription','description','features','guarantee','category','image','status','featured','isNew',
+        'bestSeller','createdAt','updatedAt','revision'];
+    return Object.fromEntries(allowed.filter(key=>Object.hasOwn(product,key)).map(key=>[key,key==='image'?safeProductImage(product[key]):product[key]]));
 }
 
 
@@ -595,32 +654,47 @@ function getProductById(req, res) {
 
 const RUN_PORT = PORT;
 app.use('/api', (_req, res) => res.status(404).json({ error: 'مسیر API پیدا نشد.' }));
+app.use((req,res,next)=>{
+    res.set('X-Robots-Tag','noindex, nofollow');
+    if (['GET','HEAD'].includes(req.method) && req.accepts('html')) return seo.notFound(req,res).catch(next);
+    return res.status(404).json({error:'Not found.'});
+});
 app.use((error, req, res, next) => {
-    if (res.headersSent) return next(error);
+    res.set('X-Robots-Tag','noindex, nofollow');
     const status = error.status || error.statusCode || 500;
+    monitoring.error(req,error,status);
+    if (res.headersSent) return next(error);
     if (error.retryAfter) res.set('Retry-After', String(error.retryAfter));
     const message = error.type === 'entity.parse.failed' ? 'بدنه JSON معتبر نیست.'
         : error.type === 'entity.too.large' ? 'حجم درخواست بیش از حد مجاز است.'
+        : error.code || [403,404].includes(status)&&/ENOENT|stat |sendfile|Forbidden/i.test(error.message||'') ? 'Request could not be completed.'
         : status < 500 ? error.message : 'خطای سرور؛ دوباره تلاش کنید.';
     res.status(status >= 400 && status < 600 ? status : 500).json({ error: message });
 });
 const httpServer = app.listen(RUN_PORT, HOST, () => {
-    console.log(`Server is running on http://${HOST}:${RUN_PORT}`);
+    operationalLog.write('server-started',{category:'startup'},value=>console.log(value));
 }).on('error', (error) => {
-    console.error(error.code === 'EADDRINUSE'
-        ? `Port ${RUN_PORT} is already in use. Stop the other server or set PORT and APP_ORIGIN to a matching free port.`
-        : `Server startup failed: ${error.message}`);
-    store.db.close();
+    operationalLog.write('server-error',{level:'error',category:'startup',code:error.code});
+    monitoring.stop();clearInterval(maintenance);
+    store.close();
     process.exitCode = 1;
 });
+httpServer.requestTimeout=30000;
+httpServer.headersTimeout=15000;
+httpServer.keepAliveTimeout=5000;
+httpServer.maxRequestsPerSocket=1000;
 let shuttingDown = false;
 function shutdown(signal) {
     if (shuttingDown) return; shuttingDown = true;
+    clearInterval(maintenance);
+    monitoring.stop();
+    operationalLog.write('shutdown',{category:'shutdown'});
     const force = setTimeout(() => process.exit(1), 10000); force.unref();
+    httpServer.closeIdleConnections();
     httpServer.close(error => {
-        try { store.db.close(); } catch {}
+        try { store.close(); } catch {}
         clearTimeout(force);
-        if (error) { console.error(`[shutdown] ${signal}: ${error.message}`); process.exitCode = 1; }
+        if (error) { operationalLog.write('server-error',{level:'error',category:'shutdown'}); process.exitCode = 1; }
     });
 }
 process.once('SIGTERM', () => shutdown('SIGTERM'));

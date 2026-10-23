@@ -23,6 +23,7 @@ test('real HTTP commerce flow, security, transactions and restart persistence',a
     }
     async function stop(){if(child && child.exitCode===null){const ended=new Promise(resolve=>child.once('exit',resolve));child.kill();await ended;}}
     const client=()=>({cookie:'',csrf:'',async request(url,method='GET',body,extra={}){
+        if(body&&['PUT','DELETE'].includes(method)&&/^\/api\/admin\/products\/[^/]+\/?$/i.test(url)&&body.revision===undefined){const current=await this.request(url);if(current.status===200)body={...body,revision:current.data.revision};}
         const headers={...(this.cookie?{Cookie:this.cookie}:{}),...(body!==undefined?{'Content-Type':'application/json'}:{}),...(this.csrf?{'X-CSRF-Token':this.csrf}:{}),...extra};
         const response=await fetch(base+url,{method,headers,body:body!==undefined?JSON.stringify(body):undefined});
         const cookies=response.headers.getSetCookie();if(cookies.length)this.cookie=cookies.map(c=>c.split(';')[0]).join('; ');
@@ -85,7 +86,8 @@ test('real HTTP commerce flow, security, transactions and restart persistence',a
             assert.equal((await anonymous.request('/api/auth/login','POST',{email:fields.email,password:'wrong'})).status,401);
             assert.equal((await user.request('/api/users/me','PUT',{name:'تست'},{'X-CSRF-Token':'wrong'})).status,403);
             assert.equal((await user.request('/api/users/me','PUT',{name:'تست'},{Origin:'https://attacker.invalid'})).status,403);
-            const changed=await user.request('/api/users/me','PUT',{name:'تست ویرایش',addresses:[{name:'گیرنده تست',phone:fields.phone,address:'نشانی آزمایشی شماره یک'}],role:'admin'});
+            assert.equal((await user.request('/api/users/me','PUT',{role:'admin'})).status,400);
+            const changed=await user.request('/api/users/me','PUT',{name:'تست ویرایش',addresses:[{name:'گیرنده تست',phone:fields.phone,address:'نشانی آزمایشی شماره یک'}]});
             assert.equal(changed.status,200);assert.equal(changed.data.role,'user');assert.equal(changed.data.addresses.length,1);
             assert.equal((await user.request('/api/admin/stats')).status,403);
             const inspect=new DatabaseSync(database);const account=inspect.prepare('SELECT password_hash FROM accounts WHERE email=?').get(fields.email);assert.notEqual(account.password_hash,fields.password);assert.match(account.password_hash,/^\$2/);inspect.close();
@@ -97,10 +99,15 @@ test('real HTTP commerce flow, security, transactions and restart persistence',a
             product=(await admin.request('/api/admin/products','POST',{name:'محصول تست تراکنش',brand:'TEST',category:'کیبورد گیمینگ',price:100000,stock:3,description:'توضیح محصول فقط برای تست',shortDescription:'تست',features:['یک','دو','سه','چهار','پنج'],image:'img/product-placeholder.svg',rating:4.5,reviews:0,guarantee:'آزمایشی',status:'active'})).data;
             assert.ok(product.id);assert.equal(product.stock,3);
             assert.equal((await admin.request(`/api/admin/products/${product.id}`,'PUT',{price:-1})).status,400);
+            assert.equal((await admin.request(`/api/admin/products/${product.id}`,'PUT',{price:'NaN'})).status,400);
+            assert.equal((await admin.request(`/api/admin/products/${product.id}`,'PUT',{price:Number.MAX_SAFE_INTEGER})).status,400);
+            assert.equal((await admin.request(`/api/admin/products/${product.id}`,'PUT',{discount:1.5})).status,400);
             assert.equal((await admin.request('/api/admin/discounts','POST',{code:'ONCE',type:'fixed',value:10000,active:true,maxUses:1})).status,201);
+            assert.equal((await admin.request('/api/admin/discounts','POST',{code:'X'.repeat(51),type:'fixed',value:1000})).status,400);
             assert.equal((await admin.request('/api/admin/discounts','POST',{code:'EXPIRED',type:'percent',value:10,active:true,expiresAt:'2000-01-01'})).status,201);
             const inactive=await admin.request(`/api/admin/products/${product.id}`,'PUT',{status:'inactive'});assert.equal(inactive.status,200);
             assert.equal((await anonymous.request(`/api/products/${product.id}`)).status,404);
+            assert.equal((await user.request('/api/checkout/quote','POST',{items:[{id:product.id,quantity:1}]})).status,409);
             assert.equal((await admin.request(`/api/admin/products/${product.id}`,'PUT',{status:'active'})).status,200);
         });
         await t.test('admin namespace rejects forged, expired and revoked sessions on every route spelling',async()=>{
@@ -117,7 +124,7 @@ test('real HTTP commerce flow, security, transactions and restart persistence',a
                 assert.equal((await admin.request('/API/ADMIN/products/',method,{}, {'X-CSRF-Token':'forged'})).status,403,'csrf '+method);
             }
             const expiredToken='e'.repeat(64),crypto=require('node:crypto'),inspect=new DatabaseSync(database);
-            inspect.prepare('INSERT INTO sessions VALUES(?,?,?,?,?)').run(crypto.createHash('sha256').update(expiredToken).digest('hex'),'bootstrap-admin','admin','expired-csrf',Date.now()-1);
+            inspect.prepare('INSERT INTO sessions(hash,principal,kind,csrf,expires) VALUES(?,?,?,?,?)').run(crypto.createHash('sha256').update(expiredToken).digest('hex'),'bootstrap-admin','admin','expired-csrf',Date.now()-1);
             inspect.close();
             assert.equal((await anonymous.request('/api/admin/session','GET',undefined,{Cookie:'web2_admin='+expiredToken})).status,401);
             const transient=client();
@@ -139,10 +146,16 @@ test('real HTTP commerce flow, security, transactions and restart persistence',a
             }
             assert.equal(throttled,true,'login route variants share a rate limit');
         });
-        const payload={items:[{id:product.id,quantity:2}],recipientName:'گیرنده تست',recipientPhone:fields.phone,recipientAddress:'نشانی تست سفارش شماره یک',isAgreed:true,discountCode:'WEB2',total:1,price:1};
+        const payload={items:[{id:product.id,quantity:2}],recipientName:'گیرنده تست',recipientPhone:fields.phone,recipientAddress:'نشانی تست سفارش شماره یک',isAgreed:true,discountCode:'WEB2'};
         await t.test('server quotes prices, rejects stock/duplicates/card data, idempotency and ownership',async()=>{
+            assert.equal((await user.request('/api/checkout/quote','POST',{...payload,total:1})).status,400);
+            assert.equal((await user.request('/api/checkout/quote','POST',{...payload,items:[{id:product.id,quantity:1,price:1}]})).status,400);
+            assert.equal((await user.request('/api/checkout/quote','POST',{...payload,discountCode:{code:'WEB2'}})).status,400);
+            assert.equal((await user.request('/api/checkout/quote','POST',{...payload,discountCode:'WEB2'.padEnd(51,'X')})).status,400);
+            assert.equal((await user.request('/api/checkout/quote','POST',{...payload,items:[{id:'missing-product',quantity:1}]})).status,409);
             const q=await user.request('/api/checkout/quote','POST',payload);assert.equal(q.status,200);assert.equal(q.data.subtotal,200000);assert.equal(q.data.discount,20000);assert.equal(q.data.total,180000);
-            for(const items of [[{id:product.id,quantity:0}],[{id:product.id,quantity:-1}],[{id:product.id,quantity:4}],[{id:product.id,quantity:1.5}],[{id:product.id,quantity:'1'}],[{id:product.id,quantity:2},{id:product.id,quantity:2}]])assert.equal((await user.request('/api/checkout/quote','POST',{...payload,items})).status,409);
+            for(const items of [[{id:product.id,quantity:0}],[{id:product.id,quantity:-1}],[{id:product.id,quantity:4}],[{id:product.id,quantity:1000000}],[{id:product.id,quantity:1.5}],[{id:product.id,quantity:'1'}],[{id:product.id,quantity:2},{id:product.id,quantity:2}]])assert.equal((await user.request('/api/checkout/quote','POST',{...payload,items})).status,409);
+            for(const extra of [{total:1},{discount:99999},{shippingCost:0},{paymentStatus:'paid'},{status:'paid'}])assert.equal((await user.request('/api/checkout','POST',{...payload,...extra},{'Idempotency-Key':'forged-total-request-0001'})).status,400);
             assert.equal((await user.request('/api/checkout','POST',{...payload,cardNumber:'test-only'},{'Idempotency-Key':'test-card-rejection-0001'})).status,400);
             assert.equal((await user.request('/api/checkout/quote','POST',{...payload,discountCode:'EXPIRED'})).status,400);
             const r=await user.request('/api/checkout','POST',payload,{'Idempotency-Key':'test-order-request-0001'});assert.equal(r.status,201);order=r.data.order;
@@ -154,19 +167,34 @@ test('real HTTP commerce flow, security, transactions and restart persistence',a
             await other.request('/api/auth/register','POST',{...fields,email:'other@example.invalid',phone:'09120000001'});
             assert.equal((await other.request('/api/orders/'+order.id)).status,404);assert.equal((await other.request('/api/orders')).data.length,0);
             assert.equal((await user.request('/api/orders')).data.length,1);
+            assert.doesNotMatch(JSON.stringify(order),/password_?hash|sessionVersion|csrfToken|web2_user/i);
         });
         await t.test('parallel stock requests only allow one purchase; cancellation restores once',async()=>{
             const body={...payload,items:[{id:product.id,quantity:1}],discountCode:'ONCE'};
             const results=await Promise.all([user.request('/api/checkout','POST',body,{'Idempotency-Key':'parallel-request-first-0001'}),other.request('/api/checkout','POST',body,{'Idempotency-Key':'parallel-request-second-0002'})]);
             assert.equal(results.filter(r=>r.status===201).length,1);assert.equal((await anonymous.request('/api/products/'+product.id)).data.stock,0);
             assert.equal((await admin.request('/api/admin/discounts')).data.find(d=>d.code==='ONCE').uses,1);
+            assert.equal((await user.request('/api/checkout/quote','POST',{items:[{id:product.id,quantity:1}]})).status,409);
             assert.equal((await admin.request('/api/admin/orders/'+order.id,'PUT',{status:'paid'})).status,409);
             assert.equal((await admin.request('/api/admin/orders/'+order.id,'PUT',{status:'cancelled'})).status,200);
             assert.equal((await anonymous.request('/api/products/'+product.id)).data.stock,2);
+            assert.equal((await user.request('/api/checkout/quote','POST',body)).status,400);
             assert.equal((await admin.request('/api/admin/orders/'+order.id,'PUT',{status:'cancelled'})).status,200);
             assert.equal((await anonymous.request('/api/products/'+product.id)).data.stock,2);
             assert.equal((await admin.request('/api/admin/orders/'+order.id,'PUT',{status:'shipped'})).status,409);
             const stats=await admin.request('/api/admin/stats');assert.equal(stats.status,200);assert.equal(stats.data.totalSalesToday,0);
+        });
+        await t.test('per-user coupon and maximum discount are enforced by the server',async()=>{
+            assert.equal((await admin.request('/api/admin/discounts','POST',{code:'PERSONAL',type:'fixed',value:10000,active:true,maxUses:3,perUserLimit:1,maxDiscount:5000})).status,201);
+            const items=[{id:'1',quantity:1}],discountCode='PERSONAL';
+            const quote=await user.request('/api/checkout/quote','POST',{items,discountCode});
+            assert.equal(quote.status,200);assert.equal(quote.data.discount,5000);
+            const placed=await user.request('/api/checkout','POST',{items,discountCode,recipientName:'گیرنده تست',recipientPhone:fields.phone,recipientAddress:'نشانی تست سفارش کوپن شخصی',isAgreed:true},{'Idempotency-Key':'personal-coupon-order-0001'});
+            assert.equal(placed.status,201);assert.equal(placed.data.order.discount,5000);
+            assert.equal((await user.request('/api/checkout/quote','POST',{items,discountCode})).status,400);
+            assert.equal((await other.request('/api/checkout/quote','POST',{items,discountCode})).status,200);
+            assert.equal((await admin.request('/api/admin/discounts','POST',{code:'BADLIMIT',type:'fixed',value:1000,perUserLimit:0})).status,400);
+            assert.equal((await admin.request('/api/admin/discounts','POST',{code:'BADCAP',type:'fixed',value:1000,maxDiscount:1.5})).status,400);
         });
         await t.test('sessions/orders survive restart, user ban and logout are enforced',async()=>{
             await stop();await start();
@@ -182,9 +210,14 @@ test('real HTTP commerce flow, security, transactions and restart persistence',a
             assert.equal((await user.request('/api/auth/login','POST',{email:fields.email,password:fields.password})).status,200);
             assert.equal((await user.request('/api/contact','POST',{name:'تست',email:fields.email,subject:'آزمایشی',message:'پیام آزمایشی فقط برای تست'})).status,201);
             assert.ok((await admin.request('/api/admin/messages')).data.length);
-            assert.equal((await admin.request('/api/admin/products/'+product.id,'DELETE',{})).status,204);
+            assert.equal((await admin.request('/api/admin/products/'+product.id,'DELETE',{confirm:true,confirmationPhrase:'DELETE'})).status,204);
             assert.equal((await anonymous.request('/api/products/'+product.id)).status,404);
             assert.equal((await user.request('/api/orders/'+order.id)).status,200);
+        });
+        await t.test('quote requests have a temporary per-account limit',async()=>{
+            let status=200;
+            for(let attempt=0;attempt<65&&status!==429;attempt++)status=(await other.request('/api/checkout/quote','POST',{items:[{id:'1',quantity:1}]})).status;
+            assert.equal(status,429);
         });
     } finally {await stop();fs.rmSync(temp,{recursive:true,force:true});}
 });

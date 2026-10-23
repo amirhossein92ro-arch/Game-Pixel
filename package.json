@@ -1,22 +1,37 @@
 {
   "name": "web2-gaming-store",
-  "version": "1.0.0",
+  "version": "1.0.1-rc.1",
   "private": true,
   "description": "Full-stack demo gaming store built with Node.js and Express",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node --test tests/*.test.cjs",
+    "test": "node --require ./tests/helpers/isolated-environment.cjs --test --test-concurrency=1 tests/*.test.cjs",
     "check": "node scripts/check.cjs",
+    "check:production": "node scripts/check.cjs --production",
+    "test:production": "node scripts/test-production.cjs",
     "verify:products": "node scripts/verify-products.cjs",
-    "backup": "node scripts/backup.cjs"
+    "backup": "node scripts/backup.cjs",
+    "restore": "node scripts/restore.cjs",
+    "monitor": "node scripts/monitor.cjs",
+    "release:check": "node scripts/release-check.cjs",
+    "release:package": "node scripts/package-release.cjs",
+    "deploy:dry-run": "node scripts/deploy.cjs --dry-run",
+    "benchmark": "node scripts/benchmark.cjs",
+    "build:assets": "node scripts/version-assets.cjs",
+    "storage:dry-run": "node scripts/migrate-json-to-db.cjs --dry-run",
+    "storage:import": "node scripts/migrate-json-to-db.cjs",
+    "storage:schema": "node scripts/storage-schema.cjs",
+    "storage:export": "node scripts/export-db.cjs",
+    "benchmark:storage": "node --expose-gc scripts/benchmark-storage.cjs"
   },
   "engines": {
     "node": ">=24.15.0 <25"
   },
   "overrides": {
-    "qs": "6.16.0"
+    "qs": "6.16.0",
+    "proxy-addr": "2.0.8"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

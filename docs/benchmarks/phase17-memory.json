@@ -1,0 +1,404 @@
+{
+  "schema": 1,
+  "createdAt": "2026-10-19T17:03:30.283Z",
+  "node": "v24.21.0",
+  "platform": "win32",
+  "mode": "memory",
+  "sourceHash": "89237935395e73bec77e941cac473ee7a503dd41a22e4801196f607817418902",
+  "cpus": 4,
+  "totalMemoryBytes": 8547311616,
+  "runs": 1,
+  "concurrency": 8,
+  "notes": [
+    "Loopback only; synthetic data; normal auth, CSRF, rate limits and FULL durability enabled.",
+    "Latency includes response body download. Memory samples use explicit GC in the test child.",
+    "Cart timings measure browser JavaScript in a VM, excluding DOM/layout and network."
+  ],
+  "results": [
+    {
+      "profile": {
+        "name": "growth",
+        "products": 400,
+        "users": 250,
+        "orders": 1500
+      },
+      "trial": 1,
+      "startupMs": 1292.2932999999998,
+      "endpoints": {},
+      "memorySoak": [
+        {
+          "id": 2,
+          "memory": {
+            "rss": 82743296,
+            "heapTotal": 13672448,
+            "heapUsed": 11146432,
+            "external": 3061481,
+            "arrayBuffers": 388269
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 47,
+          "elapsedMs": 1059.1500999999998,
+          "eventLoop": {
+            "p95Ms": 16.072703,
+            "maxMs": 16.457727
+          }
+        },
+        {
+          "id": 3,
+          "memory": {
+            "rss": 82833408,
+            "heapTotal": 14721024,
+            "heapUsed": 11157816,
+            "external": 3061481,
+            "arrayBuffers": 388269
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 0,
+          "elapsedMs": 1066.0065999999997,
+          "eventLoop": {
+            "p95Ms": 17.350655,
+            "maxMs": 22.413311
+          }
+        },
+        {
+          "id": 4,
+          "memory": {
+            "rss": 83009536,
+            "heapTotal": 13672448,
+            "heapUsed": 11179880,
+            "external": 3061481,
+            "arrayBuffers": 388211
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 46,
+          "elapsedMs": 1029.9521999999997,
+          "eventLoop": {
+            "p95Ms": 15.958015,
+            "maxMs": 16.039935
+          }
+        },
+        {
+          "id": 5,
+          "memory": {
+            "rss": 83025920,
+            "heapTotal": 13672448,
+            "heapUsed": 11201104,
+            "external": 3061481,
+            "arrayBuffers": 388211
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 16,
+          "elapsedMs": 1032.8633,
+          "eventLoop": {
+            "p95Ms": 16.080895,
+            "maxMs": 19.447807
+          }
+        },
+        {
+          "id": 6,
+          "memory": {
+            "rss": 83173376,
+            "heapTotal": 13672448,
+            "heapUsed": 11214896,
+            "external": 3061481,
+            "arrayBuffers": 388211
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 0,
+          "elapsedMs": 1041.7986999999994,
+          "eventLoop": {
+            "p95Ms": 16.236543,
+            "maxMs": 16.449535
+          }
+        },
+        {
+          "id": 7,
+          "memory": {
+            "rss": 83181568,
+            "heapTotal": 13672448,
+            "heapUsed": 11222680,
+            "external": 3061481,
+            "arrayBuffers": 388269
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 16,
+          "elapsedMs": 1040.5788999999995,
+          "eventLoop": {
+            "p95Ms": 16.195583,
+            "maxMs": 17.793023
+          }
+        },
+        {
+          "id": 8,
+          "memory": {
+            "rss": 83693568,
+            "heapTotal": 14721024,
+            "heapUsed": 11247952,
+            "external": 3061481,
+            "arrayBuffers": 388269
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 0,
+          "elapsedMs": 1036.722099999999,
+          "eventLoop": {
+            "p95Ms": 16.908287,
+            "maxMs": 25.182207
+          }
+        },
+        {
+          "id": 9,
+          "memory": {
+            "rss": 83062784,
+            "heapTotal": 13672448,
+            "heapUsed": 11262200,
+            "external": 3061481,
+            "arrayBuffers": 388211
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 16,
+          "elapsedMs": 1047.292300000001,
+          "eventLoop": {
+            "p95Ms": 16.261119,
+            "maxMs": 17.711103
+          }
+        },
+        {
+          "id": 10,
+          "memory": {
+            "rss": 82636800,
+            "heapTotal": 13672448,
+            "heapUsed": 11303328,
+            "external": 3061482,
+            "arrayBuffers": 388212
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 47,
+          "elapsedMs": 1044.851999999999,
+          "eventLoop": {
+            "p95Ms": 15.982591,
+            "maxMs": 16.113663
+          }
+        },
+        {
+          "id": 11,
+          "memory": {
+            "rss": 83001344,
+            "heapTotal": 13934592,
+            "heapUsed": 11310680,
+            "external": 3061483,
+            "arrayBuffers": 388212
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 31,
+          "elapsedMs": 1035.1593999999986,
+          "eventLoop": {
+            "p95Ms": 16.670719,
+            "maxMs": 17.186815
+          }
+        },
+        {
+          "id": 12,
+          "memory": {
+            "rss": 83009536,
+            "heapTotal": 13934592,
+            "heapUsed": 11310336,
+            "external": 3061483,
+            "arrayBuffers": 388212
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 0,
+          "elapsedMs": 1040.1787999999997,
+          "eventLoop": {
+            "p95Ms": 16.236543,
+            "maxMs": 19.398655
+          }
+        },
+        {
+          "id": 13,
+          "memory": {
+            "rss": 83156992,
+            "heapTotal": 13934592,
+            "heapUsed": 11317768,
+            "external": 3061483,
+            "arrayBuffers": 388212
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 0,
+          "elapsedMs": 1032.440200000001,
+          "eventLoop": {
+            "p95Ms": 16.859135,
+            "maxMs": 20.021247
+          }
+        },
+        {
+          "id": 14,
+          "memory": {
+            "rss": 83185664,
+            "heapTotal": 13934592,
+            "heapUsed": 11321880,
+            "external": 3061483,
+            "arrayBuffers": 388212
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 16,
+          "elapsedMs": 1028.3438999999998,
+          "eventLoop": {
+            "p95Ms": 16.383999,
+            "maxMs": 20.283391
+          }
+        },
+        {
+          "id": 15,
+          "memory": {
+            "rss": 83185664,
+            "heapTotal": 14983168,
+            "heapUsed": 11321880,
+            "external": 3061483,
+            "arrayBuffers": 388212
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 15,
+          "elapsedMs": 1033.2662000000018,
+          "eventLoop": {
+            "p95Ms": 16.154623,
+            "maxMs": 16.728063
+          }
+        },
+        {
+          "id": 16,
+          "memory": {
+            "rss": 83185664,
+            "heapTotal": 13934592,
+            "heapUsed": 11322104,
+            "external": 3061483,
+            "arrayBuffers": 388212
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 31,
+          "elapsedMs": 1035.2682999999997,
+          "eventLoop": {
+            "p95Ms": 16.441343,
+            "maxMs": 17.317887
+          }
+        },
+        {
+          "id": 17,
+          "memory": {
+            "rss": 83185664,
+            "heapTotal": 13934592,
+            "heapUsed": 11323600,
+            "external": 3061483,
+            "arrayBuffers": 388212
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 16,
+          "elapsedMs": 1040.0884000000005,
+          "eventLoop": {
+            "p95Ms": 16.171007,
+            "maxMs": 16.277503
+          }
+        },
+        {
+          "id": 18,
+          "memory": {
+            "rss": 83185664,
+            "heapTotal": 13934592,
+            "heapUsed": 11323600,
+            "external": 3061483,
+            "arrayBuffers": 388212
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 15,
+          "elapsedMs": 1036.2982999999986,
+          "eventLoop": {
+            "p95Ms": 16.236543,
+            "maxMs": 17.465343
+          }
+        },
+        {
+          "id": 19,
+          "memory": {
+            "rss": 83189760,
+            "heapTotal": 13934592,
+            "heapUsed": 11332880,
+            "external": 3061483,
+            "arrayBuffers": 388212
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 63,
+          "elapsedMs": 1027.4441000000006,
+          "eventLoop": {
+            "p95Ms": 16.654335,
+            "maxMs": 21.200895
+          }
+        },
+        {
+          "id": 20,
+          "memory": {
+            "rss": 83189760,
+            "heapTotal": 13934592,
+            "heapUsed": 11332880,
+            "external": 3061483,
+            "arrayBuffers": 388271
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 16,
+          "elapsedMs": 1043.4506000000001,
+          "eventLoop": {
+            "p95Ms": 16.179199,
+            "maxMs": 21.037055
+          }
+        },
+        {
+          "id": 21,
+          "memory": {
+            "rss": 83189760,
+            "heapTotal": 13934592,
+            "heapUsed": 11332880,
+            "external": 3061483,
+            "arrayBuffers": 388212
+          },
+          "syncFs": 0,
+          "prepares": 0,
+          "cpuMs": 15,
+          "elapsedMs": 1035.8676000000014,
+          "eventLoop": {
+            "p95Ms": 16.146431,
+            "maxMs": 18.038783
+          }
+        }
+      ],
+      "memoryRetainedDelta": 186448,
+      "integrity": {
+        "quickCheck": "ok",
+        "foreignKeys": "ok",
+        "negativeStock": 0
+      },
+      "cartTotals": {
+        "count": 100,
+        "lines": 50,
+        "medianMs": 1.7201999999997497,
+        "p95Ms": 3.5341000000007625
+      }
+    }
+  ]
+}

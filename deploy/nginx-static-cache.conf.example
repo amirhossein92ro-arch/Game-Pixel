@@ -1,0 +1,13 @@
+# HTTP context: /etc/nginx/conf.d/web2-static-cache.conf
+# Create /var/cache/nginx/web2-assets owned by the Nginx worker user first.
+proxy_cache_path /var/cache/nginx/web2-assets levels=1:2 keys_zone=web2_assets:8m max_size=64m inactive=30d use_temp_path=off;
+map $arg_v $web2_unversioned_asset {
+    default 1;
+    "~^[a-f0-9]{16}$" 0;
+}
+# Node verifies the fingerprint against the actual deployment file. An arbitrary
+# query parameter cannot opt a response into immutable caching.
+map $upstream_http_cache_control $web2_skip_static_cache {
+    default 1;
+    "public, max-age=31536000, immutable" 0;
+}

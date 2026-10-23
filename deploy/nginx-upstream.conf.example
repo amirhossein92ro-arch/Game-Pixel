@@ -1,0 +1,8 @@
+# HTTP context: /etc/nginx/conf.d/web2-upstream.conf
+upstream web2_backend {
+    server 127.0.0.1:3000;
+    keepalive 16;
+    keepalive_requests 1000;
+    # Retire pooled sockets before Node's existing five-second idle timeout.
+    keepalive_timeout 4s;
+}

@@ -1,0 +1,24 @@
+# Bootstrap only, BEFORE a certificate exists. Replace every YOUR_DOMAIN.
+# Merge into a reviewed existing site; never replace another working virtual host.
+# Requires the web2_safe log_format in nginx-rate-limits.conf.example (http{}).
+server {
+    listen 80;
+    listen [::]:80;
+    server_name YOUR_DOMAIN www.YOUR_DOMAIN;
+    server_tokens off;
+    access_log /var/log/nginx/web2-access.log web2_safe;
+    error_log /var/log/nginx/web2-error.log warn;
+    client_max_body_size 1m;
+    client_body_timeout 15s;
+    client_header_timeout 15s;
+    send_timeout 30s;
+    include /etc/nginx/snippets/web2-sensitive-locations.conf;
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/lib/letsencrypt;
+        default_type text/plain;
+        try_files $uri =404;
+        limit_except GET { deny all; }
+    }
+    # Keep application authentication off HTTP during first-time TLS bootstrap.
+    location / { return 503; }
+}

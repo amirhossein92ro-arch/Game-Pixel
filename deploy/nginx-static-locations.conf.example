@@ -1,0 +1,13 @@
+# Include inside the HTTPS server after installing nginx-static-cache.conf.example.
+# Requests still pass through Node's allowlists, realpath checks and security headers.
+# Protected admin scripts and every HTML/API/auth route are excluded.
+location ~ ^/(?:style\.css|script\.js|products\.js|css/(?:account|commerce|intro|rgb-text)\.css|js/(?:api-config|intro|invoice|profile|session|site|wishlist|safe-url)\.js|img/[A-Za-z0-9_/-]+\.(?:png|jpg|jpeg|webp|avif|gif|svg|ico))$ {
+    include /etc/nginx/snippets/web2-proxy.conf;
+    proxy_cache web2_assets;
+    proxy_cache_key "$scheme://$host$request_uri";
+    proxy_cache_bypass $web2_unversioned_asset $http_cookie;
+    proxy_no_cache $web2_unversioned_asset $web2_skip_static_cache $http_cookie $upstream_http_set_cookie;
+    proxy_cache_valid 200 365d;
+    proxy_cache_lock on;
+    access_log off;
+}

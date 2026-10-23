@@ -6,7 +6,7 @@ const accountLabels = {pending:'در انتظار',paid:'پرداخت‌شده',
 const accountCategories = {order:'سفارش',payment:'پرداخت',product:'محصول',account:'حساب کاربری',other:'سایر'};
 const accountIcons = {gamepad:'fa-gamepad',astronaut:'fa-user-astronaut',dragon:'fa-dragon',robot:'fa-robot',bolt:'fa-bolt',headset:'fa-headset'};
 const accountMenu = [['dashboard','داشبورد','fa-gauge-high'],['info','اطلاعات حساب','fa-user'],['orders','سفارش‌های من','fa-bag-shopping'],['addresses','آدرس‌های من','fa-location-dot'],['wishlist','علاقه‌مندی‌ها','fa-heart'],['security','امنیت حساب','fa-shield-halved'],['notifications','اعلان‌ها','fa-bell'],['support','پشتیبانی','fa-headset']];
-const accountState = {userId:null,section:'dashboard',dashboard:null,unread:0,addresses:[],ticket:null,reads:new Map(),busy:new Set(),generation:0,boot:null};
+const accountState = {userId:null,section:'dashboard',dashboard:null,unread:0,addresses:[],ticket:null,reads:new Map(),busy:new Set(),generation:0,boot:null,orderPage:1};
 const accountBadge = status => `<span class="account-badge ${Object.hasOwn(accountLabels,status)?status:'closed'}">${profileEscape(accountLabels[status]||'نامشخص')}</span>`;
 const accountEmpty = (text,icon='fa-box-open',shop=false) => `<div class="account-empty"><i class="fa-solid ${icon}" aria-hidden="true"></i><p>${profileEscape(text)}</p>${shop?'<a class="secondary-button" href="index.html#products">دیدن محصولات فروشگاه</a>':''}</div>`;
 const accountAvatar = user => `<span class="account-avatar" aria-hidden="true"><i class="fa-solid ${accountIcons[user.avatar]||'fa-gamepad'}"></i></span>`;
@@ -34,12 +34,27 @@ async function profileRequest(url,options={}) {
     return promise;
 }
 function accountField(label,name,value='',attributes='',wide=false) {
-    return `<label class="field${wide?' account-full':''}"><span>${label}</span><input name="${name}" value="${profileEscape(value)}" ${attributes}></label>`;
+    return `<label class="field${wide?' account-full':''}"><span>${label}</span><input id="account-field-${name}" name="${name}" value="${profileEscape(value)}" ${attributes}></label>`;
+}
+function accountReturnPath() {
+    const value=new URLSearchParams(location.search).get('returnTo');
+    if(!value||!value.startsWith('/')||value.startsWith('//')||/[\\\u0000-\u0020]/.test(value))return '';
+    try{const url=new URL(value,location.origin);if(url.origin!==location.origin||!/^\/(?:products|product(?:\.html)?|cart(?:\.html)?|checkout(?:\.html)?|categories\/[^/]+)?$/.test(url.pathname))return '';return url.pathname+url.search;}catch{return '';}
+}
+function accountFieldError(field,message='') {
+    if(!field)return;field.setAttribute('aria-invalid',String(!!message));
+    const wrapper=field.closest('.field');if(!wrapper)return;
+    let note=wrapper.querySelector('.field-error');if(!note){note=document.createElement('small');note.className='field-error';note.id='account-error-'+field.name;wrapper.append(note);}
+    note.textContent=message;note.hidden=!message;field.setAttribute('aria-describedby',note.id);
 }
 function accountAuth() {
     const app=document.getElementById('profileApp');
     app.innerHTML=`<section class="account-auth account-panel glass-panel"><div class="auth-brand rgb-text rgb-text-glow"><i class="fa-solid fa-gamepad" aria-hidden="true"></i> WEB 2</div><h1 class="rgb-text">به حساب خود وارد شوید</h1><p class="account-muted">سفارش‌ها، علاقه‌مندی‌ها و پشتیبانی فروشگاه، در یک جا.</p><div id="profileNotice" class="account-notice" role="status" aria-live="polite" hidden></div><form id="profileAuth" class="account-form"><label class="field"><span>ورود یا ثبت‌نام</span><select name="mode" id="profileAuthMode"><option value="login">ورود به حساب</option><option value="register">ساخت حساب جدید</option></select></label><div id="accountRegisterFields" class="account-form" hidden>${accountField('نام','name','','minlength="2" maxlength="100" autocomplete="given-name"')}${accountField('موبایل','phone','','pattern="09[0-9]{9}" maxlength="11" inputmode="tel" dir="ltr" autocomplete="tel"')}</div>${accountField('ایمیل','email','','type="email" required maxlength="200" dir="ltr" autocomplete="email"')}${accountField('رمز عبور','password','','type="password" required maxlength="72" autocomplete="current-password"')}<small class="account-muted" id="accountPasswordHint">رمز حساب خود را وارد کنید.</small><button class="primary-button" type="submit">ادامه <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button></form><a class="account-muted" href="index.html">بازگشت به فروشگاه</a></section>`;
     if(new URLSearchParams(location.search).has('loggedout'))accountNotice('از حساب خارج شدید.');
+}
+function accountTwoFactorAuth(){
+    const app=document.getElementById('profileApp');
+    app.innerHTML=`<section class="account-auth account-panel glass-panel"><h1>تأیید دومرحله‌ای</h1><p class="account-muted">کد برنامه احراز هویت یا یکی از کدهای بازیابی را وارد کنید.</p><div id="profileNotice" class="account-notice" role="status" aria-live="polite" hidden></div><form id="accountTwoFactorLogin" class="account-form">${accountField('کد تأیید یا بازیابی','code','','required autocomplete="one-time-code" dir="ltr" maxlength="23"')}<button class="primary-button" type="submit">تأیید و ورود</button></form><button class="secondary-button" type="button" data-account-auth="login">بازگشت به ورود</button></section>`;
 }
 const accountRecoveryState={phone:'',challengeId:'',resetToken:'',resendAt:0,timer:null};
 let accountCaptchaConfigPromise;
@@ -92,6 +107,8 @@ function accountAuthSecure(message='',kind='success'){
     const app=document.getElementById('profileApp');
     app.innerHTML=`<section class="account-auth account-panel glass-panel"><div class="auth-brand rgb-text rgb-text-glow"><i class="fa-solid fa-gamepad" aria-hidden="true"></i> WEB 2</div><h1 class="rgb-text">به حساب خود وارد شوید</h1><p class="account-muted">نشست شما پس از ورود، پنج ساعت معتبر خواهد بود.</p><div id="profileNotice" class="account-notice" role="status" aria-live="polite" hidden></div><form id="profileAuth" class="account-form"><label class="field"><span>ورود یا ثبت‌نام</span><select name="mode" id="profileAuthMode"><option value="login">ورود به حساب</option><option value="register">ساخت حساب جدید</option></select></label><div id="accountRegisterFields" class="account-form" hidden>${accountField('نام','name','','minlength="2" maxlength="100" autocomplete="given-name"')}${accountField('موبایل','phone','','pattern="09[0-9]{9}" maxlength="11" inputmode="tel" dir="ltr" autocomplete="tel"')}</div>${accountField('ایمیل','email','','type="email" required maxlength="200" dir="ltr" autocomplete="email"')}${accountField('رمز عبور','password','','type="password" required maxlength="72" autocomplete="current-password"')}<small class="account-muted" id="accountPasswordHint">رمز حساب خود را وارد کنید.</small>${accountCaptchaMarkup()}<button class="primary-button" type="submit">ادامه <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button><button class="account-link-button" type="button" data-account-auth="forgot">فراموشی رمز عبور</button></form><a class="account-muted account-back-link" href="index.html">بازگشت به فروشگاه</a></section>`;
     accountRenderCaptcha(document.getElementById('profileAuth'));
+    const form=document.getElementById('profileAuth');form.querySelector('[type="submit"]').textContent='ورود به حساب';
+    const destination=accountReturnPath();if(destination){const back=app.querySelector('.account-back-link');back.href=destination;back.textContent='بازگشت و ادامه خرید';}
     if(message)accountNotice(message,kind);else if(new URLSearchParams(location.search).has('loggedout'))accountNotice('از حساب خارج شدید.');
 }
 function accountForgot(step='request',payload={}){
@@ -120,7 +137,7 @@ function accountUpdateIdentity() {
     if(badge){const n=accountState.unread;badge.textContent=n.toLocaleString('fa-IR');badge.hidden=!n;}
 }
 function accountOrderRows(orders) {
-    return orders.length?`<div class="account-list">${orders.map(o=>`<article class="account-row"><div><strong dir="ltr">${profileEscape(o.code)}</strong><small class="account-muted">${profileDate(o.createdAt)} · ${Number((o.items||[]).reduce((s,i)=>s+Number(i.quantity||0),0)).toLocaleString('fa-IR')} کالا</small></div><strong class="account-price">${profilePrice(o.total)}</strong><div class="account-actions">${accountBadge(o.status)}<button class="secondary-button" type="button" data-account-action="order" data-id="${profileEscape(o.id)}">مشاهده جزئیات</button></div></article>`).join('')}</div>`:accountEmpty('هنوز سفارشی ثبت نکرده‌اید.','fa-bag-shopping',true);
+    return orders.length?`<div class="account-list">${orders.map(o=>`<article class="account-row"><div><strong dir="ltr">${profileEscape(o.code)}</strong><small class="account-muted">${profileDate(o.createdAt)} · ${Number(o.itemCount??(o.items||[]).reduce((s,i)=>s+Number(i.quantity||0),0)).toLocaleString('fa-IR')} کالا</small></div><strong class="account-price">${profilePrice(o.total)}</strong><div class="account-actions">${accountBadge(o.status)}<button class="secondary-button" type="button" data-account-action="order" data-id="${profileEscape(o.id)}">مشاهده جزئیات</button></div></article>`).join('')}</div>`:accountEmpty('هنوز سفارشی ثبت نکرده‌اید.','fa-bag-shopping',true);
 }
 function accountDashboard(data) {
     const {user,stats,recentOrders}=data;
@@ -138,9 +155,9 @@ function accountAddresses(rows) {
 function accountWishlist(rows) {
     return `<section class="account-panel"><h2>محصولات محبوب شما</h2>${rows.length?`<div class="account-wishlist">${rows.map(({productId,product:p})=>`<article class="account-wish-card">${p?`<img src="${profileEscape(safeImage(p.image))}" alt="${profileEscape(p.name)}" loading="lazy"><h3><a href="product.html?id=${encodeURIComponent(p.id)}">${profileEscape(p.name)}</a></h3><strong class="account-price">${profilePrice(Math.round(p.price*(100-Number(p.discount||0))/100))}</strong><small class="account-muted">${p.stock>0?'موجود در فروشگاه':'فعلاً ناموجود'}</small>`:'<h3>این محصول در حال حاضر در دسترس نیست.</h3>'}<div class="account-actions">${p?`<button class="primary-button" type="button" data-add-to-cart="${profileEscape(p.id)}" ${p.stock>0?'':'disabled'}><i class="fa-solid fa-cart-plus" aria-hidden="true"></i> افزودن به سبد</button>`:''}<button class="secondary-button" type="button" data-account-action="remove-wish" data-id="${profileEscape(productId)}">حذف</button></div></article>`).join('')}</div>`:accountEmpty('محصولات دلخواهتان را با دکمه قلب در فروشگاه ذخیره کنید.','fa-heart',true)}</section>`;
 }
-function safeImage(value) {return /^(?:img\/[\w./-]+|https:\/\/[^\s<>"']+|data:image\/(?:png|jpeg|webp|gif);base64,[\w+/=]+)$/.test(value||'')?value:'img/product-placeholder.svg';}
-function accountSecurity(sessions) {
-    return `<section class="account-panel"><h2>تغییر رمز عبور</h2><p class="account-muted">حداقل ۱۲ کاراکتر و حداکثر ۷۲ بایت UTF-8. پس از تغییر رمز، نشست‌های قبلی پایان می‌یابند.</p><form id="accountPasswordForm" class="account-form">${accountField('رمز عبور فعلی','currentPassword','','type="password" required maxlength="72" autocomplete="current-password"',true)}${accountField('رمز عبور جدید','newPassword','','type="password" required minlength="12" maxlength="72" autocomplete="new-password"')}${accountField('تکرار رمز عبور جدید','confirmPassword','','type="password" required minlength="12" maxlength="72" autocomplete="new-password"')}<div class="account-actions account-full"><button class="primary-button" type="submit">تغییر رمز عبور</button></div></form></section><section class="account-panel"><h2>نشست‌های فعال</h2><div class="account-list">${sessions.map(s=>`<article class="account-row"><div><strong>${profileEscape(s.device)}</strong><small class="account-muted">شروع: ${profileDate(s.createdAt)} · اعتبار تا ${profileDate(s.expiresAt)}</small></div>${s.current?'<span class="account-badge shipped">نشست فعلی</span>':'<span class="account-muted">نشست دیگر</span>'}</article>`).join('')}</div><div class="account-actions"><button class="secondary-button" type="button" data-account-action="logout">خروج از نشست فعلی</button></div></section>`;
+function safeImage(value) {return (window.Web2SafeURL?.image(value)||'img/product-placeholder.svg');}
+function accountSecurity({sessions,twoFactor,events}) {
+    return `<section class="account-panel"><h2>تغییر رمز عبور</h2><p class="account-muted">حداقل ۱۲ کاراکتر و حداکثر ۷۲ بایت UTF-8. پس از تغییر رمز، نشست‌های قبلی پایان می‌یابند.</p><form id="accountPasswordForm" class="account-form">${accountField('رمز عبور فعلی','currentPassword','','type="password" required maxlength="72" autocomplete="current-password"',true)}${accountField('رمز عبور جدید','newPassword','','type="password" required minlength="12" maxlength="72" autocomplete="new-password"')}${accountField('تکرار رمز عبور جدید','confirmPassword','','type="password" required minlength="12" maxlength="72" autocomplete="new-password"')}<div class="account-actions account-full"><button class="primary-button" type="submit">تغییر رمز عبور</button></div></form></section><section class="account-panel"><h2>تأیید دومرحله‌ای</h2><p class="account-muted">وضعیت: ${twoFactor.enabled?'فعال':'غیرفعال'}${twoFactor.enabled?` · ${Number(twoFactor.recoveryCodesRemaining).toLocaleString('fa-IR')} کد بازیابی باقی مانده`:''}</p>${twoFactor.enabled?`<form id="accountRecoveryCodesForm" class="account-form">${accountField('رمز عبور فعلی','currentPassword','','type="password" required autocomplete="current-password"')}${accountField('کد تأیید یا بازیابی','code','','required autocomplete="one-time-code" dir="ltr"')}<button class="secondary-button" type="submit">ساخت کدهای بازیابی تازه</button></form><form id="accountDisableTwoFactor" class="account-form">${accountField('رمز عبور فعلی','currentPassword','','type="password" required autocomplete="current-password"')}${accountField('کد تأیید یا بازیابی','code','','required autocomplete="one-time-code" dir="ltr"')}<button class="secondary-button" type="submit">غیرفعال کردن تأیید دومرحله‌ای</button></form>`:twoFactor.setupAvailable?`<form id="accountStartTwoFactor" class="account-form">${accountField('رمز عبور فعلی','currentPassword','','type="password" required autocomplete="current-password"')}<button class="secondary-button" type="submit">فعال‌سازی با برنامه احراز هویت</button></form><div id="accountFactorSetup"></div>`:'<p class="account-muted">تنظیمات تأیید دومرحله‌ای روی سرور هنوز آماده نیست.</p>'}</section><section class="account-panel"><h2>دستگاه‌ها و نشست‌های فعال</h2><div class="account-list">${sessions.map(s=>`<article class="account-row"><div><strong>${profileEscape(s.device)}</strong><small class="account-muted">شروع: ${profileDate(s.createdAt)} · آخرین فعالیت: ${profileDate(s.lastActivity)}${s.ip?' · IP تقریبی: '+profileEscape(s.ip):''}</small></div>${s.current?'<span class="account-badge shipped">نشست فعلی</span>':`<button class="secondary-button" type="button" data-account-action="revoke-session" data-id="${profileEscape(s.id)}">بستن نشست</button>`}</article>`).join('')}</div><div class="account-actions"><button class="secondary-button" type="button" data-account-action="logout">خروج از نشست فعلی</button><button class="secondary-button" type="button" data-account-action="logout-others">خروج از دستگاه‌های دیگر</button></div></section><section class="account-panel"><h2>رویدادهای امنیتی اخیر</h2><div class="account-list">${events.length?events.map(e=>`<div class="account-row"><strong dir="ltr">${profileEscape(e.action)}</strong><small>${profileDate(e.createdAt)}</small></div>`).join(''):'<p class="account-muted">رویدادی ثبت نشده است.</p>'}</div></section>`;
 }
 function accountNotifications(data) {
     return `<section class="account-panel"><div class="account-topbar"><h2>اعلان‌های شما</h2>${data.unread?'<button class="secondary-button" type="button" data-account-action="read-all">خواندن همه</button>':''}</div><div class="account-list">${data.items.length?data.items.map(n=>`<article class="account-row account-notification ${n.readAt?'is-read':''}"><div><strong>${profileEscape(n.title)}</strong><p class="account-muted">${profileEscape(n.message)}</p><small class="account-muted">${profileDate(n.createdAt)}</small></div><div class="account-actions">${n.type==='order'&&n.resourceId?`<button class="secondary-button" type="button" data-account-action="order" data-id="${profileEscape(n.resourceId)}">مشاهده سفارش</button>`:''}${n.type==='ticket'&&n.resourceId?`<button class="secondary-button" type="button" data-account-action="ticket" data-id="${profileEscape(n.resourceId)}">مشاهده پاسخ</button>`:''}${n.readAt?'<span class="account-muted">خوانده‌شده</span>':`<button class="secondary-button" type="button" data-account-action="read-notification" data-id="${profileEscape(n.id)}">خواندم</button>`}</div></article>`).join(''):accountEmpty('هنوز اعلان جدیدی برای شما ثبت نشده است.','fa-bell')}</div></section>`;
@@ -163,10 +180,10 @@ async function accountLoadSection(section=accountState.section) {
         let html,dashboard,user,addresses,unread;
         if(section==='dashboard'){dashboard=await profileRequest('/api/account/dashboard');user=dashboard.user;html=accountDashboard(dashboard);}
         if(section==='info'){user=await profileRequest('/api/users/me');html=accountInfo(user);}
-        if(section==='orders')html=`<section class="account-panel"><h2>سفارش‌های من</h2>${accountOrderRows((await profileRequest('/api/orders')).slice().reverse())}</section>`;
+        if(section==='orders'){const data=await profileRequest('/api/orders?'+new URLSearchParams({page:String(accountState.orderPage),pageSize:'20'}));const rows=Array.isArray(data)?data:data.items;html=`<section class="account-panel"><h2>سفارش‌های من</h2>${accountOrderRows(rows)}${data.pages>1?`<nav class="catalog-pagination" aria-label="صفحه‌بندی سفارش‌ها"><button class="secondary-button" data-account-action="order-prev" ${accountState.orderPage<=1?'disabled':''}>قبلی</button><span>${accountState.orderPage} / ${data.pages}</span><button class="secondary-button" data-account-action="order-next" ${accountState.orderPage>=data.pages?'disabled':''}>بعدی</button></nav>`:''}</section>`;}
         if(section==='addresses'){addresses=await profileRequest('/api/users/me/addresses');html=accountAddresses(addresses);}
         if(section==='wishlist')html=accountWishlist(await profileRequest('/api/users/me/wishlist'));
-        if(section==='security')html=accountSecurity(await profileRequest('/api/users/me/sessions'));
+        if(section==='security'){const [sessions,security]=await Promise.all([profileRequest('/api/users/me/sessions'),profileRequest('/api/users/me/security')]);html=accountSecurity({sessions,...security});}
         if(section==='notifications'){const data=await profileRequest('/api/users/me/notifications');unread=data.unread;html=accountNotifications(data);}
         if(section==='support'){accountState.ticket=null;html=accountSupport(await profileRequest('/api/tickets'));}
         if(generation!==accountState.generation||!Web2.user)return;
@@ -175,13 +192,14 @@ async function accountLoadSection(section=accountState.section) {
         if(addresses){accountState.addresses=addresses;Web2.user.addresses=addresses;}
         if(unread!==undefined){accountState.unread=unread;if(accountState.dashboard)accountState.dashboard.stats.unread=unread;}
         target.innerHTML=html;target.removeAttribute('aria-busy');accountUpdateIdentity();
-    }catch(error){if(generation!==accountState.generation)return;target.removeAttribute('aria-busy');target.innerHTML=accountEmpty(error.message,'fa-triangle-exclamation');accountNotice(error.message,'error');}
+    }catch(error){if(generation!==accountState.generation)return;target.removeAttribute('aria-busy');target.innerHTML=accountEmpty(error.message,'fa-triangle-exclamation')+'<button class="secondary-button" type="button" data-account-action="refresh">تلاش دوباره</button>';accountNotice(error.message,'error');}
 }
 async function accountBoot() {
     if(!Web2.user){accountState.userId=null;accountState.dashboard=null;accountState.unread=0;accountState.addresses=[];accountState.ticket=null;accountState.reads.clear();accountState.generation++;accountState.boot=null;document.getElementById('accountDialog')?.close();accountAuthSecure();return;}
     if(accountState.boot&&accountState.userId===Web2.user.id)return accountState.boot;
-    accountState.userId=Web2.user.id;accountState.section='dashboard';accountState.dashboard=null;accountState.unread=0;accountState.addresses=[];accountState.ticket=null;accountShell();
-    const task=accountLoadSection('dashboard').finally(()=>{if(accountState.boot===task)accountState.boot=null;});accountState.boot=task;return task;
+    accountState.userId=Web2.user.id;accountState.orderPage=1;accountState.section='dashboard';accountState.dashboard=null;accountState.unread=0;accountState.addresses=[];accountState.ticket=null;accountShell();
+    const section=new URLSearchParams(location.search).get('section');
+    const task=accountLoadSection(accountMenu.some(([key])=>key===section)?section:'dashboard').finally(()=>{if(accountState.boot===task)accountState.boot=null;});accountState.boot=task;return task;
 }
 async function accountOpenOrder(id) {
     const dialog=document.getElementById('accountDialog');dialog.showModal();
@@ -205,8 +223,10 @@ async function accountBusy(key,element,fn) {
     accountState.busy.add(key);
     const buttons=element?.tagName==='FORM'?[...element.querySelectorAll('button')]:element?[element]:[];
     const previous=buttons.map(b=>b.disabled);buttons.forEach(b=>b.disabled=true);element?.setAttribute('aria-busy','true');
-    try{await fn();}catch(error){accountNotice(error.message,'error');const dialogBody=document.getElementById('accountDialogBody');if(document.getElementById('accountDialog')?.open)dialogBody.textContent=error.message;}
-    finally{buttons.forEach((b,i)=>b.disabled=previous[i]);element?.removeAttribute('aria-busy');accountState.busy.delete(key);if(element?.tagName==='FORM'&&element.querySelector('[data-captcha]'))accountResetCaptcha(element);}
+    const submit=element?.tagName==='FORM'?element.querySelector('[type="submit"]'):null,original=submit?.innerHTML;
+    if(submit)submit.textContent=element.id==='profileAuth'?(element.elements.mode.value==='register'?'در حال ساخت حساب…':'در حال ورود…'):'در حال ذخیره…';
+    try{await fn();}catch(error){accountNotice(error.message,'error');if(error.field&&element?.tagName==='FORM')accountFieldError(element.elements.namedItem(error.field),error.message);const dialogBody=document.getElementById('accountDialogBody');if(document.getElementById('accountDialog')?.open)dialogBody.textContent=error.message;}
+    finally{buttons.forEach((b,i)=>b.disabled=previous[i]);if(submit)submit.innerHTML=original;element?.removeAttribute('aria-busy');accountState.busy.delete(key);if(element?.tagName==='FORM'&&element.querySelector('[data-captcha]'))accountResetCaptcha(element);}
 }
 function accountConfirm(message) {
     const dialog=document.getElementById('accountDialog');
@@ -220,9 +240,17 @@ function accountConfirm(message) {
         document.getElementById('accountConfirm').onclick=()=>{result=true;dialog.close();};
     });
 }
+function accountShowRecoveryCodes(codes){
+    const dialog=document.getElementById('accountDialog');
+    document.getElementById('accountDialogTitle').textContent='کدهای بازیابی';
+    document.getElementById('accountDialogBody').innerHTML=`<p>این کدها فقط همین یک بار نمایش داده می‌شوند. آن‌ها را در جای امن نگه دارید. هر کد یک بار قابل استفاده است.</p><ul dir="ltr">${codes.map(code=>`<li><code>${profileEscape(code)}</code></li>`).join('')}</ul><button type="button" class="primary-button" data-account-action="close-dialog">ذخیره کردم</button>`;
+    dialog.showModal();dialog.querySelector('button').focus();
+}
 function accountJSON(method,body={}) {return {method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)};}
 function accountBind() {
     const app=document.getElementById('profileApp');
+    app.addEventListener('invalid',event=>{const field=event.target;if(!field.matches('input,select,textarea'))return;event.preventDefault();const label=field.closest('.field')?.querySelector('span')?.textContent||'این فیلد';const first=!field.form?.querySelector('[aria-invalid="true"]');accountFieldError(field,field.validity.valueMissing?`${label} را تکمیل کنید.`:field.name==='phone'?'موبایل را به صورت ۰۹ و یازده رقم وارد کنید.':`${label} معتبر نیست؛ مقدار و طول آن را بررسی کنید.`);if(first)field.focus();},true);
+    app.addEventListener('input',event=>{if(event.target.matches('input,textarea'))accountFieldError(event.target);});
     app.addEventListener('change',e=>{
         if(e.target.id!=='profileAuthMode')return;
         const register=e.target.value==='register';
@@ -230,6 +258,7 @@ function accountBind() {
         app.querySelectorAll('#accountRegisterFields input').forEach(i=>{i.required=register;i.disabled=!register;});
         const password=app.querySelector('[name="password"]');password.minLength=register?12:1;password.autocomplete=register?'new-password':'current-password';
         document.getElementById('accountPasswordHint').textContent=register?'حداقل ۱۲ کاراکتر و حداکثر ۷۲ بایت UTF-8.':'رمز حساب خود را وارد کنید.';
+        document.getElementById('profileAuth').querySelector('[type="submit"]').textContent=register?'ساخت حساب':'ورود به حساب';accountNotice('');
         const form=e.target.form,host=form?.querySelector('[data-captcha]');
         if(host?.dataset.widgetId&&window.turnstile)window.turnstile.remove(host.dataset.widgetId);
         if(host){delete host.dataset.widgetId;host.textContent='در حال آماده‌سازی تأیید امنیتی…';form.querySelector('[name="captchaToken"]').value='';accountRenderCaptcha(form);}
@@ -239,17 +268,26 @@ function accountBind() {
         if(!form.reportValidity())return;
         const data=Object.fromEntries(new FormData(form));
         await accountBusy(form.id,form,async()=>{
-            if(form.id==='profileAuth'){await accountCaptchaToken(form,data);await Web2.authenticate(data.mode,data);await accountBoot();return;}
+            if(form.id==='profileAuth'){await accountCaptchaToken(form,data);const mode=data.mode;delete data.mode;const result=await Web2.authenticate(mode,data);if(result.twoFactorRequired){accountTwoFactorAuth();return;}const destination=accountReturnPath();if(destination){location.assign(destination);return;}await accountBoot();return;}
+            if(form.id==='accountTwoFactorLogin'){await Web2.verifyTwoFactor(data.code);const destination=accountReturnPath();if(destination){location.assign(destination);return;}await accountBoot();return;}
             if(form.id==='forgotRequest'){await accountCaptchaToken(form,data);accountRecoveryState.phone=data.phone;const result=await Web2.request('/api/auth/forgot-password/request',accountJSON('POST',data));accountRecoveryState.challengeId=result.challengeId;accountForgot('verify',result);return;}
             if(form.id==='forgotVerify'){await accountCaptchaToken(form,data);data.challengeId=accountRecoveryState.challengeId;const result=await Web2.request('/api/auth/forgot-password/verify',accountJSON('POST',data));accountRecoveryState.resetToken=result.resetToken;accountForgot('reset',result);return;}
             if(form.id==='forgotReset'){if(data.password!==data.confirmPassword)throw new Error('تکرار رمز عبور یکسان نیست.');await accountCaptchaToken(form,data);data.challengeId=accountRecoveryState.challengeId;data.resetToken=accountRecoveryState.resetToken;const result=await Web2.request('/api/auth/forgot-password/reset',accountJSON('POST',data));accountRecoveryState.phone='';accountRecoveryState.challengeId='';accountRecoveryState.resetToken='';accountAuthSecure(result.message);return;}
-            if(form.id==='profileEdit'){Web2.user=await profileRequest('/api/users/me',accountJSON('PUT',data));await accountLoadSection('info');}
+            if(form.id==='profileEdit'){const updated=await profileRequest('/api/users/me',accountJSON('PUT',data));if(updated.csrfToken){Web2.csrfToken=updated.csrfToken;delete updated.csrfToken;}Web2.user=updated;await accountLoadSection('info');}
             if(form.id==='profileAddressForm'){const id=data.id;delete data.id;data.isDefault=data.isDefault==='true';await profileRequest('/api/users/me/addresses'+(id?'/'+encodeURIComponent(id):''),accountJSON(id?'PUT':'POST',data));await accountLoadSection('addresses');}
             if(form.id==='accountPasswordForm'){
                 if(data.newPassword!==data.confirmPassword)throw new Error('تکرار رمز عبور یکسان نیست.');
                 if(new TextEncoder().encode(data.newPassword).length>72)throw new Error('رمز جدید باید حداکثر ۷۲ بایت UTF-8 باشد.');
                 const result=await profileRequest('/api/users/me/password',accountJSON('PUT',data));Web2.csrfToken=result.csrfToken;await accountLoadSection('security');accountNotice(result.message);return;
             }
+            if(form.id==='accountStartTwoFactor'){
+                const result=await profileRequest('/api/users/me/2fa/setup',accountJSON('POST',data));
+                document.getElementById('accountFactorSetup').innerHTML=`<p>این کلید را فقط در برنامه احراز هویت خود وارد کنید و سپس کد شش رقمی را تأیید کنید.</p><code dir="ltr">${profileEscape(result.secret)}</code><form id="accountConfirmTwoFactor" class="account-form">${accountField('کد شش رقمی','code','','required pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" dir="ltr"')}<button class="primary-button" type="submit">تأیید و فعال‌سازی</button></form>`;
+                form.reset();return;
+            }
+            if(form.id==='accountConfirmTwoFactor'){const result=await profileRequest('/api/users/me/2fa/confirm',accountJSON('POST',data));await accountLoadSection('security');accountShowRecoveryCodes(result.recoveryCodes);return;}
+            if(form.id==='accountRecoveryCodesForm'){const result=await profileRequest('/api/users/me/2fa/recovery-codes',accountJSON('POST',data));await accountLoadSection('security');accountShowRecoveryCodes(result.recoveryCodes);return;}
+            if(form.id==='accountDisableTwoFactor'){await profileRequest('/api/users/me/2fa/disable',accountJSON('POST',data));await accountLoadSection('security');accountNotice('تأیید دومرحله‌ای غیرفعال شد.');return;}
             if(form.id==='accountTicketForm'){const t=await profileRequest('/api/tickets',accountJSON('POST',data));await accountOpenTicket(t.id);}
             if(form.id==='accountReplyForm'){const t=await profileRequest('/api/tickets/'+encodeURIComponent(accountState.ticket.id)+'/messages',accountJSON('POST',data));accountState.ticket=t;document.getElementById('accountSection').innerHTML=accountTicket(t);}
             accountNotice('اطلاعات با موفقیت ذخیره شد.');
@@ -264,6 +302,9 @@ function accountBind() {
         const action=button.dataset.accountAction,id=button.dataset.id;
         await accountBusy(action+(id||''),button,async()=>{
             if(action==='logout'){await Web2.logout();location.replace('profile.html?loggedout=1');return;}
+            if(action==='revoke-session'){await profileRequest('/api/users/me/sessions/'+encodeURIComponent(id),accountJSON('DELETE'));await accountLoadSection('security');return;}
+            if(action==='logout-others'){await profileRequest('/api/users/me/sessions/logout-others',accountJSON('POST'));await accountLoadSection('security');accountNotice('نشست‌های دیگر بسته شدند.');return;}
+            if(action==='order-prev'||action==='order-next'){accountState.orderPage=Math.max(1,accountState.orderPage+(action==='order-next'?1:-1));await accountLoadSection('orders');return;}
             if(action==='refresh'){accountNotice('');if(accountState.ticket)await accountOpenTicket(accountState.ticket.id);else await accountLoadSection();return;}
             if(action==='close-dialog'){document.getElementById('accountDialog').close();return;}
             if(action==='order'){await accountOpenOrder(id);return;}

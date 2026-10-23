@@ -1,0 +1,12 @@
+# Replace /srv/web2 and web2:web2 with the verified deployment path and user.
+/srv/web2/var/logs/*.log {
+    daily
+    maxsize 20M
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    copytruncate
+    su web2 web2
+}

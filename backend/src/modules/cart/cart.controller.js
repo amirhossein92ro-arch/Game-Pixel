@@ -57,14 +57,16 @@ async function addToCart(req, res, next) {
     const product = await Product.findById(productId);
     if (!product) throw createError(404, "محصول پیدا نشد.");
 
-    const qty = Math.max(1, Number(quantity) || 1);
+    const qty = require('../../utils/input').integer(quantity,1,1000000);
     if (product.stock < qty) throw createError(409, "موجودی محصول کافی نیست.");
 
     const cart = await getOrCreateCart(req.user._id);
     const existing = cart.items.find((i) => i.product && i.product._id.equals(product._id));
     if (existing) {
-      existing.quantity = Math.min(product.stock, existing.quantity + qty);
+      if(existing.quantity+qty>product.stock)throw createError(409,'موجودی محصول کافی نیست.');
+      existing.quantity += qty;
     } else {
+      if(cart.items.length>=200)throw createError(400,'Too many cart items.');
       cart.items.push({ product: product._id, quantity: qty });
     }
     await cart.save();
@@ -79,7 +81,7 @@ async function updateQty(req, res, next) {
     const { productId } = req.params;
     if (!mongoose.isValidObjectId(productId)) throw createError(400, "شناسه محصول نامعتبر است.");
 
-    const quantity = Number(req.body.quantity);
+    const quantity = require('../../utils/input').integer(req.body.quantity,1,1000000);
     if (!Number.isFinite(quantity) || quantity < 1) throw createError(400, "تعداد نامعتبر است.");
 
     const cart = await getOrCreateCart(req.user._id);
@@ -100,6 +102,7 @@ async function updateQty(req, res, next) {
 async function removeFromCart(req, res, next) {
   try {
     const { productId } = req.params;
+    require('../../utils/input').id(productId);
     const cart = await getOrCreateCart(req.user._id);
     cart.items = cart.items.filter((i) => !(i.product && i.product._id.equals(productId)));
     await cart.save();

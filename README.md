@@ -1,12 +1,17 @@
 # WEB 2 Gaming Store
 
+Production deployment: [Phase 21 exact Windows/VPS procedure](deploy/phase21-production.md).
+Domain/HTTPS deployment: [Phase 22 Ubuntu A-H commands and safety gates](deploy/phase22-https.md).
+Current production release status is **NOT READY**; payment/configuration gates
+must pass before any upload or activation. No VPS actions were performed.
+
 Intro و پنل مدیریت با RBAC، Super Admin، Audit، تنظیمات و نمودارهای واقعی تکمیل شده‌اند. راهنمای کامل APIها، فایل‌ها، مهاجرت و ساخت مدیر: [docs/admin-intro.md](docs/admin-intro.md).
 
 مسیر فعال فروشگاه، صفحات HTML ریشه، `script.js`، `style.css` و `server.js` است. پوشه‌های `backend/`، `gaming-store/` و `gaming-ecommerce/` نسخه‌های مستقل و قدیمی‌اند؛ به فروشگاه فعلی متصل نیستند و جزو بسته انتشار این نسخه نیستند. قابلیت‌ها و فایل‌های آن‌ها حفظ شده‌اند، اما نباید به‌عنوان سرویس Production همین فروشگاه اجرا شوند.
 
 ## اجرا
 
-از ریشه پروژه (`G:\web 2`) دستور `npm start` یا `npm run dev` را اجرا کنید. سرور اصلی `server.js` صفحات و API را روی پورت **3000** ارائه می‌کند: `http://localhost:3000/index.html` و `http://localhost:3000/api/products`. دستور `npx serve .` فقط فایل‌های استاتیک را ارائه می‌کند و `/api/products` ندارد؛ اگر پورت 3000 را اشغال کرده است، ابتدا آن را با Ctrl+C متوقف کنید.
+از ریشه همین پروژه دستور `npm start` یا `npm run dev` را اجرا کنید. سرور اصلی `server.js` صفحات و API را روی پورت **3000** ارائه می‌کند: `http://localhost:3000/` و `http://localhost:3000/api/products`. دستور `npx serve .` فقط فایل‌های استاتیک را ارائه می‌کند و `/api/products` ندارد؛ اگر پورت 3000 را اشغال کرده است، ابتدا آن را با Ctrl+C متوقف کنید.
 
 Node.js **24.15 یا جدیدتر از شاخه 24** لازم است؛ از SQLite داخلی Node استفاده می‌شود و ممکن است هشدار Experimental نمایش داده شود.
 
@@ -68,21 +73,48 @@ Admin حساب جداگانه با رمز محیطی دارد. نقش Admin در
 
 `npm run check` بررسی نحوی JavaScript، شناسه‌های تکراری HTML، سازگاری اسکریپت‌ها با CSP و لینک‌ها/assetهای محلی را انجام می‌دهد. `npm test` تست سبد/محصولات و جریان HTTP حساب، Admin، سفارش، تخفیف، CSRF، دسترسی کاربران، موجودی هم‌زمان، درخواست تکراری و راه‌اندازی مجدد را روی دیتابیس موقت اجرا می‌کند.
 
+صفحات عمومی `/`، `/products`، `/categories/:category` و `/product.html?id=...` از طریق `lib/seo.cjs` با محتوای محصول، عنوان، canonical، Open Graph و JSON-LD در سرور رندر می‌شوند. `APP_ORIGIN` مبنای URLهای عمومی است و در Production باید مبدأ واقعی HTTPS باشد؛ هدر Host مبنای این URLها نیست. Sitemap و robots پویا هستند و محصول غیرفعال یا حذف‌شده به 404 واقعی می‌رسد. صفحات خصوصی و APIها `noindex` دارند؛ کنترل دسترسی مستقل از آن برقرار است. قیمت‌های فروشگاه تومان هستند و مقدار استاندارد IRR در schema ده برابر آن است؛ امتیازهای نمایشی به‌عنوان نظر تأییدشده وارد schema نمی‌شوند.
+
+تست‌های SEO خروجی HTML، تغییرات Admin و امنیت داده‌های محصول را بررسی می‌کنند. `tests/admin-browser.test.cjs` با Chrome نصب‌شده یا مسیر `CHROME_TEST_BINARY`، صفحات فروشگاه، دسته‌بندی و پنل را در عرض‌های ۱۴۴۰ و ۳۹۰ پیکسل بررسی می‌کند؛ اگر Chrome موجود نباشد این تست skip می‌شود. راهنمای ادامه کار و نتیجه بررسی نشست قطع‌شده در [docs/continuation.md](docs/continuation.md) است.
+
 ```powershell
 npm run backup
 ```
 
-پشتیبان سازگار SQLite در `var/backups` ساخته می‌شود. پشتیبان شامل اطلاعات کاربران و هش رمزهاست؛ دسترسی را محدود و نسخه خارج از سرور را رمزگذاری کنید. برای بازیابی، سرور را متوقف کرده، فایل پشتیبان را در `DATABASE_PATH` قرار دهید و قبل از بازگشایی، سفارش‌ها و موجودی را بررسی کنید. روی دیتابیس فعال فایل کپی نکنید.
+پشتیبان سازگار و بررسی‌شده SQLite در `var/backups` ساخته می‌شود. پشتیبان شامل اطلاعات کاربران و هش رمزهاست؛ دسترسی را محدود و نسخه خارج از سرور را رمزگذاری کنید. بازیابی با `npm run restore -- --backup PATH --target PATH --offline-confirmed` فقط پس از توقف سرور انجام شود؛ ابزار پیش از جایگزینی نسخه ایمنی می‌سازد. دستور `npm run monitor` آمادگی سرویس، وضعیت PM2 و فضای دیسک را بررسی می‌کند. راهنمای کامل پشتیبان‌گیری، نگهداری، بازیابی و زمان‌بندی در [deploy/operations.md](deploy/operations.md) است.
 
 ## پیش از انتشار واقعی
 
 1. دامنه، HTTPS و reverse proxy را تنظیم کنید. مبدأ دقیق و رمز مدیر را در `.env` بگذارید؛ هدر Origin را حذف نکنید. سرور را فقط از پشت همان پراکسی در دسترس قرار دهید. تنظیم اعتماد به پراکسی و rate limit توزیع‌شده نیازمند شناخت زیرساخت است.
 2. مسیر دیتابیس را روی دیسک پایدار و با دسترسی محدود قرار دهید؛ پشتیبان زمان‌بندی‌شده و بازیابی آزمایشی داشته باشید. مسیرهایی مثل `data.json`، `.env`، `var/`، سورس backend و پوشه‌های backup را مستقیماً در وب‌سرور منتشر نکنید.
 3. Provider رسمی را با درخواست و تأیید سمت سرور، callback معتبر، تطبیق مبلغ/سفارش، جلوگیری از تأیید تکراری و سیاست رزرو/انقضای موجودی پیاده‌سازی و آزمایش کنید. اکنون پرداخت، ارسال کالا و refund واقعی وجود ندارند.
-4. سرویس SMTP/SMS برای تأیید ایمیل/موبایل، بازیابی رمز و اعلان سفارش اضافه کنید. placeholders موجودند؛ اتصال سرویس و بازیابی رمز اکنون پیاده‌سازی نشده است.
+4. برای بازیابی رمز پیاده‌سازی‌شده، سرویس SMS واقعی (Kavenegar یا adapter عمومی) و کلیدهای Turnstile را پیکربندی و در staging بررسی کنید؛ mock در Production مجاز نیست. تأیید ایمیل و اعلان ایمیلی به اتصال SMTP و پیاده‌سازی جداگانه نیاز دارند.
 5. هزینه و محدوده ارسال، مالیات، سیاست مرجوعی و متن شرایط/حریم خصوصی را مطابق کسب‌وکار تعیین کنید؛ هزینه ارسال فعلاً صفر است و متن فروشگاه ماهیت آزمایشی دارد.
 6. تصاویر و مشخصات، قیمت‌ها و موجودی واقعی را بازبینی کنید؛ کاتالوگ فعلی داده نمایشی است. نظرها و ratingها تأیید خریدار واقعی نیستند.
-7. پیش از انتشار، UI را روی مرورگر واقعی و موبایل/تبلت بررسی کنید؛ در محیط اجرای این اصلاحات مرورگر قابل کنترل در دسترس نبود. تست Console، نمایش بصری، پیمایش با صفحه‌کلید و بار واقعی باید در محیط staging تکمیل شود.
+7. پیش از انتشار، UI را روی دستگاه واقعی و مرورگرهای دیگر هم بررسی کنید؛ تست خودکار Chromium عرض‌های دسکتاپ و موبایل، کنتراست، سرریز، حرکت کاهش‌یافته و جریان‌های اصلی را پوشش می‌دهد. پیمایش دستی با صفحه‌کلید و تست بار واقعی باید در staging تکمیل شود.
 8. ممیزی وابستگی‌ها، به‌روزرسانی نسخه‌ها، پایش خطا، محدودکننده ورودی تصویر، حفاظت در برابر سوءاستفاده و تست بار را در محیط استقرار انجام دهید. این تغییرات جای ممیزی مستقل امنیت را نمی‌گیرد.
 
 مرجع معماری نشست: [OWASP Session Management](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html). مرجع SQLite: [مستندات Node.js](https://nodejs.org/api/sqlite.html).
+
+## Performance tooling (Phase 17)
+
+Run `npm run benchmark -- --output .runtime/performance.json --runs 3` for isolated latency/CPU/memory and 5/10/25/50-concurrent burst tests. Run `npm run benchmark -- --mode memory --profile growth --runs 1 --output .runtime/memory.json` for the timed heap/RSS/external-memory check. Both create synthetic temporary databases and cannot target the live app. Normal security limits remain enabled.
+
+Run `npm run build:assets` after changing JS/CSS and before deployment. Deploy the generated HTML references together with the assets and restart the app. No new dependencies are required. Results, pagination contracts, cache limits and Nginx/PM2 deployment notes are in [docs/phase17-performance.md](docs/phase17-performance.md).
+**Storage migration readiness (Phase 18)**
+
+The active store is already SQLite. It remains the default (`STORAGE_DRIVER=sqlite`); `DATABASE_PATH` remains supported and `SQLITE_PATH` is an optional alias. JSON is a read-only legacy/import source. PostgreSQL and a JSON runtime driver fail closed until implemented. No file or URL silently changes drivers.
+
+Run `npm run storage:dry-run` to inspect the shipped seed without writing a target. Use the representative fixture and explicit new destinations for imports. The normalized SQLite format is an offline rehearsal and cannot be used by the live app. Full commands, entity/transaction audit, integrity checks, security-state limitations and the unexecuted production checklist are in [docs/phase18-migration-readiness.md](docs/phase18-migration-readiness.md).
+
+Run `npm run benchmark:storage -- --output .runtime/phase18-storage-local.json` for synthetic storage measurements. No new dependencies are required. Deploying backend changes requires restarting the existing single PM2 process; no production migration or infrastructure change is part of these commands.
+
+## Security review tooling (Phase 19)
+
+Run `node scripts/security-routes.cjs` for a JSON inventory of the active
+Express routes, or add `--markdown` for a review table. Capture disables real
+`.env` loading, opens only a disposable SQLite store and never starts a listener.
+The [route inventory](docs/phase19-route-inventory.md) and
+[security continuation report](docs/phase19-security.md) record the interrupted
+review's scope, inherited fixes and verification. The normal `npm test` command
+includes its route/CSRF matrix and deterministic session/password race tests.

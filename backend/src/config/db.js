@@ -11,10 +11,10 @@ async function connectDB() {
   }
   try {
     mongoose.set("strictQuery", true);
-    await mongoose.connect(uri);
+    await mongoose.connect(uri,{serverSelectionTimeoutMS:5000});
     console.log("[db] اتصال به MongoDB برقرار شد.");
   } catch (error) {
-    console.error("[db] اتصال به MongoDB ناموفق بود:", error.message);
+    console.error("[db] MongoDB connection failed.");
   }
 }
 

@@ -1,0 +1,8 @@
+# Include from nginx's http{} context, such as /etc/nginx/conf.d/.
+# Application rate limits remain in force; this is a moderate edge layer.
+limit_req_zone $binary_remote_addr zone=web2_auth:10m rate=20r/m;
+# Count every proxied request, including public static cache hits.
+# 10/s plus a 180-request burst stays below the Node 800/min ceiling.
+limit_req_zone $binary_remote_addr zone=web2_requests:2m rate=10r/s;
+# Log paths without query strings, authorization headers, or cookies.
+log_format web2_safe '$remote_addr [$time_local] "$request_method $uri" $status $body_bytes_sent $request_time';

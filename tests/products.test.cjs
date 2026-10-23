@@ -171,7 +171,7 @@ test('central API configuration routes all API requests and preserves credential
         assert.equal(publicPage.w.Web2Config.apiUrl('/api/auth/register'),'http://109.122.247.237:3000/api/auth/register');
     } finally {p.w.close();publicPage.w.close();}
 });
-test('same-origin API requests do not depend on the cross-origin allowlist',async()=>{
+test('an unconfigured request origin cannot authorize itself using Host',async()=>{
     const temp=fs.mkdtempSync(path.join(os.tmpdir(),'web2-same-origin-'));
     const port=28000+Math.floor(Math.random()*1000),base=`http://localhost:${port}`;
     const child=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,PORT:String(port),DATABASE_PATH:path.join(temp,'test.sqlite'),SEED_DATA_PATH:path.join(root,'data.json'),ADMIN_PASSWORD:'same-origin-test-password',APP_ORIGIN:'http://configured.example',ALLOWED_ORIGINS:'',DEV_FRONTEND_ORIGINS:'',NODE_ENV:'test'},stdio:['ignore','pipe','pipe']});
@@ -182,8 +182,7 @@ test('same-origin API requests do not depend on the cross-origin allowlist',asyn
             child.stdout.on('data',data=>{if(String(data).includes('Server is running')){clearTimeout(timer);resolve();}});
         });
         const sameOrigin=await fetch(base+'/api/auth/register',{method:'POST',headers:{Origin:base,'Content-Type':'application/json'},body:'{}'});
-        assert.equal(sameOrigin.status,400);
-        assert.notEqual((await sameOrigin.json()).error,'مبدأ درخواست مجاز نیست.');
+        assert.equal(sameOrigin.status,403);
         const attacker=await fetch(base+'/api/products',{headers:{Origin:'https://attacker.invalid'}});
         assert.equal(attacker.status,403);
     } finally {
@@ -288,6 +287,7 @@ test('all database products: API, home/search/category links, detail, cart and p
     async function stop(){if(child&&child.exitCode===null&&child.signalCode===null){const ended=once(child,'exit');child.kill();await ended;}child=null;}
     let cookie='',csrf='';
     async function request(url,method='GET',body){
+        if(body&&['PUT','DELETE'].includes(method)&&/^\/api\/admin\/products\/[^/]+$/.test(url)&&body.revision===undefined){const current=await request(url);body={...body,revision:current.revision};}
         const r=await fetch(base+url,{method,headers:{Origin:base,Cookie:cookie,...(csrf?{'X-CSRF-Token':csrf}:{}),...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});
         if(r.headers.getSetCookie().length)cookie=r.headers.getSetCookie().map(c=>c.split(';')[0]).join('; ');
         const data=r.status===204?null:await r.json();if(data?.csrfToken)csrf=data.csrfToken;
@@ -335,18 +335,22 @@ test('all database products: API, home/search/category links, detail, cart and p
         assert.equal(sameServer.status,200);
         for(const id of ['1','2','3','8','10','20','40','60',...opaqueIds]){
             assert.equal((await fetch(`${base}/product.html?id=${encodeURIComponent(id)}`)).status,200);
-            const direct=page('product.html',`?id=${id}`);windows.push(direct.w);
-            direct.dom.reconfigure({url:`${liveOrigin}/product.html?id=${id}`});
-            vm.runInContext(fs.readFileSync(path.join(root,'js/api-config.js'),'utf8').replace('DEVELOPMENT_API_PORT = 3000',`DEVELOPMENT_API_PORT = ${port}`),direct.dom.getInternalVMContext());
-            direct.w.fetch=async(url,options)=>{
-                assert.equal(new URL(url).port,String(port));
-                return fetch(url,{...options,headers:{...options.headers,Origin:liveOrigin}});
-            };
-            await direct.run('initializeStore.initialized=false;initializeStore()');
-            assert.equal(direct.w.document.querySelector('.detail-info h1').textContent,catalog.find(p=>p.id===String(id)).name);
-            assert.equal(direct.run('productsLoading'),false);
-            assert.equal(direct.run('productsLoaded'),true);
-            assert.equal(direct.run('productsError'),null);
+            const direct=page('product.html',`?id=${id}`);
+            try {
+                direct.dom.reconfigure({url:`${liveOrigin}/product.html?id=${id}`});
+                vm.runInContext(fs.readFileSync(path.join(root,'js/api-config.js'),'utf8').replace('DEVELOPMENT_API_PORT = 3000',`DEVELOPMENT_API_PORT = ${port}`),direct.dom.getInternalVMContext());
+                direct.w.fetch=async(url,options)=>{
+                    assert.equal(new URL(url).port,String(port));
+                    return fetch(url,{...options,headers:{...options.headers,Origin:liveOrigin}});
+                };
+                await direct.run('initializeStore.initialized=false;initializeStore()');
+                assert.equal(direct.w.document.querySelector('.detail-info h1').textContent,catalog.find(p=>p.id===String(id)).name);
+                assert.equal(direct.run('productsLoading'),false);
+                assert.equal(direct.run('productsLoaded'),true);
+                assert.equal(direct.run('productsError'),null);
+            } finally {
+                direct.w.close();
+            }
         }
         const home=page('index.html',''),detail=page(),cart=page('cart.html','');windows.push(home.w,detail.w,cart.w);
         for(const p of [home,detail,cart]){
@@ -382,12 +386,16 @@ test('all database products: API, home/search/category links, detail, cart and p
             assert.equal(cart.run('getCartTotals().subtotal'),detail.run(`getUnitPrice(getProduct(${JSON.stringify(product.id)}))`));
             if (['1','2','3','8','10','20','40','60',...opaqueIds].includes(product.id)) {
                 for (const file of ['cart.html','checkout.html']) {
-                    const refresh=page(file,''); windows.push(refresh.w);
-                    refresh.w.localStorage.setItem('web2_cart',detail.w.localStorage.getItem('web2_cart'));
-                    refresh.w.fetch=async(url,options)=>fetch(new URL(url,base),options);
-                    await refresh.run('initializeStore.initialized=false;initializeStore()');
-                    assert.equal(refresh.run('getCart()[0].id'),product.id);
-                    assert.equal(refresh.run('getCartTotals().subtotal'),detail.run('getCartTotals().subtotal'));
+                    const refresh=page(file,'');
+                    try {
+                        refresh.w.localStorage.setItem('web2_cart',detail.w.localStorage.getItem('web2_cart'));
+                        refresh.w.fetch=async(url,options)=>fetch(new URL(url,base),options);
+                        await refresh.run('initializeStore.initialized=false;initializeStore()');
+                        assert.equal(refresh.run('getCart()[0].id'),product.id);
+                        assert.equal(refresh.run('getCartTotals().subtotal'),detail.run('getCartTotals().subtotal'));
+                    } finally {
+                        refresh.w.close();
+                    }
                 }
             }
         }
@@ -434,20 +442,14 @@ test('all database products: API, home/search/category links, detail, cart and p
     } finally {for(const w of windows)w.close();await stop();fs.rmSync(temp,{recursive:true,force:true});}
 });
 
-test('explicit production HTTP origin keeps credentialed CORS and cookies usable',async()=>{
+test('production rejects HTTP origins even when the obsolete override is supplied',async()=>{
     const temp=fs.mkdtempSync(path.join(os.tmpdir(),'web2-http-origin-'));
     const port=30000+Math.floor(Math.random()*1000),origin=`http://127.0.0.1:${port}`;
     const child=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,NODE_ENV:'production',PORT:String(port),APP_ORIGIN:origin,ALLOWED_ORIGINS:origin,ALLOW_PRODUCTION_HTTP:'true',DEV_ADMIN_PASSWORD_ENABLED:'false',DATABASE_PATH:path.join(temp,'http.sqlite'),SEED_DATA_PATH:path.join(root,'data.json'),ADMIN_USERNAME:'cors-admin',ADMIN_PASSWORD:'production-http-admin-2026',TURNSTILE_SITE_KEY:'test-site-key',TURNSTILE_SECRET_KEY:'test-secret-key',SMS_PROVIDER:'generic',SMS_API_URL:'https://sms.example.invalid/send',SMS_API_KEY:'test-sms-key',SMS_TEMPLATE_ID:'test-template'},stdio:['ignore','pipe','pipe']});let stderr='';child.stderr.on('data',data=>{stderr+=String(data);});
     try {
-        await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('startup timeout')),15000);child.once('exit',code=>{clearTimeout(timer);reject(Error(`startup ${code}: ${stderr.trim()}`));});child.stdout.on('data',data=>{if(String(data).includes('Server is running')){clearTimeout(timer);resolve();}});});
-        const login=await fetch(origin+'/api/admin/login',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({username:'cors-admin',password:'production-http-admin-2026'})});
-        assert.equal(login.status,200);
-        assert.equal(login.headers.get('Access-Control-Allow-Origin'),origin);
-        assert.equal(login.headers.get('Access-Control-Allow-Credentials'),'true');
-        const cookie=login.headers.get('set-cookie')||'';
-        assert.match(cookie,/HttpOnly/i);assert.match(cookie,/SameSite=Strict/i);assert.doesNotMatch(cookie,/;\s*Secure/i);
-        const blocked=await fetch(origin+'/api/products',{headers:{Origin:'https://attacker.invalid'}});
-        assert.equal(blocked.status,403);assert.equal(blocked.headers.get('Access-Control-Allow-Origin'),null);
+        const code=await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('startup timeout')),15000);child.once('exit',code=>{clearTimeout(timer);resolve(code);});});
+        assert.notEqual(code,0);
+        assert.match(stderr,/Production.*HTTPS/);
     } finally {
         if(child.exitCode===null&&child.signalCode===null){const ended=once(child,'exit');child.kill();await ended;}
         fs.rmSync(temp,{recursive:true,force:true});

@@ -5,23 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="پنل مدیریت فروشگاه گیمینگ Web 2">
     <meta name="theme-color" content="#050816">
-    <title>پنل مدیریت | Web 2</title>
+    <title>پنل مدیریت | WEB 2</title>
     <meta name="robots" content="noindex,nofollow">
-    <link rel="canonical" href="/admin">
     <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-    <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="css/admin.css">
-    <link rel="stylesheet" href="css/rgb-text.css">
+    <link rel="stylesheet" href="style.css?v=f5b42c57ab798af9"><link rel="stylesheet" href="css/admin.css?v=741b5c4559af438e">
+    <link rel="stylesheet" href="css/rgb-text.css?v=e4a270a35e255916">
 </head>
 <body data-page="admin" class="admin-page">
     <a class="skip-link" href="#main-content">رفتن به محتوای اصلی</a>
 
     <header class="site-header">
         <div class="container header-inner">
-            <a class="brand" href="index.html" aria-label="بازگشت به فروشگاه Web 2">
+            <a class="brand" href="/" aria-label="بازگشت به فروشگاه Web 2">
                 <span class="brand-icon"><i class="fa-solid fa-gamepad" aria-hidden="true"></i></span>
                 <span><strong>WEB 2</strong><small>ADMIN PANEL</small></span>
             </a>
@@ -97,7 +96,7 @@
                             </label>
                             <label class="field"><span>تخفیف (درصد)</span><input type="number" name="discount" min="0" max="99" step="1" value="0"></label>
                         </div>
-                        <label class="field"><span>برند</span><input name="brand" maxlength="100" value="WEB 2" required></label><label class="field"><span>توضیح کوتاه</span><input name="shortDescription" maxlength="300" required></label><label class="field"><span>ویژگی‌ها (هر خط یک ویژگی)</span><textarea name="features" rows="5" maxlength="8000" required></textarea></label><div class="field-row"><label class="field"><span>امتیاز</span><input name="rating" type="number" min="0" max="5" step="0.1" value="4.5" required></label><label class="field"><span>تعداد نظرات</span><input name="reviews" type="number" min="0" step="1" value="0" required></label></div><label class="field"><span>گارانتی</span><input name="guarantee" value="۱۲ ماه گارانتی" maxlength="200" required></label><label class="field"><span>وضعیت محصول</span><select name="status"><option value="active">فعال</option><option value="inactive">غیرفعال</option></select></label><label class="field"><span>آیکون Font Awesome</span><input name="icon" value="fa-gamepad" pattern="fa-[a-z0-9-]+" required></label><label class="field"><span>رنگ نمایشی</span><input name="accent" type="color" value="#00d4ff"></label><label class="field"><span>برچسب</span><input name="tag" value="جدید" maxlength="100"></label><label class="field"><span>تصویر محصول</span><input type="file" name="imageFile" accept="image/png,image/jpeg,image/webp,image/gif"><small class="field-help">PNG/JPG/WebP تا ۲ مگابایت؛ تصویر در داده فروشگاه ذخیره می‌شود.</small></label>
+                        <label class="field"><span>برند</span><input name="brand" maxlength="100" value="WEB 2" required></label><label class="field"><span>توضیح کوتاه</span><input name="shortDescription" maxlength="300" required></label><label class="field"><span>ویژگی‌ها (هر خط یک ویژگی)</span><textarea name="features" rows="5" maxlength="8000" required></textarea></label><div class="field-row"><label class="field"><span>امتیاز</span><input name="rating" type="number" min="0" max="5" step="0.1" value="4.5" required></label><label class="field"><span>تعداد نظرات</span><input name="reviews" type="number" min="0" step="1" value="0" required></label></div><label class="field"><span>گارانتی</span><input name="guarantee" value="۱۲ ماه گارانتی" maxlength="200" required></label><label class="field"><span>وضعیت محصول</span><select name="status"><option value="active">فعال</option><option value="inactive">غیرفعال</option></select></label><label class="field"><span>آیکون Font Awesome</span><input name="icon" value="fa-gamepad" pattern="fa-[a-z0-9-]+" required></label><label class="field"><span>رنگ نمایشی</span><input name="accent" type="color" value="#00d4ff"></label><label class="field"><span>برچسب</span><input name="tag" value="جدید" maxlength="100"></label><label class="field"><span>تصویر محصول</span><input type="file" name="imageFile" accept="image/png,image/jpeg,image/webp,image/gif"><small class="field-help">PNG/JPG/WebP/GIF تا ۶۵۰ کیلوبایت؛ تصویر در داده فروشگاه ذخیره می‌شود.</small></label>
                         <label class="field"><span>یا آدرس تصویر</span><input type="text" name="image" placeholder="https://... یا img/product.jpg" dir="ltr"></label>
                         <label class="field">
                             <span>توضیحات محصول</span>
@@ -142,13 +141,13 @@
     </main>
 
     <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.12.1/html2pdf.bundle.min.js" referrerpolicy="no-referrer"></script>
-    <script src="js/invoice.js"></script>
-    <script src="js/api-config.js"></script><script src="js/session.js"></script>
-    <script src="js/wishlist.js"></script>
-    <script src="js/admin-console.js"></script><script src="js/admin-actions.js"></script><script src="script.js"></script>
-    <script src="js/admin.js"></script>
-    <script src="js/admin-support.js"></script>
-    <script src="js/admin-users.js"></script>
+    <script src="js/safe-url.js?v=8a4e6ba3632f381b"></script>
+    <script src="js/invoice.js?v=d3e125a4f3bd8bbe"></script>
+    <script src="js/api-config.js?v=a0de1bf4a2df75df"></script><script src="js/session.js?v=eb17a1b68af430c2"></script>
+    <script src="js/wishlist.js?v=82b037d2da2f8760"></script>
+    <script src="js/admin-console.js?v=8051fe3738f094bf"></script><script src="js/admin-actions.js?v=4f5aefeb0aada36c"></script><script src="script.js?v=4bcdc7f1a229b089"></script>
+    <script src="js/admin.js?v=3671450bcdd8f047"></script>
+    <script src="js/admin-support.js?v=c4d1bb985c0b1161"></script>
+    <script src="js/admin-users.js?v=ff0f13d146275290"></script>
 </body>
 </html>

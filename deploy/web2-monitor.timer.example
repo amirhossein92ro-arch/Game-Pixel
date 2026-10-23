@@ -1,0 +1,11 @@
+[Unit]
+Description=Check WEB 2 health every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=5min
+RandomizedDelaySec=15s
+Unit=web2-monitor.service
+
+[Install]
+WantedBy=timers.target

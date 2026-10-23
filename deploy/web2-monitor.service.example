@@ -1,0 +1,18 @@
+[Unit]
+Description=WEB 2 lightweight operational check
+After=network-onlineline.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=web2
+Group=web2
+WorkingDirectory=/srv/web2
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+# Use the PM2 owner's actual PATH and HOME; PM2 must already be installed/running.
+ExecStart=/bin/bash /srv/web2/scripts/health-check.sh
+NoNewPrivileges=true
+UMask=0077
+TimeoutStartSec=60
+StandardOutput=journal
+StandardError=journal

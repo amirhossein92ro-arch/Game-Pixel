@@ -19,6 +19,7 @@ function store() {
             removeItem: key => data.delete(key),
         },
         document: {
+            body: { dataset: {} },
             addEventListener: (type, callback) => (listeners.document[type] ??= []).push(callback),
             getElementById: () => null,
             querySelector: selector => selector.startsWith('[data-add-to-cart') ? button : null,
@@ -209,11 +210,13 @@ test('cart display, badge, WEB2 and checkout show the same quantity and total', 
     assert.equal(nodes.get('subtotalPrice').textContent,s.run('formatPrice(450)'));
     const form = nodes.get('discountForm');
     form.dataset = {};
+    form.querySelector=()=>({disabled:false,textContent:'بررسی کد'});
+    form.removeAttribute=()=>{};
     let submit;
     form.addEventListener = (type, fn) => { submit = fn; };
     nodes.get('discountHint').classList = {add(){},remove(){}};
     nodes.get('discountCode').value = ' web2 ';
-    s.context.fetch = async () => ({ok:true,json:async()=>({discountCode:'WEB2',discountType:'percent',discountValue:10})});
+    s.context.fetch = async () => ({ok:true,json:async()=>({discountCode:'WEB2',discountType:'percent',discountValue:10,subtotal:450,discount:45,shippingCost:0,total:405})});
     s.run('Web2={request:async(url,options)=>(await fetch(url,options)).json()};');
     s.run('setupDiscountForm(); setupDiscountForm()');
     await submit({preventDefault(){}});
@@ -227,6 +230,17 @@ test('cart display, badge, WEB2 and checkout show the same quantity and total', 
 });
 
 // Server validation is exercised via real HTTP in commerce.test.cjs.
+
+test('rapid product search input schedules one catalog render', () => {
+    const s=store(),handlers=new Map(),nodes=new Map();
+    for(const id of ['productSearch','categoryFilter','priceFilter','productSort'])nodes.set(id,{id,tagName:id==='productSearch'?'INPUT':'SELECT',addEventListener:(type,fn)=>handlers.set(id,fn)});
+    s.context.document.getElementById=id=>nodes.get(id)||null;
+    s.run('renderCount=0; renderProducts=()=>{renderCount++}; setupProductControls()');
+    handlers.get('productSearch')();handlers.get('productSearch')();handlers.get('productSearch')();
+    assert.equal(s.run('renderCount'),0);assert.equal(s.timers.size,1);
+    [...s.timers.values()][0]();assert.equal(s.run('renderCount'),1);
+    handlers.get('categoryFilter')();assert.equal(s.run('renderCount'),2);
+});
 
 test('expanded catalog renders, filters, sorts and supports all new product purchases', async () => {
     const catalog = JSON.parse(fs.readFileSync(path.join(__dirname,'../data.json'),'utf8')).products;
@@ -246,11 +260,12 @@ test('expanded catalog renders, filters, sorts and supports all new product purc
     s.run('products=mergeProducts(catalog); productsLoaded=true; productsSource="api"; escapeHTML=value=>String(value)');
     const nodes=new Map();
     for(const id of ['productSearch','categoryFilter','priceFilter','productSort','productGrid','categoryGrid','featuredGrid','productDetail'])
-        nodes.set(id,{value:id==='productSearch'?'':'all',innerHTML:'',setAttribute(){}});
+        nodes.set(id,{value:id==='productSearch'?'':'all',innerHTML:'',dataset:{},setAttribute(){}});
     s.context.document.getElementById=id=>nodes.get(id)||null;
     s.run('renderProducts(); renderHomeDiscovery()');
     assert.equal((nodes.get('productGrid').innerHTML.match(/class="product-card"/g)||[]).length,69);
     assert.equal((nodes.get('featuredGrid').innerHTML.match(/product-card-compact/g)||[]).length,4);
+    assert.match(nodes.get('featuredGrid').innerHTML,/loading="lazy" decoding="async"/);
     for(const category of new Set(added.map(p=>p.category))) {
         assert.ok(nodes.get('categoryFilter').innerHTML.includes(category));
         nodes.get('categoryFilter').value=category;
@@ -263,6 +278,7 @@ test('expanded catalog renders, filters, sorts and supports all new product purc
         s.context.window.location={search:`?id=${p.id}`};
         s.run('renderProductDetail()');
         assert.ok(nodes.get('productDetail').innerHTML.includes(`data-add-to-cart="${p.id}"`));
+        assert.match(nodes.get('productDetail').innerHTML,/loading="eager" decoding="async"/);
         s.run(`saveCart([]); addToCart(${p.id}); changeCartQuantity(${p.id},1)`);
         assert.equal(s.run('getCartTotals().subtotal'),p.price*2);
     }

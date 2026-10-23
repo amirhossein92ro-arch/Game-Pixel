@@ -15,18 +15,18 @@ function session(fetch) {
 }
 test('HTML, invalid JSON, server failures and offline API have Persian errors',async()=>{
     for(const [response,message] of [
-        [new Response('<!DOCTYPE html><html></html>',{headers:{'Content-Type':'text/html'}}),/api-config/],
-        [new Response('<!DOCTYPE html>',{status:404,headers:{'Content-Type':'text/html'}}),/api-config/],
+        [new Response('<!DOCTYPE html><html></html>',{headers:{'Content-Type':'text/html'}}),/پاسخ معتبری/],
+        [new Response('<!DOCTYPE html>',{status:404,headers:{'Content-Type':'text/html'}}),/پاسخ معتبری/],
         [new Response('{',{headers:{'Content-Type':'application/json'}}),/قابل پردازش/],
-        [Response.json({error:'internal details'},{status:500}),/خطای سرور/],
-        [Response.json({error:'ایمیل یا رمز عبور اشتباه است.'},{status:401}),/ایمیل یا رمز/]
+        [Response.json({error:'internal details'},{status:500}),/سرویس موقتاً/],
+        [Response.json({error:'ایمیل یا رمز عبور اشتباه است.'},{status:401}),/نشست شما پایان/]
     ]) {
         const api=session(async()=>response.clone());await api.ready;
         await assert.rejects(api.authenticate('login',{}),message);
         assert.equal(api.user,null);
     }
     const api=session(async()=>{throw new TypeError('Failed to fetch');});await api.ready;
-    await assert.rejects(api.authenticate('register',{}),/ارتباط با API برقرار نشد/);
+    await assert.rejects(api.authenticate('register',{}),/ارتباط برقرار نشد/);
 });
 test('expired session logout clears local state, but server failure preserves it',async()=>{
     let status=500;
@@ -34,7 +34,7 @@ test('expired session logout clears local state, but server failure preserves it
         ? Response.json({user:{id:'test'},csrfToken:'csrf'})
         : Response.json({error:'خطا'},{status}));
     await api.ready;
-    await assert.rejects(api.logout(),/خطای سرور/);assert.equal(api.user.id,'test');
+    await assert.rejects(api.logout(),/سرویس موقتاً/);assert.equal(api.user.id,'test');
     status=401;await api.logout();assert.equal(api.user,null);assert.equal(api.csrfToken,null);
 });
 

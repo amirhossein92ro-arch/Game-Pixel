@@ -1,0 +1,553 @@
+{
+  "phase": 18,
+  "at": "2026-10-19T18:41:46.519Z",
+  "runtime": {
+    "driver": "sqlite",
+    "schemaVersion": 16,
+    "defaultChanged": false,
+    "pm2Processes": 1
+  },
+  "rehearsal": {
+    "format": "web2-normalized/v1",
+    "schemaVersion": 1,
+    "runtimeSelectable": false,
+    "postgresImplemented": false,
+    "jsonRuntimeImplemented": false,
+    "jsonLegacySourceSupported": true
+  },
+  "tests": {
+    "tests": 218,
+    "pass": 218,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "durationMs": 251109.3655
+  },
+  "additionalMigrationRun": {
+    "tests": 20,
+    "pass": 20,
+    "fail": 0,
+    "notes": "Includes mixed numeric/string identity scope checks after the final validator adjustment."
+  },
+  "checks": {
+    "syntaxAndHtml": "passed",
+    "sqlOutsideStorage": false,
+    "sourceJSONUnchanged": true,
+    "sourceSha256": "d3176765b297fbc35c6a4f4eb63fa2487f40693a83decbb048aef8e04d6e1d46",
+    "dependenciesChanged": false,
+    "productionDataMigrated": false,
+    "productionInfrastructureChanged": false
+  },
+  "dryRun": {
+    "ok": true,
+    "counts": {
+      "users": 0,
+      "adminAccounts": 0,
+      "products": 69,
+      "discounts": 0,
+      "orders": 1,
+      "notifications": 0,
+      "auditLogs": 0,
+      "settings": 0,
+      "messages": 0,
+      "posts": 0,
+      "comments": 0,
+      "tickets": 0,
+      "ticketMessages": 0,
+      "wishlist": 0,
+      "idempotencyKeys": 0,
+      "orderItems": 1,
+      "userCredentials": 0,
+      "userAddresses": 0
+    },
+    "orderTotal": "6150000",
+    "issues": [],
+    "issueCount": 0,
+    "warnings": [
+      {
+        "code": "LEGACY_EMPTY_TIMESTAMP",
+        "at": "orders[0].updatedAt"
+      },
+      {
+        "code": "LEGACY_ANONYMOUS_ORDER",
+        "at": "orders[0].userId"
+      },
+      {
+        "code": "LEGACY_INCOMPLETE_TOTAL_COMPONENTS",
+        "at": "orders[0]"
+      }
+    ],
+    "warningCount": 3,
+    "excluded": {
+      "topLevelKeys": 0,
+      "nestedFields": 0
+    },
+    "dryRun": true,
+    "sourceSha256": "d3176765b297fbc35c6a4f4eb63fa2487f40693a83decbb048aef8e04d6e1d46",
+    "sourceBytes": 91473,
+    "targetFormat": "web2-normalized/v1"
+  },
+  "benchmarks": {
+    "storageArtifact": "docs/benchmarks/phase18-storage.json",
+    "httpArtifacts": [
+      "docs/benchmarks/phase18-http.json",
+      "docs/benchmarks/phase18-http-final.json"
+    ],
+    "httpTrials": 3,
+    "errors": 0,
+    "metrics": {
+      "health": {
+        "medianP95Ms": 15.746800000000803,
+        "medianAverageMs": 11.059866666666343,
+        "medianRequestsPerSecond": 648.9485681219766,
+        "medianCpuMs": 16
+      },
+      "homepage": {
+        "medianP95Ms": 33.29139999999961,
+        "medianAverageMs": 22.881162499999977,
+        "medianRequestsPerSecond": 297.1389235894889,
+        "medianCpuMs": 32
+      },
+      "productList": {
+        "medianP95Ms": 48.822299999999814,
+        "medianAverageMs": 35.61969999999943,
+        "medianRequestsPerSecond": 187.83590342416767,
+        "medianCpuMs": 140
+      },
+      "adminUsers": {
+        "medianP95Ms": 24.180999999998676,
+        "medianAverageMs": 19.40944166666668,
+        "medianRequestsPerSecond": 183.12782322061238,
+        "medianCpuMs": 47
+      },
+      "adminStats": {
+        "medianP95Ms": 59.587100000000646,
+        "medianAverageMs": 48.90563333333315,
+        "medianRequestsPerSecond": 20.427103498005184,
+        "medianCpuMs": 109
+      },
+      "adminAnalytics": {
+        "medianP95Ms": 44.71480000000156,
+        "medianAverageMs": 43.052333333333685,
+        "medianRequestsPerSecond": 23.182116388133366,
+        "medianCpuMs": 125
+      },
+      "load50": {
+        "medianP95Ms": 108.86620000000039,
+        "medianAverageMs": 67.91976200000003,
+        "medianRequestsPerSecond": 415.99241229840106,
+        "medianCpuMs": 78
+      }
+    },
+    "medianStartupMs": 1575.7394999999997,
+    "peakNodeRssMiB": 149.1015625,
+    "retainedHeapDeltaBytes": [
+      8904,
+      33440,
+      15064
+    ],
+    "integrity": [
+      {
+        "quickCheck": "ok",
+        "foreignKeys": "ok",
+        "negativeStock": 0
+      },
+      {
+        "quickCheck": "ok",
+        "foreignKeys": "ok",
+        "negativeStock": 0
+      },
+      {
+        "quickCheck": "ok",
+        "foreignKeys": "ok",
+        "negativeStock": 0
+      }
+    ],
+    "notes": [
+      "Synthetic isolated local Windows measurements, not VPS capacity or a production SLA.",
+      "Storage JSON measurements exercise offline seed tooling, not live application reads.",
+      "HTTP artifact records its own measurement-time source marker; it covers server.js/script.js, not every backend module."
+    ]
+  },
+  "installRequired": false,
+  "pm2RestartOnDeployment": true,
+  "productionMigrationStepsExecuted": [],
+  "remainingRisks": [
+    "Normalized SQLite format is for offline rehearsal; live adapter/security-state migration must be completed before cutover.",
+    "The shipped JSON seed is not a complete current live SQLite export.",
+    "PostgreSQL requires implemented/tested DDL, async unit of work, repository adapter, bounded pooling and verified backup/restore.",
+    "Historical source conflicts require review; imports never merge conflicting accounts or silently delete history.",
+    "Existing synchronous SQLite queries/serialized writes and a single PM2 fork remain scalability limits.",
+    "Local short benchmarks do not establish sustained VPS capacity or long-duration leak absence."
+  ],
+  "filesChanged": [
+    {
+      "path": ".env.example",
+      "sha256": "0a3aabba95e99a404021e0337dcf22b01a943e26ad5e10f7949d10d4d7724358"
+    },
+    {
+      "path": "README.md",
+      "sha256": "fc82ccff51d0a5553b884c3bec8d3c937a96612d20c701323f168f732879c41e"
+    },
+    {
+      "path": "docs/benchmarks/phase18-http-final.json",
+      "sha256": "6734d4c5986ac20e87ead66d1603bafbb6975744f921159e13200198f92f31f3"
+    },
+    {
+      "path": "docs/benchmarks/phase18-http.json",
+      "sha256": "43405827024b31d0d90e4737b7c66906bda4834f774916a4fc1ad105b9c6703e"
+    },
+    {
+      "path": "docs/benchmarks/phase18-storage.json",
+      "sha256": "246fa8bff2b5d512a815aaf0badb079df32a8451be66de53d557bc8638cc20b4"
+    },
+    {
+      "path": "docs/continuation.md",
+      "sha256": "08f138b87b42c16f6e6174eb584af02a8462fa03959e0a428fff7673bcfae917"
+    },
+    {
+      "path": "docs/phase18-migration-readiness.md",
+      "sha256": "00f57e46e8e433d6d1052ab5ad26f31d7caa70b95461ebbf3c2186d9de593bea"
+    },
+    {
+      "path": "lib/account-factors.cjs",
+      "sha256": "9f86436fe5793b046bce17bfaccec26c44f7cdaa317901fe256eb62c77095208"
+    },
+    {
+      "path": "lib/account.cjs",
+      "sha256": "ca2afb31eac25dfaa1b9ec70fac4d400c357af216d726e1a83da6193de8adf88"
+    },
+    {
+      "path": "lib/admin-security.cjs",
+      "sha256": "9a5929ad99485ae728ead4543958f9031a827493b9f8825ab2b5bf5d3cc27e9d"
+    },
+    {
+      "path": "lib/analytics.cjs",
+      "sha256": "6a26effcda7ce0ad7ff3068bdd7f1cedce8cf849490c8e6882ed12dc571e5b58"
+    },
+    {
+      "path": "lib/auth-recovery.cjs",
+      "sha256": "59b93f1e0307d41bce3509e95cbdcef1e0a8fc1e51ea00d6ab558d9d2be4e8c4"
+    },
+    {
+      "path": "lib/commerce.cjs",
+      "sha256": "8608f6ecd3fad89d8b83212ddbeb0e4a04b0cb279d3c7e16c9f73f9775494436"
+    },
+    {
+      "path": "lib/database.cjs",
+      "sha256": "1c73e8c9b8657be58061f1cf48ff7ddcb99efd81c522920531e2a64a765d886c"
+    },
+    {
+      "path": "lib/listing.cjs",
+      "sha256": "0c0cf931b7a47729f0e4ca66d761396b6544221ae960ed2ad25f9b9e3383b124"
+    },
+    {
+      "path": "lib/login-protection.cjs",
+      "sha256": "1502dfa0c5c3f2382be0abb1a7d9fd9e4d71a3fa36f8901bdbeacb8c65dd0a07"
+    },
+    {
+      "path": "lib/management.cjs",
+      "sha256": "715c57a17e82d027555b26672c711a8fa416c81d279a535804a83f886b5b52b3"
+    },
+    {
+      "path": "lib/rate-limits.cjs",
+      "sha256": "c323b341d4043bd854b40f469735493d84d3f0217ca6c2cf472bce09cef30fbd"
+    },
+    {
+      "path": "lib/seo.cjs",
+      "sha256": "cd6b014f005bff1015af23525694b5c0b8a747320207b2addbffc18f2f197638"
+    },
+    {
+      "path": "lib/site.cjs",
+      "sha256": "66126fd216471a1cbcc4ef3cc8267b2897581f48fd9ee3ae2bc1741954d4ee3e"
+    },
+    {
+      "path": "lib/storage-validation.cjs",
+      "sha256": "0578938ef1fc3380659725a34135e3a01e90f90b7b1474f5499ea635fa8b7e08"
+    },
+    {
+      "path": "lib/user-management.cjs",
+      "sha256": "ecba6ae0d6cf6a40f3b7e8658f32c5796e5da11c483e6a553ffb74d122925e82"
+    },
+    {
+      "path": "package.json",
+      "sha256": "27cb7e92fa58906064c9a5fc07aa72b0cd42fd210306a1f984f962854849137f"
+    },
+    {
+      "path": "scripts/backup.cjs",
+      "sha256": "3ea3de7c4bb001092f439c3de601f3c25adbb050380e2b027d5710f8611f4831"
+    },
+    {
+      "path": "scripts/benchmark-storage.cjs",
+      "sha256": "0b96f5193546741813db572c4b62ac7fb45d6d0b615aad54b56d83f63e7e1f1b"
+    },
+    {
+      "path": "scripts/check.cjs",
+      "sha256": "765184aac35ecefc562fe230d5139fd2500610a155de5663b70ca61d586f88f1"
+    },
+    {
+      "path": "scripts/export-db.cjs",
+      "sha256": "dec9aa566c11175776d071b65ca81fc38c3d5b2a89ea6a52f818c4fde95ff625"
+    },
+    {
+      "path": "scripts/migrate-json-to-db.cjs",
+      "sha256": "825a5d6447a43d36b856586a0f8e7eaed250825cb16464fd54720024c4700deb"
+    },
+    {
+      "path": "scripts/monitor.cjs",
+      "sha256": "824ac40bba5fe734da40b422cf22424dcb9f91da54767d847fecd9e0e5e96793"
+    },
+    {
+      "path": "scripts/storage-schema.cjs",
+      "sha256": "27c2eed4f6247a715c4e80c84bded7d854111797a05cc02c29651aca637a28e3"
+    },
+    {
+      "path": "server.js",
+      "sha256": "fc3ba5fa0b7cb5bae726218c835db5afa30a5c0ba05d691cfa20077d1a0c5d07"
+    },
+    {
+      "path": "storage/config.cjs",
+      "sha256": "dd5f0612d9c8dfa039c58be7e806616b8b6940d0ebf50831c6654fcae9d82bce"
+    },
+    {
+      "path": "storage/contracts.d.ts",
+      "sha256": "ee917edd301953d45565bd7105d57e15cd1f772ba2d8cadd08d5932b49c9f4b1"
+    },
+    {
+      "path": "storage/errors.cjs",
+      "sha256": "21d41f1ef9014f87096afb5a1805c061de4e0f990ec686867947f81552172697"
+    },
+    {
+      "path": "storage/index.cjs",
+      "sha256": "e75960c4ad4bf1616595054544ecffdac9bb95e4ef5c2726c4f0c1f6f97d71a6"
+    },
+    {
+      "path": "storage/json/source.cjs",
+      "sha256": "3efbcbe15b2e7d635f141a8c9ab2de2a752c82de70178f179495be438e51c4d3"
+    },
+    {
+      "path": "storage/migration/export.cjs",
+      "sha256": "4613e87df4e8acf95f155b61f00abd0f7a51126c214946ba2eb419dd14452752"
+    },
+    {
+      "path": "storage/migration/import.cjs",
+      "sha256": "72ff6edf8094d9de82ed81aa4c3c5bc982c9fa7f1bd779bf4b04206b93934b99"
+    },
+    {
+      "path": "storage/migration/records.cjs",
+      "sha256": "fd1c6468da715c689fd4e89bd3aaa13837b4e87079878213cfac536b0a8fa02b"
+    },
+    {
+      "path": "storage/migration/schema.cjs",
+      "sha256": "04eaf278e4550b5d005591d350b940876ac10fb9615d0d0f6aafc3ff9db3dafb"
+    },
+    {
+      "path": "storage/migration/sqlite.cjs",
+      "sha256": "51bb16edcadcf52608330653bf4d7b9dd7c419f308cdffff09edddda3654db5b"
+    },
+    {
+      "path": "storage/migration/target.cjs",
+      "sha256": "81e000b6d6b142bfc8622dd975238122e2c179f2aeb250d5dc3747f845f6e5f3"
+    },
+    {
+      "path": "storage/migration/validate.cjs",
+      "sha256": "efb55ab751ece1192e7895c6a486d17f94e6516ef39ca54b8a037f2002c6c155"
+    },
+    {
+      "path": "storage/migrations/sqlite/001_normalized.sql",
+      "sha256": "964fb1b2a7d8414bbdc2401cc537d5e8fd72626cb621b41de6e18f0fa04b1e2d"
+    },
+    {
+      "path": "storage/postgres/README.md",
+      "sha256": "e1723f70acb9a62ac77bdf4cc6fdb70564bd4986a720668a4022bdc84b654727"
+    },
+    {
+      "path": "storage/redact.cjs",
+      "sha256": "c546668a893d78e6717eada281c153a2530bf3ec8560e8fc8aed775b36a0beb9"
+    },
+    {
+      "path": "storage/repositories.cjs",
+      "sha256": "e5fedf158c3b1c2769c00acabf6c2e7e2a67f3c7935e2ff043daf361e9f8d26e"
+    },
+    {
+      "path": "storage/sqlite/account-factors.cjs",
+      "sha256": "cfac9925910124240e62a76bf7ca14674f284bd88d56b3feb1802e91dfcfaf8f"
+    },
+    {
+      "path": "storage/sqlite/account.cjs",
+      "sha256": "3840bef3abaf5a00a8a36d0f09257712139efd376b0f7fc27793ecdae1abe859"
+    },
+    {
+      "path": "storage/sqlite/adapter.cjs",
+      "sha256": "bb6008a920cd3eadc370943155c72e6736fae6895be6f7ddfb961effd1334442"
+    },
+    {
+      "path": "storage/sqlite/admin-security.cjs",
+      "sha256": "4ca76eb03528b9fc3542b7c11ebc92b53654b432029710f4c6bfeff25d996875"
+    },
+    {
+      "path": "storage/sqlite/analytics.cjs",
+      "sha256": "bdce357861724e177cd1c67529378272f6867263fb735a2a57ef2557a48c0eab"
+    },
+    {
+      "path": "storage/sqlite/auth-recovery.cjs",
+      "sha256": "4aa47de6628be07e6557c3e291254636c8b110b4569c2b85014707d51733076d"
+    },
+    {
+      "path": "storage/sqlite/collections.cjs",
+      "sha256": "e8d09ef6448ca99e37d962859d206893f6da0b4dffca8d0b812f48e63e3e18a7"
+    },
+    {
+      "path": "storage/sqlite/commerce.cjs",
+      "sha256": "7cb55af9e621ffb32ce87b797852b46c1b4db29a32b9e8dd639bd6f9b3377dfd"
+    },
+    {
+      "path": "storage/sqlite/execute.cjs",
+      "sha256": "525a5c6930cf9de924a596fd2dfb09b4f22ddb9ec45ee100a872cbcc710aab78"
+    },
+    {
+      "path": "storage/sqlite/format.cjs",
+      "sha256": "77d4f0f376c931cd94d8d6f75b0432b7cff1fd5d624e27b3f9c79f1c386b87f7"
+    },
+    {
+      "path": "storage/sqlite/login-protection.cjs",
+      "sha256": "948677691f0936a83b523f39732577dfcb0192ac304a5d1f84bf6efbbf8fe338"
+    },
+    {
+      "path": "storage/sqlite/management.cjs",
+      "sha256": "3c441034fe0c57abd6e6e3822d25d313fdb85146e57407b264ce631c79e43054"
+    },
+    {
+      "path": "storage/sqlite/rate-limits.cjs",
+      "sha256": "7601b845dbdbacff941a4cbf4b0234f5e2299d1af96e87770a46f692f1214b7a"
+    },
+    {
+      "path": "storage/sqlite/relational-repositories.cjs",
+      "sha256": "1cc314fb8475a8642afba35d080e2fd54247cdd260c2d6e37e8df648f53badbf"
+    },
+    {
+      "path": "storage/sqlite/runtime.cjs",
+      "sha256": "fed3472b9540aad322f1098df615678452d04dec88cd64965fecd4c3259e9cae"
+    },
+    {
+      "path": "storage/sqlite/search.cjs",
+      "sha256": "d990fb8d545ba6136c12cb7a8dc94404ebfa9d278edb3b0b9cc804bff620df27"
+    },
+    {
+      "path": "storage/sqlite/site.cjs",
+      "sha256": "acd2ff9329ee4beaae176450cc9d52cddce62d350274eb0e5ed084aadcabddbe"
+    },
+    {
+      "path": "storage/sqlite/user-management.cjs",
+      "sha256": "ed87c10fde6eea06e3b2850f49539726c37f89f5d64430340cab3c2f134a5a99"
+    },
+    {
+      "path": "storage/statuses.cjs",
+      "sha256": "ba5dccf2bd7a34974d2d918b433ae7ad53b3c9b4596ce1eca5bc2ec80903a1e0"
+    },
+    {
+      "path": "tests/fixtures/migration-v1.json",
+      "sha256": "161866f6afba4ad4a9dfe0ba6136206225e30ad785d0b028dfc6589384b67aed"
+    },
+    {
+      "path": "tests/migration-portability.test.cjs",
+      "sha256": "7b876a3eb10e59a5be5797040f98b1a455ebedbfdd90fd9aca4dba3df1c0165a"
+    },
+    {
+      "path": "tests/storage-readiness.test.cjs",
+      "sha256": "7a18d1a08bdfaaefe914744add051fbf07c0833b38974f4d50fe9ae32e3b311b"
+    },
+    {
+      "path": "docs/phase18-validation.json",
+      "generated": true
+    },
+    {
+      "path": "tests/migration-validation.test.cjs",
+      "sha256": "1e8a60396448ef13b0d958915eee5c9f8809eaddb19d34db74046b1175a1ce15"
+    }
+  ],
+  "resumptionAudit": {
+    "at": "2026-10-20T16:35:30.606Z",
+    "previousStop": "Final Phase 18 handoff and validation record were already written; no incomplete source edit or syntax error was found.",
+    "previousHashedFilesMatched": 69,
+    "fixes": [
+      "Reject impossible calendar dates and rolled-over times before UTC conversion.",
+      "Validate optional administrator email shape before staging.",
+      "Require checkout replay records to reference an order owned by the same existing customer."
+    ],
+    "initialFullSuite": {
+      "tests": 218,
+      "pass": 217,
+      "fail": 1,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "durationMs": 337345.6539,
+      "failure": "Chromium GPU subprocess crashed under the execution sandbox before page assertions."
+    },
+    "browserRetryOutsideSandbox": {
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "durationMs": 17330.2098
+    },
+    "newRegressionProofBeforeFix": {
+      "tests": 4,
+      "pass": 1,
+      "fail": 3
+    },
+    "dedicatedMigrationRun": {
+      "tests": 24,
+      "pass": 24,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "finalFullSuite": {
+      "tests": 222,
+      "pass": 222,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "durationMs": 219605.9635
+    },
+    "checks": {
+      "syntaxAndHtml": "passed",
+      "calendarBoundaryCases": 1776,
+      "calendarBoundaryResults": "passed",
+      "whitespaceAndConflictMarkers": "passed",
+      "seedDryRun": "passed with the same three historical warnings",
+      "sourceSha256": "d3176765b297fbc35c6a4f4eb63fa2487f40693a83decbb048aef8e04d6e1d46",
+      "protectedFiles": 8,
+      "protectedHashesUnchanged": true,
+      "protectedModificationTimesUnchanged": true,
+      "dependenciesChanged": false,
+      "productionDataChanged": false,
+      "productionInfrastructureChanged": false
+    },
+    "filesChangedNow": [
+      "storage/migration/validate.cjs",
+      "tests/migration-validation.test.cjs",
+      "docs/continuation.md",
+      "docs/phase18-migration-readiness.md",
+      "docs/phase18-validation.json"
+    ],
+    "verificationArtifacts": [
+      ".runtime/resume-baseline.json",
+      ".runtime/resume-tests.log",
+      ".runtime/resume-browser.log",
+      ".runtime/resume-tests-final.log",
+      "Refreshed existing desktop/mobile browser screenshots in .runtime/"
+    ],
+    "installRequired": false,
+    "pm2RestartOnDeployment": true,
+    "pm2RestartPerformed": false,
+    "remaining": "No local Phase 18 blocker remains. Normalized-schema runtime/security-state cutover, PostgreSQL and production rollout remain separate future work."
+  }
+}

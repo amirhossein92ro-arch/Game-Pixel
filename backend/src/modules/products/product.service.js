@@ -25,15 +25,18 @@ async function makeUniqueSlug(base) {
 
 // ساخت محصول (فقط ادمین).
 async function createProduct(data) {
-  const payload = { ...data };
+  const payload = require('../../utils/input').product(data);
   payload.slug = data.slug ? await makeUniqueSlug(data.slug) : await makeUniqueSlug(data.title || "product");
   return Product.create(payload);
 }
 
 // به‌روزرسانی محصول (slug تغییر نمی‌کند تا URLها پایدار بمانند).
 async function updateProduct(id, data) {
-  delete data.slug;
-  const product = await Product.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+  const current=await Product.findById(require('../../utils/input').id(id));
+  if(!current)throw createError(404,'محصول پیدا نشد.');
+  const payload=require('../../utils/input').product(data,current);
+  delete payload.slug;
+  const product = await Product.findByIdAndUpdate(id, {$set:payload}, { new: true, runValidators: true });
   if (!product) throw createError(404, "محصول پیدا نشد.");
   return product;
 }
@@ -52,14 +55,15 @@ async function getProductById(id) {
 
 // فهرست محصولات با جست‌وجو، فیلتر دسته/پلتفرم و مرتب‌سازی قیمت.
 async function getProducts(query) {
+  const input=require('../../utils/input');require('../../../../lib/request-security.cjs').query(query);
   const filter = {};
   if (query.category) filter.category = query.category;
   if (query.platform) filter.platform = query.platform;
   if (query.featured === "true") filter.isFeatured = true;
   if (query.search) {
     filter.$or = [
-      { title: { $regex: query.search, $options: "i" } },
-      { description: { $regex: query.search, $options: "i" } }
+      { title: { $regex: input.escapeRegex(query.search), $options: "i" } },
+      { description: { $regex: input.escapeRegex(query.search), $options: "i" } }
     ];
   }
 
@@ -68,10 +72,10 @@ async function getProducts(query) {
     "price-desc": { price: -1 },
     newest: { createdAt: -1 }
   };
+  if(query.sort!==undefined&&!Object.hasOwn(sortMap,query.sort))throw createError(400,'Invalid sort.');
   const sort = sortMap[query.sort] || { createdAt: -1 };
 
-  const page = Math.max(1, Number(query.page) || 1);
-  const limit = Math.min(50, Math.max(1, Number(query.limit) || 12));
+  const {page,limit}=input.pagination(query);
   const skip = (page - 1) * limit;
 
   const [items, total] = await Promise.all([

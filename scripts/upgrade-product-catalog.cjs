@@ -5,7 +5,11 @@ const path = require('node:path');
 
 const root = path.join(__dirname, '..');
 const dataPath = path.join(root, 'data.json');
-const data = JSON.parse(fs.readFileSync(dataPath, 'utf8').replace(/^\uFEFF/, ''));
+const original = fs.readFileSync(dataPath, 'utf8');
+const data = JSON.parse(original.replace(/^\uFEFF/, ''));
+const {atomicWriteJson}=require('../lib/atomic-file.cjs');
+const {state}=require('../lib/storage-validation.cjs');
+state(data);
 
 const categoryMap = new Map([
     ['کیبورد گیمینگ', 'کیبورد گیمینگ'],
@@ -71,5 +75,9 @@ for (const product of data.products) {
     }
 }
 
-fs.writeFileSync(dataPath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+state(data);
+const backupDirectory=path.join(root,'var','seed-backups');
+fs.mkdirSync(backupDirectory,{recursive:true,mode:0o700});
+atomicWriteJson(path.join(backupDirectory,'catalog-'+require('node:crypto').randomUUID()+'.json'),JSON.parse(original.replace(/^\uFEFF/,'')),state);
+atomicWriteJson(dataPath,data,state,{expectedContents:original});
 console.log(`Upgraded ${data.products.length} products across ${required.length} categories.`);

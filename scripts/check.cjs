@@ -1,8 +1,13 @@
 const fs=require('node:fs'),path=require('node:path'),{spawnSync}=require('node:child_process');
 const root=path.join(__dirname,'..');
-const files=['server.js','script.js',...['lib','js','scripts','tests'].flatMap(dir=>fs.readdirSync(path.join(root,dir)).filter(f=>/\.(c?js)$/.test(f)).map(f=>dir+'/'+f))];
+const args=process.argv.slice(2);
+if(args.some(arg=>arg!=='--production'))throw Error('Use --production to check only the active application.');
+function sources(folder){return fs.readdirSync(path.join(root,folder),{withFileTypes:true}).flatMap(entry=>entry.isDirectory()&&entry.name!=='node_modules'?sources(folder+'/'+entry.name):entry.isFile()&&/\.(c?js|jsx)$/.test(entry.name)&&!entry.name.endsWith('.jsx')?[folder+'/'+entry.name]:[]);}
+const files=['server.js','script.js',...['lib','js','scripts','tests'].flatMap(dir=>sources(dir))];
+files.push(...sources('storage'),...sources('deploy'));
+if(!args.includes('--production'))files.push(...sources('backend/src'),'gaming-store/backend/server.js');
 for(const file of files){const result=spawnSync(process.execPath,['--check',path.join(root,file)],{encoding:'utf8'});if(result.status){process.stderr.write(result.stderr);process.exit(1);}}
-for(const file of ['index.html','product.html','cart.html','checkout.html','admin.html','profile.html']) {
+for(const file of ['index.html','product.html','catalog.html','404.html','cart.html','checkout.html','admin.html','admin-login.html','profile.html']) {
     const html=fs.readFileSync(path.join(root,file),'utf8');
     const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);
     const scripts=[...html.matchAll(/<script[^>]*\bsrc="([^"]+)"/g)].map(m=>m[1]);

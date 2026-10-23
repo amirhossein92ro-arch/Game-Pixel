@@ -53,6 +53,9 @@ test('admin HTML is delivered only after a trusted admin session and role check'
         assert.equal(guestAdmin.status,302);
         assert.equal(guestAdmin.headers.get('location'),'/admin-login');
         assert.equal((await guest.request('/api/admin/users')).status,401);
+        for (const privatePath of ['/.env', '/server.js', '/.git/config', '/.backup-final/data.json', '/data.json', '/var/web2.sqlite', '/logs/server.log']) {
+            assert.equal((await guest.request(privatePath)).status,404, privatePath);
+        }
 
         const loginPage=await guest.request('/admin-login');
         assert.equal(loginPage.status,200);

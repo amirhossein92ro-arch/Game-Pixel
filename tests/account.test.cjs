@@ -48,9 +48,12 @@ test('account API lifecycle, administrator integration and isolation of two user
             assert.equal((await a.request('/api/admin/tickets')).status,403);
         });
         await t.test('profile validates fields and cannot change owner or privileges',async()=>{
+            assert.equal((await a.request('/api/users/'+userB.id)).status,404);
+            assert.equal((await a.request('/api/profile/'+userB.id)).status,404);
             assert.equal((await a.request('/api/users/me','PUT',{firstName:'ا'})).status,400);
             assert.equal((await a.request('/api/users/me','PUT',{email:'new@example.invalid'})).status,403);
-            const result=await a.request('/api/users/me','PUT',{firstName:'آرش',lastName:'گیمر',displayName:'Alpha Player',avatar:'robot',userId:userB.id,id:userB.id,role:'admin',password_hash:'bad'});
+            assert.equal((await a.request('/api/users/me','PUT',{role:'admin',userId:userB.id})).status,400);
+            const result=await a.request('/api/users/me','PUT',{firstName:'آرش',lastName:'گیمر',displayName:'Alpha Player',avatar:'robot'});
             assert.equal(result.status,200);assert.equal(result.data.name,'آرش گیمر');assert.equal(result.data.displayName,'Alpha Player');assert.equal(result.data.id,userA.id);assert.equal(result.data.role,'user');
             assert.equal((await b.request('/api/users/me')).data.name,'کاربر بتا');
             assert.equal((await a.request('/api/users/me','PUT',{avatar:'https://attacker.invalid'})).status,400);
@@ -59,7 +62,7 @@ test('account API lifecycle, administrator integration and isolation of two user
             const legacy=await b.request('/api/users/me','PUT',{addresses:[{name:'گیرنده قدیمی',phone:'09120002222',address:'نشانی قدیمی بدون فیلدهای جدید'}]});
             assert.equal(legacy.status,200);
             assert.equal((await b.request('/api/users/me/addresses/'+legacy.data.addresses[0].id,'PUT',{isDefault:true})).status,200);
-            const data={title:'خانه',name:'گیرنده تست',phone:fields.phone,province:'تهران',city:'تهران',address:'نشانی آزمایشی خیابان یک پلاک دو',postalCode:'1234567890',userId:userB.id};
+            const data={title:'خانه',name:'گیرنده تست',phone:fields.phone,province:'تهران',city:'تهران',address:'نشانی آزمایشی خیابان یک پلاک دو',postalCode:'1234567890'};
             assert.equal((await a.request('/api/users/me/addresses','POST',{...data,postalCode:'123'})).status,400);
             address=(await a.request('/api/users/me/addresses','POST',data)).data;assert.equal(address.isDefault,true);
             const second=(await a.request('/api/users/me/addresses','POST',{...data,title:'محل کار',isDefault:true})).data;
@@ -73,7 +76,7 @@ test('account API lifecycle, administrator integration and isolation of two user
         });
         await t.test('wishlist is persistent and per user',async()=>{
             const products=(await anonymous.request('/api/products')).data;productId=String(products.find(p=>p.stock>2).id);
-            assert.equal((await a.request('/api/users/me/wishlist/'+productId,'PUT',{userId:userB.id})).status,200);
+            assert.equal((await a.request('/api/users/me/wishlist/'+productId,'PUT',{userId:userB.id})).status,400);
             await a.request('/api/users/me/wishlist/'+productId,'PUT',{});
             assert.equal((await a.request('/api/users/me/wishlist')).data.length,1);
             assert.equal((await b.request('/api/users/me/wishlist')).data.length,0);
@@ -82,7 +85,7 @@ test('account API lifecycle, administrator integration and isolation of two user
             assert.equal((await a.request('/api/users/me/wishlist/not-a-product','PUT',{})).status,404);
         });
         await t.test('support conversations, admin response, notifications and IDOR protections',async()=>{
-            ticket=(await a.request('/api/tickets','POST',{subject:'پیگیری سفارش',category:'order',message:'متن پیام آزمایشی برای پشتیبانی',userId:userB.id,status:'closed'})).data;
+            ticket=(await a.request('/api/tickets','POST',{subject:'پیگیری سفارش',category:'order',message:'متن پیام آزمایشی برای پشتیبانی'})).data;
             assert.equal(ticket.userId,userA.id);assert.equal(ticket.status,'open');
             assert.equal((await b.request('/api/tickets')).data.length,0);
             assert.equal((await b.request('/api/tickets/'+ticket.id)).status,404);
@@ -108,7 +111,7 @@ test('account API lifecycle, administrator integration and isolation of two user
         await t.test('orders and details, admin status update and event notifications',async()=>{
             assert.equal((await admin.request('/api/admin/orders/legacy-account-test-order','PUT',{status:'shipped'})).status,200);
             assert.equal((await a.request('/api/orders/legacy-account-test-order')).status,404);
-            const body={items:[{id:Number(productId),quantity:1}],recipientName:'گیرنده تست',recipientPhone:fields.phone,recipientAddress:'نشانی آزمایشی سفارش خیابان تست',isAgreed:true,userId:userB.id};
+            const body={items:[{id:Number(productId),quantity:1}],recipientName:'گیرنده تست',recipientPhone:fields.phone,recipientAddress:'نشانی آزمایشی سفارش خیابان تست',isAgreed:true};
             order=(await a.request('/api/checkout','POST',body)).data.order;assert.equal(order.userId,userA.id);
             const count=(await a.request('/api/users/me/notifications')).data.items.length;
             await a.request('/api/checkout','POST',body);assert.equal((await a.request('/api/users/me/notifications')).data.items.length,count);
