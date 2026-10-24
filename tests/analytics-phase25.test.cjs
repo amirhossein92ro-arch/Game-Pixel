@@ -1,13 +1,23 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict'),crypto=require('node:crypto');
 const {launch}=require('./helpers/security-server.cjs');
-const {createJourneyAnalytics}=require('../lib/journey-analytics.cjs');
+const {createJourneyAnalytics,config}=require('../lib/journey-analytics.cjs');
+
+test('analytics configuration has bounded retention and explicit enable flag',()=>{
+    assert.deepEqual(config({ANALYTICS_ENABLED:'false',ANALYTICS_RETENTION_DAYS:'30'}),{enabled:false,days:30});
+    assert.throws(()=>config({ANALYTICS_RETENTION_DAYS:'366'}));
+    assert.throws(()=>config({ANALYTICS_ENABLED:'maybe'}));
+    const log=require('../lib/operational-log.cjs');
+    assert.equal(log.write('analytics-retention-cleanup',{category:'analytics',count:2},()=>{}).count,2);
+    assert.equal(log.write('analytics-write-failure',{category:'analytics',level:'warn'},()=>{}).level,'warn');
+});
 
 test('first-party journey events, trusted checkout, admin scope and retention',async t=>{
     const h=await launch(t),anon=h.client(),buyer=h.client(),admin=h.client();
     const event=(type,extra={})=>({eventId:crypto.randomUUID(),type,...extra});
     const send=body=>anon.call('/api/analytics/event','POST',body);
     assert.equal((await send(event('product_view',{productId:'fixture-item'}))).status,204);
+    assert.equal((await send(event('category_view',{category:'Audit'}))).status,204);
     const duplicate=event('add_to_cart',{productId:'fixture-item'});
     assert.equal((await send(duplicate)).status,204);assert.equal((await send(duplicate)).status,204);
     for(const body of [event('order_created'),event('product_view',{productId:'missing'}),event('search',{resultsCount:1000001}),{...event('search',{resultsCount:0}),metadata:{password:'secret'}},{...event('cart_view'),userId:'another-user'},{...event('cart_view'),revenue:999999}])assert.equal((await send(body)).status,400);
@@ -17,18 +27,29 @@ test('first-party journey events, trusted checkout, admin scope and retention',a
     assert.equal((await send(event('checkout_validation_failed'))).status,204);
     assert.equal((await anon.call('/api/admin/analytics')).status,401);
     await h.register(buyer,1);assert.equal((await buyer.call('/api/admin/analytics')).status,403);
+    assert.equal((await buyer.call('/api/analytics/event','POST',event('cart_view'),{'X-CSRF-Token':null})).status,403);
     assert.equal((await buyer.call('/api/analytics/event','POST',event('product_view',{productId:'fixture-item'}))).status,204);
     await h.admin(admin);
+    assert.equal((await admin.call('/api/admin/admins','POST',{username:'analytics-order-manager',email:'analytics-order-manager@example.invalid',role:'ORDER_MANAGER',password:'Distinct analytics manager 2026!'})).status,201);
+    const limitedAdmin=h.client();assert.equal((await limitedAdmin.call('/api/admin/login','POST',{username:'analytics-order-manager',password:'Distinct analytics manager 2026!',captchaToken:'test-valid-captcha'})).status,200);
+    assert.equal((await limitedAdmin.call('/api/admin/analytics')).status,403);
     const invalid=await buyer.call('/api/checkout/quote','POST',{items:[{id:'fixture-item',quantity:999}]});assert.equal(invalid.status,409);
+    assert.equal((await buyer.call('/api/checkout/quote','POST',{items:[{id:'fixture-item',quantity:21}]})).status,409);
+    assert.equal((await anon.call('/api/checkout/quote','POST',{items:[{id:'fixture-item',quantity:1}]},{Cookie:'web2_user=expired-fixture'})).status,401);
     const order=await buyer.call('/api/checkout','POST',{items:[{id:'fixture-item',quantity:1}],recipientName:'Test customer',recipientPhone:'09120000001',recipientAddress:'A complete test delivery address',isAgreed:true},{'Idempotency-Key':'analytics-fixture-order-0001'});
     assert.equal(order.status,201);assert.equal((await buyer.call('/api/checkout','POST',{items:[{id:'fixture-item',quantity:1}],recipientName:'Test customer',recipientPhone:'09120000001',recipientAddress:'A complete test delivery address',isAgreed:true},{'Idempotency-Key':'analytics-fixture-order-0001'})).status,200);
     const report=await admin.call('/api/admin/analytics?range=7d');assert.equal(report.status,200);
     const j=report.data.journey;assert.equal(j.funnel.productViews,2);assert.equal(j.funnel.cartAdds,1);assert.equal(j.funnel.cartViews,1);assert.equal(j.funnel.checkoutStarts,1);assert.equal(j.funnel.ordersCreated,1);assert.equal(j.zeroResultSearches,1);
-    assert.ok(j.failures.some(x=>x.code==='OUT_OF_STOCK'));assert.equal(report.data.stats.totalRevenue,0);
+    assert.equal(j.categories.find(x=>x.category==='Audit').views,1);
+    assert.ok(j.failures.some(x=>x.code==='OUT_OF_STOCK'));assert.ok(j.failures.some(x=>x.code==='INVALID_QUANTITY'));assert.ok(j.failures.some(x=>x.code==='SESSION_EXPIRED'));assert.equal(report.data.stats.totalRevenue,0);
     const invalidRange=await admin.call('/api/admin/analytics?range=custom&start=2020-01-01&end=2021-01-01');assert.equal(invalidRange.status,400,JSON.stringify(invalidRange.data));
+    const today=new Date().toISOString().slice(0,10);assert.equal((await admin.call('/api/admin/analytics?range=custom&start='+today+'&end='+today)).status,200);
     const db=h.openDatabase();
     const rows=db.prepare('SELECT * FROM analytics_events').all();assert.ok(rows.length>0);
-    assert.doesNotMatch(JSON.stringify(rows),/password|csrf|session|09120000001|example\.invalid|secret|recipient|delivery address/i);
+    assert.equal((await anon.call('/api/analytics/event','POST',event('page_view'),{'User-Agent':'Googlebot'})).status,204);
+    assert.equal(db.prepare('SELECT count(*) n FROM analytics_events').get().n,rows.length);
+    assert.doesNotMatch(JSON.stringify(rows),/password|csrf|09120000001|example\.invalid|secret|recipient|delivery address/i);
+    assert.deepEqual(Object.keys(rows[0]).sort(),['id','type','created_at','product_id','category','result_count','failure_code'].sort());
     const orderCount=db.prepare('SELECT count(*) n FROM orders').get().n,auditCount=db.prepare('SELECT count(*) n FROM audit_logs').get().n;
     db.prepare("UPDATE analytics_events SET created_at='2020-01-01T00:00:00.000Z' WHERE type='cart_view'").run();
     const access=require('../storage/sqlite/analytics.cjs')(db),service=createJourneyAnalytics({access:()=>access},{ANALYTICS_ENABLED:'true',ANALYTICS_RETENTION_DAYS:'90'});
@@ -39,4 +60,5 @@ test('first-party journey events, trusted checkout, admin scope and retention',a
     const second=await buyer.call('/api/checkout','POST',{items:[{id:'fixture-item',quantity:2}],recipientName:'Test customer',recipientPhone:'09120000001',recipientAddress:'Another complete test delivery address',isAgreed:true},{'Idempotency-Key':'analytics-fixture-order-0002'});
     assert.equal(second.status,201,'analytics storage failure must not break checkout');
     assert.equal(db.prepare('SELECT count(*) n FROM orders').get().n,orderCount+1);
+    assert.match(h.logs(),/analytics-write-failure/);
 });

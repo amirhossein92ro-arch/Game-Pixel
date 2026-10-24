@@ -3620,9 +3620,10 @@ async function initializeStore() {
     renderHomeDiscovery(); renderProducts(); renderProductDetail(); refreshCartUI();
     const page=document.body.dataset.page;
     if(['home','catalog','product','cart','checkout'].includes(page))trackEvent('page_view');
+    if(page==='catalog'&&document.body.dataset.category)trackEvent('category_view',{category:document.body.dataset.category});
     if(page==='product'){const id=new URLSearchParams(location.search).get('id');if(id&&getProduct(id))trackEvent('product_view',{productId:id});}
     if(page==='cart')trackEvent('cart_view');
-    if(page==='checkout')trackEvent('checkout_started');
+    if(page==='checkout'&&getCart().length)trackEvent('checkout_started');
 }
 document.addEventListener('DOMContentLoaded',()=>initializeStore().catch(error=>{console.error('Store initialization failed');showToast('بارگذاری فروشگاه انجام نشد؛ صفحه را تازه کنید.','error');}));
 /* Short, fail-safe transition for real same-origin page navigations. */
