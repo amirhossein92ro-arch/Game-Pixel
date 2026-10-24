@@ -2238,9 +2238,13 @@ function addToCart(productId) {
         button.dataset.cartOriginalContent = originalContent;
         window.clearTimeout(button.cartFeedbackTimer);
         button.disabled = true;
+        button.classList.remove('is-added');
+        void button.offsetWidth;
+        button.classList.add('is-added');
         button.innerHTML = '<i class="fa-solid fa-check"></i> به سبد اضافه شد';
         button.cartFeedbackTimer = window.setTimeout(() => {
             button.innerHTML = originalContent;
+            button.classList.remove('is-added');
             delete button.dataset.cartOriginalContent;
             button.disabled = !getProductStock(getProduct(product.id) || product).available;
         }, 1400);
@@ -2644,7 +2648,7 @@ function setupProductControls() {
             window.location.assign(control.value === 'all' ? '/products' : '/categories/' + encodeURIComponent(control.value));
             return;
         }
-        if (control.id === 'productSearch') searchTimer = window.setTimeout(()=>{renderProducts();if(control.value.trim())trackEvent('search',{resultsCount:getFilteredProducts().length});},450);
+        if (control.id === 'productSearch') searchTimer = window.setTimeout(()=>{renderProducts();if(control.value.trim())trackEvent('search',{resultsCount:getFilteredProducts().length});},160);
         else {renderProducts();trackEvent('filter_used',control.id==='categoryFilter'&&control.value!=='all'?{category:control.value}:{});}
     }));
 
@@ -3641,7 +3645,7 @@ document.addEventListener('DOMContentLoaded',()=>initializeStore().catch(error=>
         const dots=document.createElement('span');dots.className='page-transition-dots';dots.setAttribute('aria-hidden','true');dots.innerHTML='<i></i><i></i><i></i>';
         card.append(logo,name,dots);overlay.append(card);document.body.append(overlay);return overlay;
     };
-    const show=()=>{build().classList.add('is-visible');clearTimeout(watchdog);watchdog=setTimeout(hide,3000);};
+    const show=()=>{build().classList.add('is-visible');clearTimeout(watchdog);watchdog=setTimeout(hide,1200);};
     const hide=()=>{clearTimeout(watchdog);navigating=false;if(overlay)overlay.classList.remove('is-visible');};
     const ready=()=>{build();requestAnimationFrame(()=>requestAnimationFrame(hide));};
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
@@ -3650,7 +3654,43 @@ document.addEventListener('DOMContentLoaded',()=>initializeStore().catch(error=>
         let target;try{target=new URL(link.href,location.href);}catch{return;}
         if(!['http:','https:'].includes(target.protocol)||target.origin!==location.origin)return;
         const here=new URL(location.href);if(target.pathname===here.pathname&&target.search===here.search)return;
-        event.preventDefault();if(navigating)return;navigating=true;show();setTimeout(()=>location.assign(target.href),80);
+        if(navigating)return;navigating=true;show();
     });
     window.addEventListener('pagehide',show);window.addEventListener('pageshow',hide);window.addEventListener('load',hide);
+})();
+
+/* Lightweight pointer light and card depth. Dynamic cards work through delegation. */
+(()=>{
+    if(typeof window==='undefined'||typeof document==='undefined'||!window.matchMedia)return;
+    const motion=window.matchMedia('(prefers-reduced-motion: reduce)');
+    const fine=window.matchMedia('(hover: hover) and (pointer: fine)');
+    let frame=0,lastEvent;
+    document.addEventListener('pointermove',event=>{
+        if(motion.matches||!fine.matches)return;
+        const target=event.target.closest?.('.product-card,.promo-banner,.site-managed-banner');
+        if(!target)return;
+        lastEvent={target,x:event.clientX,y:event.clientY};
+        if(frame)return;
+        frame=window.requestAnimationFrame(()=>{
+            frame=0;
+            const {target,x,y}=lastEvent;
+            if(!target.isConnected)return;
+            const rect=target.getBoundingClientRect();
+            const px=Math.max(0,Math.min(1,(x-rect.left)/rect.width));
+            const py=Math.max(0,Math.min(1,(y-rect.top)/rect.height));
+            target.style.setProperty('--pointer-x',(px*100).toFixed(1)+'%');
+            target.style.setProperty('--pointer-y',(py*100).toFixed(1)+'%');
+            if(target.classList.contains('product-card')){
+                target.style.setProperty('--tilt-x',((.5-py)*3).toFixed(2)+'deg');
+                target.style.setProperty('--tilt-y',((px-.5)*3).toFixed(2)+'deg');
+            }
+        });
+    },{passive:true});
+    document.addEventListener('pointerout',event=>{
+        const card=event.target.closest?.('.product-card');
+        if(card&&!card.contains(event.relatedTarget)){
+            card.style.removeProperty('--tilt-x');
+            card.style.removeProperty('--tilt-y');
+        }
+    },{passive:true});
 })();
