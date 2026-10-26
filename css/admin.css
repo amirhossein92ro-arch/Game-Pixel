@@ -53,3 +53,11 @@ body.admin-page :is(.admin-dashboard,.admin-confirm,.admin-login-card) select op
 @media(min-width:601px){body[data-page=admin] .admin-users-table td:nth-child(3){white-space:nowrap}body[data-page=admin] .admin-users-table th:last-child,body[data-page=admin] .admin-users-table td:last-child{position:sticky;inset-inline-end:0;min-width:125px;background:#0c1424;box-shadow:3px 0 0 #344760;z-index:1}}
 
 body.admin-page :is(.admin-dashboard,.admin-confirm,.admin-login-card) :is(input,select,textarea):focus-visible{outline:2px solid #9beaff;outline-offset:3px;border-color:#67cee6}
+
+/* Admin controls keep their dark palette and inherit the shared glow tokens. */
+body[data-page=admin] :is(.admin-metric,.admin-console-panel,.admin-data-panel,.admin-command){background:var(--panel-bg);border-color:var(--panel-border);box-shadow:var(--panel-shadow)}
+body[data-page=admin] .admin-tabs button.is-active{background:#123a4b;color:#c7f4f7;border-color:var(--accent-teal);box-shadow:inset -3px 0 var(--accent-teal),var(--glow-cyan-soft)}
+body[data-page=admin] .admin-tabs button:hover:not(.is-active){border-color:var(--panel-border);background:#182b3b}
+body.admin-page :is(.admin-dashboard,.admin-confirm,.admin-login-card) :is(input:not([type=checkbox]):not([type=radio]),select,textarea){background:#101b2b;border-color:var(--panel-border);color:#e6edf7}
+body.admin-page :is(.admin-dashboard,.admin-confirm,.admin-login-card) :is(input,select,textarea):focus-visible,body[data-page=admin] .admin-tabs button:focus-visible{outline:3px solid var(--accent-cyan);outline-offset:3px;border-color:var(--accent-cyan)}
+@media(max-width:600px){body[data-page=admin] :is(.admin-metric,.admin-console-panel,.admin-data-panel,.admin-command){box-shadow:0 10px 26px rgb(0 0 0 / 18%)}}
