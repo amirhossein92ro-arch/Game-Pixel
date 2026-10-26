@@ -122,13 +122,3 @@ body.light-theme .account-badge.pending,body.light-theme .account-badge.open {co
 @media(max-width:768px){body[data-page="profile"] .profile-page{padding-top:20px}.account-layout{grid-template-columns:1fr}.account-sidebar{position:static;padding:14px}.account-identity{display:none}.account-nav{display:flex;overflow-x:auto;gap:8px;padding-bottom:5px;scrollbar-width:thin}.account-nav button{flex:0 0 auto;width:auto;white-space:nowrap;padding:10px;font-size:.77rem}.account-nav button.account-logout{margin:0;border-top:0}.account-count{margin-inline-start:0}.account-topbar{margin-top:6px}.account-welcome{gap:14px}.account-welcome .account-avatar{width:60px;height:60px;font-size:1.5rem}.account-welcome h2{font-size:1.2rem}.account-form{grid-template-columns:1fr}.account-wishlist{grid-template-columns:1fr}.account-row{gap:12px}.account-topbar h1{font-size:1.15rem}}
 @media(max-width:420px){body[data-page="profile"] .profile-page>.container{width:calc(100% - 24px)}.account-panel{padding:18px;box-shadow:none}.account-stat{padding:15px}.account-stat strong{font-size:1.5rem}.account-welcome{align-items:start}.account-welcome .account-avatar{display:none}.account-auth{padding:24px 14px}.account-dialog{padding:20px}.account-row>.account-actions{width:100%}.account-form{gap:14px}.account-form input,.account-form select{padding:11px 12px;font-size:.82rem}.account-captcha{transform-origin:center;}}
 @media(prefers-reduced-motion:reduce){.account-section{animation:none}.account-nav button{transition:none}}
-
-/* Account surfaces share the storefront's restrained cyan lighting. */
-.account-panel,.account-sidebar{background:var(--panel-bg);border-color:var(--panel-border);box-shadow:var(--panel-shadow)}
-.account-welcome{background:radial-gradient(circle at 85% 15%,rgb(54 191 196 / 9%),transparent 46%),var(--panel-bg);border-top-color:var(--accent-teal)}
-.account-avatar{border-color:var(--panel-border);box-shadow:var(--glow-cyan-soft)}
-.account-nav button[aria-current="page"]{color:var(--accent-cyan);border-color:var(--panel-border);background:rgb(54 191 196 / 9%);box-shadow:inset -3px 0 var(--accent-teal),var(--glow-cyan-soft)}
-.account-nav button:hover:not([aria-current="page"]){color:var(--accent-cyan);border-color:var(--panel-border);background:rgb(54 191 196 / 5%)}
-#profileApp :is(input,textarea,select):focus-visible,.account-nav button:focus-visible{outline:3px solid var(--accent-cyan);outline-offset:3px}
-@media(max-width:768px){.account-panel,.account-sidebar{box-shadow:0 10px 26px rgb(0 0 0 / 18%)}}
-@media(prefers-reduced-motion:reduce){.account-panel,.account-nav button{transition:none}}
