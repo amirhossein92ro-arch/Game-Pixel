@@ -1,7 +1,7 @@
 'use strict';
 const validation = require('../../lib/storage-validation.cjs');
 const statuses = require('../statuses.cjs');
-const entities = Object.freeze(['users','adminAccounts','products','discounts','orders','notifications','auditLogs','settings','messages','posts','comments','tickets','ticketMessages','wishlist','idempotencyKeys']);
+const entities = Object.freeze(['users','adminAccounts','products','discounts','orders','paymentAttempts','paymentRefunds','paymentEvents','notifications','auditLogs','settings','messages','posts','comments','tickets','ticketMessages','wishlist','idempotencyKeys']);
 const hashPattern = /^\$2[aby]\$(0[4-9]|[12][0-9]|3[01])\$[./A-Za-z0-9]{53}$/;
 const id = value => value == null ? '' : String(value);
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -112,6 +112,25 @@ function inspect(input) {
             if(!order.paymentProvider)problem('PAYMENT_PROVIDER_REQUIRED',`orders[${index}].paymentProvider`);
             const key=JSON.stringify([order.paymentProvider,order.paymentReference]);if(paymentReferences.has(key))problem('DUPLICATE_PAYMENT_REFERENCE',`orders[${index}].paymentReference`,`orders[${paymentReferences.get(key)}].paymentReference`);else paymentReferences.set(key,index);
         }
+    }
+    const attempts=new Map(),attemptReferences=new Set();
+    for(const [index,row] of data.paymentAttempts.entries()){
+        reference('paymentAttempts',index,'orderId','orders');attempts.set(id(row.id),row);
+        if(row.providerReference){const key=JSON.stringify([row.provider,row.providerReference]);if(attemptReferences.has(key))problem('DUPLICATE_PAYMENT_REFERENCE',`paymentAttempts[${index}].providerReference`);attemptReferences.add(key);}
+        if(typeof row.provider!=='string'||!row.provider||!['pending','authorized','captured','failed','cancelled'].includes(row.status)||!Number.isSafeInteger(row.amount)||row.amount<0||row.currency!=='IRR'||!timestamp(row.createdAt)||!timestamp(row.updatedAt))problem('INVALID_PAYMENT_ATTEMPT',`paymentAttempts[${index}]`);
+    }
+    const refundKeys=new Set(),refundTotals=new Map();
+    for(const [index,row] of data.paymentRefunds.entries()){
+        reference('paymentRefunds',index,'orderId','orders');reference('paymentRefunds',index,'paymentId','paymentAttempts');
+        if(attempts.get(id(row.paymentId))?.orderId!==row.orderId)problem('PAYMENT_REFUND_ORDER_MISMATCH',`paymentRefunds[${index}]`);
+        const key=JSON.stringify([row.orderId,row.key]);if(refundKeys.has(key))problem('DUPLICATE_REFUND_KEY',`paymentRefunds[${index}]`);refundKeys.add(key);
+        if(['pending','completed'].includes(row.status)&&Number.isSafeInteger(row.amount))refundTotals.set(id(row.paymentId),(refundTotals.get(id(row.paymentId))||0)+row.amount);
+        if(!Number.isSafeInteger(row.amount)||row.amount<1||!['CUSTOMER_REQUEST','OUT_OF_STOCK','DUPLICATE_ORDER','PAYMENT_ERROR','ADMIN_CORRECTION','OTHER'].includes(row.reasonCode)||!['pending','completed','failed'].includes(row.status)||typeof row.createdBy!=='string'||!row.createdBy||!timestamp(row.createdAt)||!timestamp(row.updatedAt))problem('INVALID_PAYMENT_REFUND',`paymentRefunds[${index}]`);
+    }
+    for(const [paymentId,total] of refundTotals){const captured=attempts.get(paymentId);if(!captured||captured.status!=='captured'||total>captured.amount)problem('REFUND_EXCEEDS_CAPTURED_AMOUNT',`paymentAttempts[${paymentId}]`);}
+    for(const [index,row] of data.paymentEvents.entries()){
+        reference('paymentEvents',index,'orderId','orders');
+        if(typeof row.type!=='string'||!row.type||typeof row.actorType!=='string'||!row.actorType||typeof row.actorId!=='string'||!row.actorId||!object(row.details??{})||!timestamp(row.createdAt))problem('INVALID_PAYMENT_EVENT',`paymentEvents[${index}]`);
     }
     for(const entity of ['notifications','tickets','wishlist','idempotencyKeys'])for(const [index]of data[entity].entries())reference(entity,index,'userId','users');
     for(const [index]of data.wishlist.entries())reference('wishlist',index,'productId','products');

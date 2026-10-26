@@ -121,6 +121,6 @@ test('runtime and rehearsal formats cannot be opened interchangeably or changed 
 test('versioned schema migration is explicit, idempotent and detects checksum changes',t=>{
     const folder=workspace(t),target=path.join(folder,'schema.sqlite');
     execFileSync(process.execPath,['scripts/storage-schema.cjs','--target',target,'--apply'],{cwd:root,windowsHide:true,stdio:'pipe'});
-    const store=openRehearsal(target);t._storageCleanup.push(()=>store.close());const {applyMigrations}=require('../storage/migration/schema.cjs');applyMigrations(store.db);assert.equal(store.db.prepare('SELECT count(*) n FROM schema_migrations').get().n,1);
+    const store=openRehearsal(target);t._storageCleanup.push(()=>store.close());const {applyMigrations}=require('../storage/migration/schema.cjs');applyMigrations(store.db);assert.equal(store.db.prepare('SELECT count(*) n FROM schema_migrations').get().n,2);
     store.db.prepare("UPDATE schema_migrations SET checksum='tampered'").run();assert.throws(()=>applyMigrations(store.db));assert.equal(store.db.isTransaction,false);
 });

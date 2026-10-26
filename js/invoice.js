@@ -10,7 +10,11 @@
         confirmed: "تأیید شده",
         shipped: "ارسال شده",
         cancelled: "لغو شده",
-        refunded: "مرجوع شده"
+        refunded: "بازپرداخت شده",
+        partially_refunded: "بخشی بازپرداخت شده",
+        refund_pending: "در انتظار بازپرداخت",
+        payment_failed: "پرداخت ناموفق",
+        awaiting_payment: "در انتظار پرداخت"
     };
 
     function safe(value) {
@@ -40,7 +44,7 @@
             shippingCost: Number(source.shippingCost||0),
             total,
             status: statusLabels[source.status] || source.statusLabel || "ثبت سفارش",
-            payment: source.paymentStatus === "test" ? "آزمایشی؛ وجهی دریافت نشده" : source.paymentStatus === "paid" ? "پرداخت شده" : source.paymentStatus === "failed" ? "ناموفق" : "در انتظار پرداخت"
+            payment: source.paymentStatus === "test" ? "آزمایشی؛ وجهی دریافت نشده" : ["paid","captured"].includes(source.paymentStatus) ? "پرداخت شده" : source.paymentStatus === "partially_refunded" ? "بخشی بازپرداخت شده" : source.paymentStatus === "refunded" ? "بازپرداخت شده" : source.paymentStatus === "failed" ? "ناموفق" : "در انتظار پرداخت"
         };
     }
 

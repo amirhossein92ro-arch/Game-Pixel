@@ -2,7 +2,7 @@
 const profileEscape = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const profilePrice = value => `${Number(value || 0).toLocaleString('fa-IR')} تومان`;
 const profileDate = value => value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleDateString('fa-IR',{year:'numeric',month:'short',day:'numeric'}) : '—';
-const accountLabels = {pending:'در انتظار',paid:'پرداخت‌شده',processing:'در حال آماده‌سازی',shipped:'ارسال‌شده',delivered:'تحویل‌شده',cancelled:'لغوشده',open:'باز',answered:'پاسخ‌داده‌شده',closed:'بسته'};
+const accountLabels = {pending:'در انتظار',awaiting_payment:'در انتظار پرداخت',payment_failed:'پرداخت ناموفق',paid:'پرداخت‌شده',processing:'در حال آماده‌سازی',shipped:'ارسال‌شده',delivered:'تحویل‌شده',refund_pending:'در انتظار بازپرداخت',partially_refunded:'بخشی بازپرداخت شد',refunded:'بازپرداخت‌شده',cancelled:'لغوشده',open:'باز',answered:'پاسخ‌داده‌شده',closed:'بسته'};
 const accountCategories = {order:'سفارش',payment:'پرداخت',product:'محصول',account:'حساب کاربری',other:'سایر'};
 const accountIcons = {gamepad:'fa-gamepad',astronaut:'fa-user-astronaut',dragon:'fa-dragon',robot:'fa-robot',bolt:'fa-bolt',headset:'fa-headset'};
 const accountMenu = [['dashboard','داشبورد','fa-gauge-high'],['info','اطلاعات حساب','fa-user'],['orders','سفارش‌های من','fa-bag-shopping'],['addresses','آدرس‌های من','fa-location-dot'],['wishlist','علاقه‌مندی‌ها','fa-heart'],['security','امنیت حساب','fa-shield-halved'],['notifications','اعلان‌ها','fa-bell'],['support','پشتیبانی','fa-headset']];

@@ -109,6 +109,27 @@ function openDatabase(filename, seedFile) {
     ) STRICT;
     CREATE INDEX IF NOT EXISTS analytics_events_date ON analytics_events(created_at,type);
     CREATE INDEX IF NOT EXISTS analytics_events_product ON analytics_events(product_id,created_at) WHERE product_id IS NOT NULL;`);
+    db.exec(`CREATE TABLE IF NOT EXISTS payment_attempts (
+      id TEXT PRIMARY KEY,order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE RESTRICT,
+      provider TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('pending','authorized','captured','failed','cancelled')),
+      amount INTEGER NOT NULL CHECK(amount>=0),currency TEXT NOT NULL DEFAULT 'IRR',
+      provider_reference TEXT, failure_code TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,
+      UNIQUE(provider,provider_reference));
+    CREATE INDEX IF NOT EXISTS payment_attempts_order ON payment_attempts(order_id,created_at);
+    CREATE TABLE IF NOT EXISTS payment_refunds (
+      id TEXT PRIMARY KEY,order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE RESTRICT,
+      payment_id TEXT NOT NULL REFERENCES payment_attempts(id) ON DELETE RESTRICT,
+      idempotency_key TEXT NOT NULL,amount INTEGER NOT NULL CHECK(amount>0),
+      reason_code TEXT NOT NULL CHECK(reason_code IN ('CUSTOMER_REQUEST','OUT_OF_STOCK','DUPLICATE_ORDER','PAYMENT_ERROR','ADMIN_CORRECTION','OTHER')),
+      status TEXT NOT NULL CHECK(status IN ('pending','completed','failed')),
+      created_by TEXT NOT NULL,provider_reference TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,
+      UNIQUE(order_id,idempotency_key));
+    CREATE INDEX IF NOT EXISTS payment_refunds_order ON payment_refunds(order_id,created_at);
+    CREATE TABLE IF NOT EXISTS payment_events (
+      id TEXT PRIMARY KEY,order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE RESTRICT,
+      event_type TEXT NOT NULL,created_at TEXT NOT NULL,actor_type TEXT NOT NULL,
+      actor_id TEXT NOT NULL,details TEXT NOT NULL CHECK(json_valid(details)));
+    CREATE INDEX IF NOT EXISTS payment_events_order ON payment_events(order_id,created_at);`);
     function transaction(fn) {
         // No await or external I/O may escape a synchronous SQLite transaction.
         if(typeof fn!=='function'||fn.constructor.name==='AsyncFunction')throw Object.assign(new Error('Storage transactions must be synchronous.'),{code:'STORAGE_ASYNC_TRANSACTION'});
@@ -293,7 +314,7 @@ function openDatabase(filename, seedFile) {
     const epochRevision=db.prepare('SELECT revision FROM storage_meta WHERE id=1'),epochVersion=db.prepare('PRAGMA data_version');
     store.epoch=()=>epochRevision.get().revision+':'+epochVersion.get().data_version;
     store.ready=()=>!!db.prepare('SELECT 1 FROM settings LIMIT 1').get();
-    const accessors=new Map(),domains=new Set(["runtime","account","account-factors","admin-security","analytics","auth-recovery","commerce","login-protection","management","rate-limits","site","user-management"]);
+    const accessors=new Map(),domains=new Set(["runtime","account","account-factors","admin-security","analytics","auth-recovery","commerce","login-protection","management","payment","rate-limits","site","user-management"]);
     store.access=domain=>{if(!domains.has(domain))throw validation.fail();if(!accessors.has(domain))accessors.set(domain,require('./'+domain+'.cjs')(db));return accessors.get(domain);};
     store.search=require('./search.cjs')(store);
     store.repositories=Object.freeze({...require('../repositories.cjs').createRepositories(store),...require('./relational-repositories.cjs').relationalRepositories(store)});

@@ -7,9 +7,9 @@ function policy(route) {
     const {requiredPermission,requiresRecentAuthentication}=require('../lib/admin-security.cjs');
     const {method,path:routePath,handlers}=route,mutation=!['GET','HEAD','OPTIONS'].includes(method),api=routePath.startsWith('/api/');
     const admin=handlers.includes('requireAdmin'),customer=handlers.includes('requireUser'),page=handlers.includes('requireAdminSession');
-    const pending=routePath==='/api/auth/2fa/verify';
+    const pending=routePath==='/api/auth/2fa/verify',webhook=routePath==='/api/payments/webhook/test';
     const publicAPIs=new Set(['GET /api/site-settings','GET /api/products','GET /api/products/:id','GET /api/auth/config','GET /api/auth/session','GET /api/health',
-        'POST /api/auth/register','POST /api/auth/login','POST /api/admin/login','POST /api/contact',...['request','verify','reset'].map(action=>'POST /api/auth/forgot-password/'+action)]);
+        'POST /api/auth/register','POST /api/auth/login','POST /api/admin/login','POST /api/contact','POST /api/analytics/event','POST /api/payments/webhook/test',...['request','verify','reset'].map(action=>'POST /api/auth/forgot-password/'+action)]);
     if(api&&!admin&&!customer&&!pending&&!publicAPIs.has(method+' '+routePath))throw Error('Unclassified public API route: '+method+' '+routePath);
     const permission=admin?requiredPermission(routePath,method):page?'ADMIN or SUPER_ADMIN':null;
     if(permission==='unknown')throw Error('Unclassified administrative permission: '+routePath);
@@ -26,12 +26,15 @@ function policy(route) {
     if(pending)limits.push('30 verification/IP/15min; 5 attempts/challenge');
     if(routePath==='/api/checkout')limits.push('10 new orders/customer/15min; free idempotent replay');
     if(routePath==='/api/checkout/quote')limits.push('60 quotes/customer/min');
+    if(routePath==='/api/payments/webhook/test')limits.push('60 signed test events/IP/min');
+    if(routePath==='/api/orders/:id/payments/retry'||routePath==='/api/orders/:id/cancel')limits.push('20 payment actions/customer/15min');
+    if(routePath==='/api/admin/orders/:id/refunds')limits.push('10 refunds/admin/15min');
     if(admin&&mutation&&(/^\/api\/admin\/(?:admins(?:\/|$)|sessions\/[^/]+$|users\/[^/]+\/(?:role|status|logout-all)$)/.test(routePath)
         ||method==='DELETE'&&/^\/api\/admin\/users\/[^/]+$/.test(routePath)))limits.push('60 privileged checks/admin/15min (namespace and route guards share the budget)');
     if(routePath.startsWith('/api/admin/users/')&&mutation)limits.push('60 user mutations/admin/min; 10 user password resets/admin/min');
     if(routePath.endsWith('/reset-password')&&admin&&mutation)limits.push('10 password-reset checks/admin/15min (namespace and route guards share the budget)');
-    return {...route,authentication:admin?'administrator':customer?'customer':page?'administrator document':pending?'pending password-verified login':'public',
-        permission:permission||'none',csrf:!mutation?'not required':admin||customer?'session token required':pending?'pending-login token required':'Origin/JSON checks; token required if a matching session exists',
+    return {...route,authentication:admin?'administrator':customer?'customer':page?'administrator document':pending?'pending password-verified login':webhook?'signed test provider':'public',
+        permission:permission||'none',csrf:!mutation?'not required':admin||customer?'session token required':pending?'pending-login token required':webhook?'HMAC signature required':'Origin/JSON checks; token required if a matching session exists',
         rateLimits:limits,validation:api?'bounded path/query/body; route-specific allowlists, types and business constraints':'bounded URL and path; used parameters validated; fixed page or asset targets',
         ownership:customer?'authenticated customer identity; owner-scoped queries/collections':pending?'pending login principal':admin?'role/permission; target hierarchy and final Super Admin checks where applicable':'not applicable',
         recentAdminAuthentication:admin&&requiresRecentAuthentication(routePath,method)};
@@ -44,7 +47,7 @@ function capture() {
     process.loadEnvFile=()=>{};
     Object.assign(process.env,{STORAGE_DRIVER:'sqlite',DATABASE_PATH:path.join(folder,'store.sqlite'),SQLITE_PATH:path.join(folder,'store.sqlite'),SEED_DATA_PATH:path.join(folder,'seed.json'),
         HOST:'127.0.0.1',PORT:'3000',APP_ORIGIN:'http://127.0.0.1:3000',ALLOWED_ORIGINS:'',TRUST_PROXY:'',ADMIN_USERNAME:'route-audit',ADMIN_PASSWORD:'Route inventory fixture 2026!',ADMIN_TOTP_SECRET:'',ACCOUNT_TOTP_KEY:'',
-        CAPTCHA_PROVIDER:'turnstile',CAPTCHA_TEST_MODE:'true',TURNSTILE_SITE_KEY:'',TURNSTILE_SECRET_KEY:'',CAPTCHA_SITE_KEY:'',CAPTCHA_SECRET_KEY:'',SMS_PROVIDER:'mock',PAYMENT_MODE:'test'});
+        CAPTCHA_PROVIDER:'turnstile',CAPTCHA_TEST_MODE:'true',TURNSTILE_SITE_KEY:'',TURNSTILE_SECRET_KEY:'',CAPTCHA_SITE_KEY:'',CAPTCHA_SECRET_KEY:'',SMS_PROVIDER:'mock',PAYMENT_MODE:'test',PAYMENT_TEST_WEBHOOK_SECRET:'synthetic-route-inventory-key'});
     const storage=require('../storage/index.cjs'),open=storage.openStorage,stores=[];
     storage.openStorage=(...args)=>{const store=open(...args);stores.push(store);return store;};
     const express=require('express');
@@ -101,7 +104,7 @@ function markdown(routes) {
         +'| Unknown `/api/*` / public paths | JSON 404 / static escaped HTML 404; no arbitrary file access. |\n'
         +'| Legacy mutation aliases | `/api/products` POST/PUT/DELETE use the same admin session, permission, CSRF, revision and validation checks. `/api/admin/users/:id` PUT shares role/status hierarchy, recent-login and revocation logic. Disabled order-create/order-delete and admin user-create APIs return 405 after security checks. |\n'
         +'| Browser cart | Local browser state, no separate server cart API. Quotes and checkout validate trusted products and totals on the server. |\n'
-        +'| Uploads and payments | No multipart upload/download endpoint or real payment callback/webhook exists. Admin artwork accepts validated image URLs or bounded signature-checked raster data; real payment mode fails closed. |\n'
+        +'| Uploads and payments | No multipart upload/download endpoint or real payment callback exists. A signed synthetic callback is available in test mode only; real payment mode fails closed. Admin artwork accepts validated image URLs or bounded signature-checked raster data. |\n'
         +'| Archived apps | `backend/`, `gaming-store/`, `gaming-ecommerce/` are separate inactive applications, excluded from release synchronization and public static roots; existing legacy security regressions remain in the suite. |\n';
 }
 

@@ -21,6 +21,9 @@ function exportRehearsal(source,target) {
         for(const row of data.adminAccounts)row.passwordHash=admins.get(String(row.id));
         data.wishlist=store.db.prepare('SELECT user_id AS userId,product_id AS productId,created_at AS createdAt FROM wishlist ORDER BY rowid').all();
         data.idempotencyKeys=store.db.prepare('SELECT user_id AS userId,purpose,key,order_id AS orderId,request_hash AS requestHash,created_at AS createdAt,expires_at AS expiresAt FROM idempotency_keys ORDER BY rowid').all();
+        data.paymentAttempts=store.db.prepare('SELECT id,order_id AS orderId,provider,status,amount,currency,provider_reference AS providerReference,failure_code AS failureCode,created_at AS createdAt,updated_at AS updatedAt FROM payment_attempts ORDER BY rowid').all();
+        data.paymentRefunds=store.db.prepare('SELECT id,order_id AS orderId,payment_id AS paymentId,idempotency_key AS key,amount,reason_code AS reasonCode,status,created_by AS createdBy,provider_reference AS providerReference,created_at AS createdAt,updated_at AS updatedAt FROM payment_refunds ORDER BY rowid').all();
+        data.paymentEvents=store.db.prepare('SELECT id,order_id AS orderId,event_type AS type,created_at AS createdAt,actor_type AS actorType,actor_id AS actorId,details FROM payment_events ORDER BY rowid').all().map(row=>({...row,details:JSON.parse(row.details)}));
         return data;
     });}finally{store.close();}
     const report=require('./validate.cjs').inspect(snapshot).report;if(!report.ok)throw Object.assign(new Error('Export validation failed.'),{code:'EXPORT_VALIDATION'});

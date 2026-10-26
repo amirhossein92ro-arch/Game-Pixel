@@ -130,7 +130,7 @@ app.use((_req, res, next) => {
 });
 
 // Keep request parsing deliberately small; product artwork should normally be a URL or optimized data image.
-app.use(express.json({ limit: "1mb", inflate:false }));
+app.use(express.json({ limit: "1mb", inflate:false,verify:(req,_res,body)=>{if(req.path==='/api/payments/webhook/test'){if(body.length>4096)throw Object.assign(new Error('Payment event is too large.'),{status:413});req.rawPaymentBody=Buffer.from(body);}} }));
 app.use(express.urlencoded({ extended: false, limit: "256kb", parameterLimit: 100, inflate:false }));
 app.use((req,_res,next)=>{try{require('./lib/request-security.cjs').shape(req.body);next();}catch(e){next(e);}});
 app.get('/health',(_req,res)=>res.set('Cache-Control','no-store').json({status:'ok'}));
