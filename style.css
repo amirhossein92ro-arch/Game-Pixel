@@ -3549,7 +3549,8 @@ body.light-theme main::before{opacity:.4}
 .site-header{border-bottom-color:var(--panel-border);box-shadow:0 8px 28px rgb(0 0 0 / 14%)}
 .brand-icon{border-color:var(--panel-border);background:url("img/favicon.svg") center/36px 36px no-repeat,var(--panel-bg);box-shadow:var(--glow-cyan-soft)}
 .main-nav>a.active{color:var(--accent-cyan);text-shadow:0 0 9px rgb(54 191 196 / 16%)}
-.main-nav>a::after{height:3px;background:var(--accent-teal);box-shadow:var(--glow-cyan-soft)}
+.main-nav>a::after{height:3px;background:var(--accent-teal);box-shadow:none}
+.main-nav>a.active::after{box-shadow:var(--glow-cyan-soft)}
 .hero{background:radial-gradient(ellipse 46% 55% at 78% 50%,rgb(54 191 196 / 7%),transparent 85%)}
 .hero-content,.hero-visual{animation:premium-arrive .55s ease-out both}
 .hero-visual{animation-delay:.08s}
@@ -3589,9 +3590,9 @@ body.light-theme :is(.promo-banner,.site-managed-banner){background:var(--panel-
 .page-transition-logo{box-shadow:var(--glow-cyan-soft);background:rgb(54 191 196 / 15%);animation:page-logo-arrive .36s ease both}
 @keyframes page-logo-arrive{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
 @supports ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
-    .controller-card,.glass-panel,.account-panel,.checkout-summary,.order-summary{-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+    .controller-card,.checkout-summary,.order-summary,.account-sidebar{-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 }
-@media(max-width:860px){.hero-visual{filter:none}.controller-card,.glass-panel,.account-panel,.checkout-summary,.order-summary{-webkit-backdrop-filter:none;backdrop-filter:none}.product-card:hover{transform:translateY(-2px)}}
+@media(max-width:860px){.hero-visual{filter:none}.controller-card,.checkout-summary,.order-summary,.account-sidebar{-webkit-backdrop-filter:none;backdrop-filter:none}.product-card:hover{transform:translateY(-2px)}}
 @media(max-width:600px){.hero-content,.hero-visual{animation:none}.controller-card{box-shadow:0 12px 28px rgb(0 0 0 / 24%)}.floating-chip{opacity:.65;box-shadow:var(--glow-cyan-soft)}:is(.product-card,.glass-panel,.account-panel,.order-summary,.checkout-summary){box-shadow:0 8px 20px rgb(0 0 0 / 16%)}.product-card:hover{transform:none}.product-card:hover .product-card-image{transform:none}}
 @media(hover:none){.product-card:hover{box-shadow:var(--panel-shadow);border-color:var(--panel-border)}.primary-button:hover,.secondary-button:hover{transform:none}}
 @media(prefers-reduced-motion:reduce){.hero-content,.hero-visual,.product-skeleton,.skeleton,.page-transition-logo{animation:none!important}.product-card,.category-card,.promo-banner,.site-managed-banner,.product-card-image,.primary-button,.secondary-button,.card-add-button{transition:none!important}.product-card:hover,.category-card:hover,.promo-banner:hover,.site-managed-banner:hover{transform:none}}
