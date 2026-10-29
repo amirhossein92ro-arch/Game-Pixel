@@ -96,7 +96,7 @@ function markdown(routes) {
         +routes.map(route=>'| '+[route.method,'`'+route.path+'`',route.authentication,route.permission,route.csrf,route.rateLimits.join('; '),route.validation,route.ownership,route.recentAdminAuthentication?'required':'no'].map(escape).join(' | ')+' |').join('\n')
         +'\n\nStatic middleware and fallbacks:\n\n| Surface | Policy |\n| --- | --- |\n'
         +'| GET/HEAD `/css/*` | Exact stylesheet allowlist, extension and realpath checks; no directory listing. |\n'
-        +'| GET/HEAD `/js/*` | Exact script allowlist and realpath checks. Five administration scripts require ADMIN/SUPER_ADMIN document authentication and no-store; admin-login.js is public. Express normalizes repeated mount separators before these same checks. |\n'
+        +'| GET/HEAD `/js/*` | Exact script allowlist and realpath checks. Six administration scripts require ADMIN/SUPER_ADMIN document authentication and no-store; admin-login.js is public. Express normalizes repeated mount separators before these same checks. |\n'
         +'| GET/HEAD `/img/*` | Image extensions only; dotfiles, traversal, backups, maps and realpath escapes denied. Existing SVGs use a sandboxed restrictive CSP. |\n'
         +'| `/admin.html`, `/admin.htm`, `/admin/index.html` | Denied with 404, including encoded aliases. `/admin` is the protected delivery route. |\n'
         +'| OPTIONS `/api/*` | Explicit-origin CORS preflight, no CSRF; global IP request limit still applies. |\n'

@@ -2644,7 +2644,7 @@ function setupProductControls() {
             window.location.assign(control.value === 'all' ? '/products' : '/categories/' + encodeURIComponent(control.value));
             return;
         }
-        if (control.id === 'productSearch') searchTimer = window.setTimeout(()=>{renderProducts();if(control.value.trim())trackEvent('search',{resultsCount:getFilteredProducts().length});},160);
+        if (control.id === 'productSearch') searchTimer = window.setTimeout(()=>{renderProducts();if(control.value?.trim())trackEvent('search',{resultsCount:getFilteredProducts().length});},160);
         else {renderProducts();trackEvent('filter_used',control.id==='categoryFilter'&&control.value!=='all'?{category:control.value}:{});}
     }));
 
@@ -2965,7 +2965,7 @@ function setupCheckoutForm() {
                 throw Object.assign(new Error(response.status>=500 ? 'ثبت سفارش انجام نشد؛ کمی بعد دوباره تلاش کنید.' : result.error || "ثبت سفارش در سرور انجام نشد."), {
                     field,
                     step,
-                    status:response.status, validation: response.status === 400
+                    status:response.status, code:result.code, available:result.available, productId:result.productId, validation: response.status === 400
                 });
             }
 
@@ -3000,6 +3000,10 @@ function setupCheckoutForm() {
             successPanel.scrollIntoView({ behavior: "smooth", block: "start" });
             successPanel.focus({ preventScroll: true });
         } catch (error) {
+            if(error.status===409||error.code==='INSUFFICIENT_STOCK'){
+                await loadProductsFromApi().catch(()=>{});
+                refreshCartUI();
+            }
             const message=shopErrorMessage(error,'ارتباط برقرار نشد. سبد شما حفظ شده است؛ دوباره تلاش کنید.');
             if (error.validation) {
                 showCheckoutValidationIssue({ field: error.field, step: error.step || 4, message });
@@ -3422,7 +3426,7 @@ function setupAdminPanel() {
         const button = productForm.querySelector('button[type="submit"]'),label=button.textContent; button.disabled = true;button.textContent='در حال ذخیره محصول…';
         const data = Object.fromEntries(new FormData(productForm)),id=data.id;
         delete data.imageFile;
-        for(const k of ["featured","isNew","bestSeller"])data[k]=productForm.elements[k]?.checked||false;
+        for(const k of ["featured","isNew","bestSeller","discontinued"])data[k]=productForm.elements[k]?.checked||false;
         data.features = String(data.features || '').split('\n').map(v=>v.trim()).filter(Boolean);
         try {
             const image = await readAdminImage(productForm.elements.imageFile.files[0]);

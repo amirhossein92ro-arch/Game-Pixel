@@ -53,3 +53,12 @@ body.admin-page :is(.admin-dashboard,.admin-confirm,.admin-login-card) select op
 @media(min-width:601px){body[data-page=admin] .admin-users-table td:nth-child(3){white-space:nowrap}body[data-page=admin] .admin-users-table th:last-child,body[data-page=admin] .admin-users-table td:last-child{position:sticky;inset-inline-end:0;min-width:125px;background:#0c1424;box-shadow:3px 0 0 #344760;z-index:1}}
 
 body.admin-page :is(.admin-dashboard,.admin-confirm,.admin-login-card) :is(input,select,textarea):focus-visible{outline:2px solid #9beaff;outline-offset:3px;border-color:#67cee6}
+
+.inventory-rows{display:grid;gap:12px;margin-block:18px}
+.inventory-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;overflow-wrap:anywhere}
+.inventory-row strong{flex:1 1 190px}
+.inventory-row span{flex:0 1 auto}
+#inventoryAdjustment,#inventoryBulk,#inventoryReturn{margin-block:18px;padding:16px;border:1px solid var(--line);border-radius:var(--radius-sm)}
+#inventoryHistory{max-height:420px;overflow:auto;overflow-wrap:anywhere}
+#inventoryHistory li{margin-block:9px}
+@media(max-width:600px){.inventory-row{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}.inventory-row .admin-quick{margin:4px 0}.inventory-row .admin-quick button{min-height:44px}#inventoryAdjustment,#inventoryBulk,#inventoryReturn{display:grid;grid-template-columns:minmax(0,1fr)}#inventoryAdjustment[hidden],#inventoryBulk[hidden],#inventoryReturn[hidden]{display:none}}

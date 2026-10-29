@@ -33,7 +33,7 @@ const monitoring=require('./lib/monitoring.cjs').createMonitoring();
 monitoring.start();
 app.use(monitoring.observe);
 const storageReady=require('./lib/monitoring.cjs').readiness(store,{filename:require('./storage/config.cjs').configuration().filename,onFailure:error=>monitoring.error(null,Object.assign(new Error('Storage unavailable.'),{code:'STORAGE_FAILURE'}),503)});
-const maintenance=setInterval(()=>{try{const now=Date.now();store.cleanup();const pruned=require('./lib/journey-analytics.cjs').createJourneyAnalytics(store).cleanup();if(pruned)operationalLog.write('analytics-retention-cleanup',{category:'analytics',count:pruned});store.transaction(()=>{store.access('runtime').deleteSessionsByExpires(now);store.access('runtime').deletePendingAuthByExpires(now);store.access('runtime').updateAccountFactorsByPendingUntil(now);store.access('runtime').deletePasswordResetChallengesByExpiresAtAndUsedAt(now-86400000);store.access('runtime').deleteLoginFailuresByWindowEndsAndLockedUntil(now,now);store.access('runtime').deleteRequestBudgetsByResetsAt(now);});}catch(error){monitoring.error(null,error,500);operationalLog.write('maintenance-failure',{level:'error',category:'maintenance'});}},3600000);
+const maintenance=setInterval(()=>{try{const now=Date.now();store.cleanup();store.inventory?.expire(1000);const pruned=require('./lib/journey-analytics.cjs').createJourneyAnalytics(store).cleanup();if(pruned)operationalLog.write('analytics-retention-cleanup',{category:'analytics',count:pruned});store.transaction(()=>{store.access('runtime').deleteSessionsByExpires(now);store.access('runtime').deletePendingAuthByExpires(now);store.access('runtime').updateAccountFactorsByPendingUntil(now);store.access('runtime').deletePasswordResetChallengesByExpiresAtAndUsedAt(now-86400000);store.access('runtime').deleteLoginFailuresByWindowEndsAndLockedUntil(now,now);store.access('runtime').deleteRequestBudgetsByResetsAt(now);});}catch(error){monitoring.error(null,error,500);operationalLog.write('maintenance-failure',{level:'error',category:'maintenance'});}},3600000);
 maintenance.unref();
 if(process.env.TRUST_PROXY){
  const proxy=process.env.TRUST_PROXY;
@@ -160,6 +160,8 @@ function repairMojibake(value) {
 }
 
 const security = require('./lib/commerce.cjs').installCommerce(app, store);
+const startupInventory=security.inventory.reconcile();
+if(startupInventory.issues.length)operationalLog.write('inventory-reconciliation-warning',{level:'warn',category:'inventory',count:startupInventory.issues.length,codes:[...new Set(startupInventory.issues.map(issue=>issue.code))]});
 const requireAdmin = security.requireAdmin;
 const requireAdminSession = security.requireAdminSession;
 app.get('/api/admin/system-status',requireAdmin,(req,res)=>{
@@ -394,11 +396,11 @@ const staticOptions = {
     }
 };
 const publicStyleFiles = new Set(['/account.css','/admin.css','/commerce.css','/intro.css','/rgb-text.css']);
-const publicScriptFiles = new Set(['admin.js','admin-actions.js','admin-console.js','admin-support.js','admin-users.js','admin-login.js','api-config.js','intro.js','invoice.js','profile.js','session.js','site.js','wishlist.js','safe-url.js'].map(name=>'/'+name));
+const publicScriptFiles = new Set(['admin.js','admin-actions.js','admin-console.js','admin-inventory.js','admin-support.js','admin-users.js','admin-login.js','api-config.js','intro.js','invoice.js','profile.js','session.js','site.js','wishlist.js','safe-url.js'].map(name=>'/'+name));
 app.use("/css", publicAsset(path.join(STATIC_ROOT, "css"),['.css'],publicStyleFiles), express.static(path.join(STATIC_ROOT, "css"), staticOptions));
 const setAssetCache=require('./lib/asset-cache.cjs').assetCache(STATIC_ROOT,['style.css','script.js','products.js',...[...publicStyleFiles].map(file=>'css'+file),...[...publicScriptFiles].map(file=>'js'+file)],IS_PRODUCTION);
 const protectedAdminScripts = new Set([
-    "/admin.js", "/admin-actions.js", "/admin-console.js", "/admin-support.js", "/admin-users.js"
+    "/admin.js", "/admin-actions.js", "/admin-console.js", "/admin-inventory.js", "/admin-support.js", "/admin-users.js"
 ]);
 app.use("/js", publicAsset(path.join(STATIC_ROOT, "js"),['.js'],publicScriptFiles), (req, res, next) => {
     if (!protectedAdminScripts.has(decodeURIComponent(req.path).toLowerCase())) return next();
@@ -471,6 +473,7 @@ function normaliseProduct(input, existing = null, forcedId = undefined) {
     if(source.rating!==undefined&&(!Number.isFinite(ratingValue)||ratingValue<0||ratingValue>5))return null;
     if(source.reviews!==undefined&&(!Number.isSafeInteger(reviewsValue)||reviewsValue<0))return null;
     if (source.status && !["active", "inactive"].includes(source.status)) return null;
+    if(source.discontinued!==undefined&&typeof source.discontinued!=="boolean")return null;
     if (!Number.isSafeInteger(stockValue) || stockValue < 0) return null;
     if (typeof source.image === 'string' && source.image.length > 3 * 1024 * 1024) return null;
     if (Math.round(price * (100 - Math.min(99, Math.max(0, Number(source.discount) || 0))) / 100) < 1) return null;
@@ -498,7 +501,8 @@ function normaliseProduct(input, existing = null, forcedId = undefined) {
         guarantee: asTrimmedString(source.guarantee).slice(0,200),
         category: asTrimmedString(source.category, "Ù…Ø­ØµÙˆÙ„"),
         image: safeProductImage(source.image),
-        status: source.status || "active",
+        status: source.discontinued ? 'inactive' : source.status || "active",
+        discontinued:source.discontinued??false,
         createdAt: existing?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };
@@ -568,9 +572,10 @@ app.get(["/admin.html", "/admin.htm", "/admin/index.html"], (_req, res) => res.s
 
 function getProducts(req, res) {
     try {
+        security.inventory.expire();
         const {collectionPage,respond}=require('./lib/listing.cjs');
         const admin=/^\/api\/admin\//i.test(req.path),q=String(req.query.q||'').trim().toLowerCase(),category=String(req.query.category||''),stock=String(req.query.stock||''),status=String(req.query.status||''),sort=String(req.query.sort||'newest'),view=String(req.query.view||'');
-        if(q.length>120||category.length>80||!['','low','out','available'].includes(stock)||!['','active','inactive'].includes(status)||!['newest','oldest','name','stock_asc','stock_desc','popular','price_asc','price_desc','rating'].includes(sort)||!['','summary','full'].includes(view))return res.status(400).json({error:'فیلتر نامعتبر است.'});
+        if(q.length>120||category.length>80||!['','low','out','available'].includes(stock)||!['','active','inactive','discontinued'].includes(status)||!['newest','oldest','name','stock_asc','stock_desc','popular','price_asc','price_desc','rating'].includes(sort)||!['','summary','full'].includes(view))return res.status(400).json({error:'فیلتر نامعتبر است.'});
         const result=store.search.products(req.query,{admin,q,category,stock,status,sort,view});
         result.items=result.items.map(publicProduct);
         return respond(req,res,result);
@@ -584,6 +589,7 @@ function createProduct(req, res) {
             const product = validateProductPayload(req.body, null, getNextProductId(products));
             if (products.some(p => p.name === product.name)) throw Object.assign(new Error('نام محصول تکراری است.'), {statusCode:409});
             const saved=store.put('products',product,{insert:true});
+            if(saved.stock>0)security.inventory.record(saved.id,0,saved.stock,'RESTOCK','admin',req.admin.id,{note:'Initial product stock'});
             security.adminSecurity.audit(req.admin,'PRODUCT_CREATED','product',product.id);req.auditRecorded=true;
             return saved;
         });
@@ -609,8 +615,13 @@ function updateProduct(req, res) {
         const current = products[index];
         const updated = validateProductPayload(req.body, current, current.id);
         store.assertRevision(current,req.body.revision,true);
+        const before=security.inventory.quantities(current.id);
+        if(current.stock!==updated.stock){
+            if(!security.adminSecurity.can(req.admin,'inventory.adjust'))throw Object.assign(new Error('Inventory adjustment permission required.'),{statusCode:403});
+            if(updated.stock+before.reserved>1000000)throw Object.assign(new Error('Inventory quantity is too large.'),{statusCode:400});
+        }
         if (products.some(p => String(p.id) !== String(current.id) && p.name === updated.name)) throw Object.assign(new Error('نام محصول تکراری است.'), {statusCode:409});
-        const saved=store.put('products',updated);for(const [key,action]of [['price','PRODUCT_PRICE_CHANGED'],['stock','PRODUCT_STOCK_CHANGED']])if(current[key]!==updated[key])security.adminSecurity.audit(req.admin,action,'product',current.id,{previous:current[key],value:updated[key]});security.adminSecurity.audit(req.admin,'PRODUCT_UPDATED','product',current.id);req.auditRecorded=true;
+        const saved=store.put('products',updated);for(const [key,action]of [['price','PRODUCT_PRICE_CHANGED'],['stock','PRODUCT_STOCK_CHANGED']])if(current[key]!==updated[key])security.adminSecurity.audit(req.admin,action,'product',current.id,{previous:current[key],value:updated[key]});if(current.stock!==updated.stock)security.inventory.record(current.id,before.onHand,updated.stock+before.reserved,'MANUAL_CORRECTION','admin',req.admin.id,{note:'Legacy absolute stock edit'});security.adminSecurity.audit(req.admin,'PRODUCT_UPDATED','product',current.id);req.auditRecorded=true;
         return saved;});
         return res.type("application/json").json(updated);
     } catch (error) {
@@ -630,6 +641,7 @@ function deleteProduct(req, res) {
 
 function getProductById(req, res) {
     try {
+        security.inventory.expire();
         const product = store.get('products',req.params.id);
         if (!product || product.deletedAt || (product.status !== "active" && !/^\/api\/admin\//i.test(req.path))) {
             const notFound = new Error("Ù…Ø­ØµÙˆÙ„ Ù¾ÛŒØ¯Ø§ Ù†Ø´Ø¯");
@@ -645,7 +657,7 @@ function getProductById(req, res) {
 function publicProduct(product) {
     const allowed=['id','name','title','price','discount','stock','rating','reviews','brand','icon','accent','tag',
         'shortDescription','description','features','guarantee','category','image','status','featured','isNew',
-        'bestSeller','createdAt','updatedAt','revision'];
+        'bestSeller','discontinued','createdAt','updatedAt','revision'];
     return Object.fromEntries(allowed.filter(key=>Object.hasOwn(product,key)).map(key=>[key,key==='image'?safeProductImage(product[key]):product[key]]));
 }
 
@@ -667,9 +679,10 @@ app.use((error, req, res, next) => {
     if (error.retryAfter) res.set('Retry-After', String(error.retryAfter));
     const message = error.type === 'entity.parse.failed' ? 'بدنه JSON معتبر نیست.'
         : error.type === 'entity.too.large' ? 'حجم درخواست بیش از حد مجاز است.'
+        : error.code==='INSUFFICIENT_STOCK' ? error.message
         : error.code || [403,404].includes(status)&&/ENOENT|stat |sendfile|Forbidden/i.test(error.message||'') ? 'Request could not be completed.'
         : status < 500 ? error.message : 'خطای سرور؛ دوباره تلاش کنید.';
-    res.status(status >= 400 && status < 600 ? status : 500).json({ error: message });
+    res.status(status >= 400 && status < 600 ? status : 500).json({ error: message,...(error.code==='INSUFFICIENT_STOCK'?{code:error.code,productId:error.productId,available:error.available}:{}) });
 });
 const httpServer = app.listen(RUN_PORT, HOST, () => {
     operationalLog.write('server-started',{category:'startup'},value=>console.log(value));
