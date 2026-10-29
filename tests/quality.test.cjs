@@ -28,7 +28,8 @@ test('mobile breakpoints, reduced motion and bounded navigation overlay are pres
     assert.match(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)/i);
     assert.match(css, /\.page-transition-overlay/);
     assert.match(script, /pageshow/);
-    assert.match(script, /setTimeout\([^]*?80\)/);
+    assert.match(script, /watchdog=setTimeout\(hide,1200\)/);
+    assert.doesNotMatch(script, /setTimeout\(\(\)=>location\.assign/);
 });
 
 test('product data is valid and incomplete media remains recoverable', () => {
