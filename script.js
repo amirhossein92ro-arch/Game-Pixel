@@ -1789,16 +1789,19 @@ async function fetchProductsSnapshot() {
         const payload = await response.json();
         let apiProducts = Array.isArray(payload) ? payload : payload.items || payload.products;
         const total=Number(response.headers?.get?.('X-Total-Count')||apiProducts?.length||0);
-        // The compatibility response is capped. Fetch subsequent public summaries
-        // in bounded pages; never treat a partial catalog as proof of deletion.
+        // The compatibility response uses insertion order; paginated requests use
+        // newest order. Restart at page one so every page uses the same ordering.
         if(Array.isArray(apiProducts)&&total>apiProducts.length){
             const pages=Math.ceil(total/100);
-            for(let page=2;page<=pages;page++){
-                const url=PRODUCT_API_BASE+'?'+new URLSearchParams({page:String(page),pageSize:'100',view:'summary'});
+            apiProducts=[];
+            for(let page=1;page<=pages;page++){
+                const summary=page>1;
+                const url=PRODUCT_API_BASE+'?'+new URLSearchParams({page:String(page),pageSize:'100',sort:'newest',view:summary?'summary':'full'});
                 const next=await fetch(window.Web2Config?.apiUrl(url)||url,{cache:'no-store',credentials:'include',headers:{Accept:'application/json'}});
                 if(!next.ok)throw new Error('Catalog page failed');const data=await next.json();
-                if(!Array.isArray(data.items)||data.total!==total)throw new Error('Catalog changed during pagination');apiProducts.push(...data.items.map(p=>({...p,detailsAvailable:false})));
+                if(!Array.isArray(data.items)||data.total!==total)throw new Error('Catalog changed during pagination');apiProducts.push(...data.items.map(p=>summary?({...p,detailsAvailable:false}):p));
             }
+            if(apiProducts.length!==total)throw new Error('Incomplete catalog pagination');
         }
         if (!Array.isArray(apiProducts)) throw new Error("Invalid products payload");
         const merged = mergeProducts(apiProducts);

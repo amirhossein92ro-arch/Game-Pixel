@@ -16,6 +16,38 @@ function page(file='product.html',search='?id=1') {
     const run=code=>vm.runInContext(code,dom.getInternalVMContext());
     return {dom,w,run,errors};
 }
+test('large catalogs load every product with consistent ordering across real API pages',async()=>{
+    const temp=fs.mkdtempSync(path.join(os.tmpdir(),'web2-products-pagination-'));
+    const seed=JSON.parse(fs.readFileSync(path.join(root,'data.json'),'utf8'));
+    seed.products.push(...Array.from({length:82},(_,i)=>({...seed.products[0],id:String(1000+i),name:'Pagination product '+i,createdAt:new Date(Date.UTC(2026,0,i+1)).toISOString(),updatedAt:new Date(Date.UTC(2026,0,i+1)).toISOString()})));
+    const seedPath=path.join(temp,'seed.json');fs.writeFileSync(seedPath,JSON.stringify(seed));
+    const port=32000+Math.floor(Math.random()*1000),base='http://localhost:'+port;
+    const child=spawn(process.execPath,['server.js'],{cwd:root,windowsHide:true,env:{...process.env,NODE_ENV:'test',PORT:String(port),APP_ORIGIN:base,DATABASE_PATH:path.join(temp,'test.sqlite'),SEED_DATA_PATH:seedPath,ADMIN_PASSWORD:'Pagination-test-password-2026!'},stdio:['ignore','pipe','pipe']});
+    let p;
+    try {
+        await new Promise((resolve,reject)=>{
+            const timer=setTimeout(()=>reject(Error('pagination server startup timeout')),30000);
+            child.once('exit',code=>{clearTimeout(timer);reject(Error('pagination server exit '+code));});
+            child.stdout.on('data',data=>{if(String(data).includes('Server is running')){clearTimeout(timer);resolve();}});
+            child.stderr.on('data',()=>{});
+        });
+        p=page('index.html','');const requests=[];
+        p.w.fetch=(input,options)=>{requests.push(String(input));return fetch(new URL(input,base),options);};
+        await p.run('loadProductsFromApi()');
+        assert.equal(p.run('productsError?.stack'),undefined,'successful HTTP pages must not trigger the cache fallback');
+        assert.equal(p.run('productsSource'),'api');
+        const ids=JSON.parse(p.run('JSON.stringify(products.map(p=>p.id))'));
+        assert.deepEqual([...ids].sort(),seed.products.map(p=>String(p.id)).sort(),'no duplicated or omitted products');
+        assert.equal(p.w.document.getElementById('toastContainer').textContent,'');
+        assert.deepEqual(requests,['/api/products','/api/products?page=1&pageSize=100&sort=newest&view=full','/api/products?page=2&pageSize=100&sort=newest&view=summary']);
+        assert.equal(p.run('products.slice(0,100).every(p=>p.detailsAvailable)'),true);
+        assert.equal(p.run('products.slice(100).every(p=>!p.detailsAvailable)'),true);
+    } finally {
+        p?.w.close();if(child.exitCode===null&&child.signalCode===null){const ended=once(child,'exit');child.kill();await ended;}
+        fs.rmSync(temp,{recursive:true,force:true,maxRetries:5,retryDelay:100});
+    }
+});
+
 test('empty or corrupt fallback never erases local products, and fresh storage seeds defaults',async()=>{
     for(const bad of ['[]','{bad','[{}]','null']) {
         const p=page('product.html','?id=20');
