@@ -1686,7 +1686,7 @@ function normalizeProduct(item) {
         price: Number.isSafeInteger(price) && price > 0 ? price : 0,
         discount: Number.isFinite(Number(item.discount)) ? Math.min(99, Math.max(0, Number(item.discount))) : 0,
         stock: Number.isFinite(stockRaw) && stockRaw >= 0 ? Math.floor(stockRaw) : 0,
-        rating: Number.isFinite(ratingRaw) && ratingRaw > 0 ? ratingRaw : 5,
+        rating: Number.isFinite(ratingRaw) && ratingRaw > 0 ? ratingRaw : 0,
         reviews: Number.isFinite(reviewsRaw) && reviewsRaw >= 0 ? reviewsRaw : 0,
         shortDescription,
         description,
@@ -2080,7 +2080,7 @@ function createProductCard(product, compact = false) {
                     ${productImageMarkup(product, "product-card-image")}
                 </div>
                 <div class="product-body">
-                    <span class="product-brand">${escapeHTML(product.brand)}</span><span class="product-category">${escapeHTML(product.category)}</span>
+                    <span class="product-brand">${escapeHTML(product.brand)}</span>${product.reviews>0?`<small class="market-rating">★ امتیاز کاتالوگ: ${formatNumber(product.rating)}</small>`:""}${product.discount>0?`<span class="market-discount">${formatNumber(product.discount)}٪</span>`:""}<span class="product-category">${escapeHTML(product.category)}</span>
                     <h3>${escapeHTML(product.name)}</h3>
                     <p class="product-description">${escapeHTML(feature)}</p>
                     <div class="product-footer">
@@ -2149,8 +2149,10 @@ function getFilteredProducts() {
 
     const words=query.split(' '),stockOnly=!!document.getElementById('inStockOnly')?.checked;
     const filtered = products.filter((product) => {
-        const source=`${product.name} ${product.brand} ${product.category} ${product.shortDescription} ${(product.features||[]).join(' ')}`;
+        const source=`${product.name} ${product.brand} ${product.category} ${product.tag} ${product.shortDescription} ${(product.features||[]).join(' ')}`;
         let cached=productSearchText.get(product);if(!cached||cached.source!==source){cached={source,text:normalizeSearchText(source)};productSearchText.set(product,cached);}
+        const brand=document.getElementById('brandFilter')?.value||'all';
+        if(brand!=='all'&&product.brand!==brand)return false;
         const matchesQuery = !query || words.every(word => cached.text.includes(word));
         const matchesCategory = category === "all" || product.category === category;
         const price = getUnitPrice(product);
@@ -2165,7 +2167,8 @@ function getFilteredProducts() {
     return filtered.sort((a, b) => {
         if (sort === "price-asc") return getUnitPrice(a) - getUnitPrice(b);
         if (sort === "price-desc") return getUnitPrice(b) - getUnitPrice(a);
-        if (sort === "rating") return b.rating - a.rating;
+        if (sort === "newest") return (Date.parse(b.createdAt)||0)-(Date.parse(a.createdAt)||0);
+        if (sort === "rating") return b.rating - a.rating || b.reviews-a.reviews;
         return (b.reviews + b.rating * 40) - (a.reviews + a.rating * 40);
     });
 }
@@ -2359,7 +2362,7 @@ function renderProducts() {
     const visibleProducts = getFilteredProducts();
     const resultsCount = document.getElementById("productResultsCount");
     if (resultsCount) resultsCount.textContent = `${formatNumber(visibleProducts.length)} محصول نمایش داده می‌شود`;
-    const active = ['productSearch','categoryFilter','priceFilter','productSort'].map(id => document.getElementById(id)).filter(control => control && control.value && control.value !== (control.id === 'productSearch' ? '' : control.id === 'productSort' ? 'popular' : 'all'));
+    const active = ['productSearch','categoryFilter','priceFilter','productSort','brandFilter'].map(id => document.getElementById(id)).filter(control => control && control.value && control.value !== (control.id === 'productSearch' ? '' : control.id === 'productSort' ? 'popular' : 'all'));
     if (document.getElementById('inStockOnly')?.checked) active.push(document.getElementById('inStockOnly'));
     const clearButton = document.getElementById("clearProductFilters");
     if (clearButton) clearButton.hidden = !active.length;
@@ -2451,8 +2454,8 @@ function renderProductDetail() {
             </div>
             <div class="detail-info">
                 <span class="detail-brand">${escapeHTML(product.brand)} / <a href="/categories/${encodeURIComponent(product.category)}">${escapeHTML(product.category)}</a></span>
-                <h1 class="rgb-text">${escapeHTML(product.name)}</h1>
-                <div class="detail-purchase"><span class="detail-price"><span>قیمت محصول</span><strong>${formatPrice(getUnitPrice(product))}</strong></span><span class="detail-stock-badge ${inStock ? '' : 'out-of-stock'}">${stock.label}</span></div>
+                <h1 class="rgb-text">${escapeHTML(product.name)}</h1>${product.reviews>0?`<p class="market-rating">★ امتیاز کاتالوگ: ${formatNumber(product.rating)}</p>`:""}
+                <div class="detail-purchase"><span class="detail-price"><span>قیمت محصول</span>${product.discount>0?`<del>${formatPrice(product.price)}</del><small class="market-discount">${formatNumber(product.discount)}٪</small>`:""}<strong>${formatPrice(getUnitPrice(product))}</strong></span><span class="detail-stock-badge ${inStock ? '' : 'out-of-stock'}">${stock.label}</span></div>
                 <div class="detail-buttons">
                     <button class="primary-button" type="button" data-add-to-cart="${escapeHTML(product.id)}" ${inStock ? '' : 'disabled'}><i class="fa-solid fa-cart-plus" aria-hidden="true"></i> ${inStock ? 'افزودن به سبد خرید' : 'ناموجود'}</button>
                     <button class="secondary-button wishlist-detail${typeof Web2Wishlist !== 'undefined' && Web2Wishlist.has(product.id) ? ' is-favorite' : ''}" type="button" data-wishlist-product="${escapeHTML(product.id)}" aria-label="افزودن به علاقه‌مندی‌ها" aria-pressed="${typeof Web2Wishlist !== 'undefined' && Web2Wishlist.has(product.id)}"><i class="fa-solid fa-heart" aria-hidden="true"></i> علاقه‌مندی</button>
@@ -2636,7 +2639,7 @@ function setupProductControls() {
     setupProductControls.bound = true;
     catalogPage=typeof URLSearchParams==='function'&&window.location?Number(new URLSearchParams(window.location.search).get('page'))||1:1;
     document.addEventListener('click',event=>{const button=event.target.closest('[data-catalog-page]');if(!button||button.disabled)return;catalogPage+=button.dataset.catalogPage==='next'?1:-1;renderProducts();document.getElementById('productGrid')?.scrollIntoView({block:'start',behavior:'auto'});});
-    const controls = ["productSearch", "categoryFilter", "priceFilter", "productSort"]
+    const controls = ["productSearch", "categoryFilter", "priceFilter", "productSort", "brandFilter"]
         .map((id) => document.getElementById(id))
         .filter(Boolean);
     let searchTimer;
@@ -2656,6 +2659,7 @@ function setupProductControls() {
         document.getElementById("productSearch").value = "";
         document.getElementById("categoryFilter").value = document.body.dataset.category || "all";
         document.getElementById("priceFilter").value = "all";
+        const brand=document.getElementById("brandFilter");if(brand)brand.value="all";
         document.getElementById("productSort").value = "popular";
         const stock = document.getElementById('inStockOnly'); if (stock) stock.checked = false;
         renderProducts();
@@ -3112,9 +3116,11 @@ function setupMobileMenu() {
     const nav = document.getElementById("mainNav");
     if (!button || !nav || setupMobileMenu.bound) return;
     setupMobileMenu.bound=true;
-    const shortcuts=document.createElement('div');shortcuts.className='mobile-shortcuts';
-    shortcuts.innerHTML=`<a href="/cart.html" aria-label="سبد خرید">سبد <span data-cart-count>۰</span></a><a href="${escapeHTML(accountEntryPath())}" aria-label="حساب کاربری">حساب</a>`;
-    button.parentElement.append(shortcuts);
+    if (!document.querySelector('.market-search')) {
+        const shortcuts=document.createElement('div');shortcuts.className='mobile-shortcuts';
+        shortcuts.innerHTML=`<a href="/cart.html" aria-label="سبد خرید">سبد <span data-cart-count>۰</span></a><a href="${escapeHTML(accountEntryPath())}" aria-label="حساب کاربری">حساب</a>`;
+        button.parentElement.append(shortcuts);
+    }
 
     const closeMenu = (restoreFocus=false) => {
         button.setAttribute("aria-expanded", "false");
@@ -3624,7 +3630,7 @@ async function initializeStore() {
     setupProductImageFallback(); setupAuthUI(); setupMobileMenu(); setupGlobalActions(); setupStorageSync();
     setupContactForm(); setupAdminPanel(); setupProductControls(); setupDiscountForm(); setupBackToTop();
     setupCheckoutSteps(); setupCheckoutForm();
-    renderHomeDiscovery(); renderProducts(); renderProductDetail(); refreshCartUI();
+    renderHomeDiscovery(); setupMarketplace(); renderProducts(); renderProductDetail(); refreshCartUI();
     const page=document.body.dataset.page;
     if(['home','catalog','product','cart','checkout'].includes(page))trackEvent('page_view');
     if(page==='catalog'&&document.body.dataset.category)trackEvent('category_view',{category:document.body.dataset.category});
@@ -3661,3 +3667,46 @@ document.addEventListener('DOMContentLoaded',()=>initializeStore().catch(error=>
     });
     window.addEventListener('pagehide',show);window.addEventListener('pageshow',hide);window.addEventListener('load',hide);
 })();
+
+// Marketplace discovery uses only the loaded authoritative catalog and shared card helpers.
+function setupMarketplace() {
+    if (!['home','catalog','product','cart','checkout','profile'].includes(document.body.dataset.page)) return;
+    const input=document.getElementById('marketSearch'), suggestions=document.getElementById('searchSuggestions');
+    document.getElementById('mobileFilters')?.addEventListener('click',e=>{const open=e.currentTarget.getAttribute('aria-expanded')!=='true';e.currentTarget.setAttribute('aria-expanded',String(open));document.getElementById('catalogFilters')?.classList.toggle('filters-open',open);});
+    const query=new URLSearchParams(location.search).get('q')||'';
+    if(input)input.value=query;
+    const localSearch=document.getElementById('productSearch');
+    if(localSearch&&query)localSearch.value=query;
+    const close=()=>{if(suggestions)suggestions.hidden=true;input?.setAttribute('aria-expanded','false');};
+    input?.addEventListener('input',()=>{
+        const q=normalizeSearchText(input.value),words=q.split(' ');
+        suggestions.replaceChildren();
+        if(!q){close();return;}
+        const matches=products.filter(p=>words.every(w=>normalizeSearchText([p.name,p.brand,p.category,p.tag].join(' ')).includes(w))).slice(0,5);
+        for(const p of matches){
+            const a=document.createElement('a');a.href='/product.html?id='+encodeURIComponent(p.id);
+            const img=document.createElement('img'),image=getProductImage(p.image,p.category);
+            img.className='product-image';img.src=image.startsWith('img/')?'/'+image:image;img.alt='';img.width=44;img.height=44;
+            const name=document.createElement('span');name.textContent=p.name;
+            const price=document.createElement('small');price.textContent=formatPrice(getUnitPrice(p));a.append(img,name,price);suggestions.append(a);
+        }
+        const all=document.createElement('a');all.href='/products?q='+encodeURIComponent(input.value);all.textContent='مشاهده همه نتایج';suggestions.append(all);suggestions.hidden=false;input.setAttribute('aria-expanded','true');
+    });
+    input?.addEventListener('keydown',e=>{if(e.key==='Escape')close();if(e.key==='ArrowDown'&&!suggestions.hidden){e.preventDefault();suggestions.querySelector('a')?.focus();}});
+    document.addEventListener('click',e=>{if(!e.target.closest('.market-search'))close();});
+    document.querySelector('.market-search')?.addEventListener('focusout',e=>{if(!e.currentTarget.contains(e.relatedTarget))close();});
+    const brand=document.getElementById('brandFilter');
+    if(brand){const current=brand.value;brand.innerHTML='<option value="all">همه برندها</option>'+[...new Set(products.map(p=>p.brand))].map(b=>'<option value="'+escapeHTML(b)+'">'+escapeHTML(b)+'</option>').join('');brand.value=current;}
+    const host=document.getElementById('marketCollections');
+    if(host){
+        const groups=[['popular','محبوب‌ترین محصولات',[...products].sort((a,b)=>b.rating-a.rating||b.reviews-a.reviews)],['newest','جدیدترین محصولات',[...products].sort((a,b)=>(Date.parse(b.createdAt)||0)-(Date.parse(a.createdAt)||0))]];
+        for(const category of [...new Set(products.map(p=>p.category))].filter(c=>/استریم|حافظه|لوازم/.test(c)).slice(0,3))groups.push(['collection-'+groups.length,category,products.filter(p=>p.category===category)]);
+        host.innerHTML=groups.map(([id,title,list])=>`<section id="${id}" class="market-collection"><div class="section-heading"><h2>${escapeHTML(title)}</h2><a href="/products">مشاهده همه ←</a></div><div class="market-rail">${list.slice(0,8).map(p=>createProductCard(p,true)).join('')}</div></section>`).join('');
+    }
+    const hero=document.querySelector('.market-hero');
+    if(hero){
+        const slides=[['هر آنچه ستاپ شما کم دارد.','تجهیزات بازی را مقایسه کنید و انتخاب مناسب خود را پیدا کنید.','گیمینگ'],['صدای حرفه‌ای، شروع یک ایده.','میکروفون و تجهیزات استریم برای تولید محتوای شما.','استریم'],['یک قدم سریع‌تر.','حافظه و تجهیزات کاربردی برای ارتقای سیستم شما.','حافظه']];
+        const show=index=>{const [title,description,q]=slides[index];hero.querySelector('h1').textContent=title;hero.querySelector('.hero-content > p').textContent=description;hero.querySelector('.primary-button').href='/products?q='+encodeURIComponent(q);const selected=products.filter(p=>p.category.includes(q)).slice(0,2);document.getElementById('heroProducts').innerHTML=selected.map(p=>`<a href="/product.html?id=${encodeURIComponent(p.id)}">${productImageMarkup(p,'hero-product-image')}<span>${escapeHTML(p.name)}</span></a>`).join('');hero.querySelectorAll('[data-hero]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.hero)===index)));};
+        hero.addEventListener('click',e=>{const b=e.target.closest('[data-hero]');if(b)show(Number(b.dataset.hero));});show(0);
+    }
+}

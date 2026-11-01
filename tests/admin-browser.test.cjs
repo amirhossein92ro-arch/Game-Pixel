@@ -64,7 +64,7 @@ test('storefront and admin retain readable contrast, reduced motion and usable d
             await evaluate('document.getElementById("productSearch").value='+JSON.stringify(available.name)+';document.getElementById("productSearch").dispatchEvent(new Event("input",{bubbles:true}))');await until(()=>evaluate("document.querySelectorAll('#productGrid .product-card').length===1"),'search match');
             await evaluate('document.getElementById("clearProductFilters").click();document.getElementById("categoryFilter").value='+JSON.stringify(available.category)+';document.getElementById("categoryFilter").dispatchEvent(new Event("change",{bubbles:true}))');await until(()=>evaluate("document.querySelectorAll('#productGrid .product-card').length>0"),'category results');await evaluate('document.getElementById("clearProductFilters").click()');
             if(width<=860){
-                assert.equal(await evaluate("getComputedStyle(document.querySelector('.mobile-shortcuts')).display"),'flex');
+                assert.equal(await evaluate("getComputedStyle(document.getElementById('menuToggle')).display"),'flex');
                 await evaluate('document.getElementById("menuToggle").click()');assert.equal(await evaluate('document.getElementById("mainNav").classList.contains("open")'),true);await noOverflow('mobile menu');
                 await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});await command('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
                 assert.equal(await evaluate('document.getElementById("mainNav").classList.contains("open")'),false);assert.equal(await evaluate('document.activeElement.id'),'menuToggle');
@@ -72,14 +72,15 @@ test('storefront and admin retain readable contrast, reduced motion and usable d
             await command('DOM.enable');await command('CSS.enable');
             const doc=await command('DOM.getDocument'),cardNode=await command('DOM.querySelector',{nodeId:doc.root.nodeId,selector:'#productGrid .product-card'});
             await command('CSS.forcePseudoState',{nodeId:cardNode.nodeId,forcedPseudoClasses:['hover']});
-            await until(()=>evaluate("getComputedStyle(document.querySelector('#productGrid .product-card')).transform!=='none'"),'card hover transform');await noOverflow('hover '+width);
+            await until(()=>evaluate("getComputedStyle(document.querySelector('#productGrid .product-card')).boxShadow!=='none'"),'card hover shadow');
+            assert.equal(await evaluate("getComputedStyle(document.querySelector('#productGrid .product-card')).transform"),'none');await noOverflow('hover '+width);
             assert.equal(await evaluate("getComputedStyle(document.querySelector('#productGrid .product-card'),'::after').content"),'none');
             await command('CSS.forcePseudoState',{nodeId:cardNode.nodeId,forcedPseudoClasses:[]});
             await evaluate('document.getElementById("productGrid").scrollIntoView({block:"start",behavior:"instant"})');await capture('visual-products-'+width);
             await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});await command('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
             await evaluate("document.querySelector('#productGrid .card-add-button').focus()");
             const focus=await evaluate("(() => {const s=getComputedStyle(document.activeElement);return {style:s.outlineStyle,width:parseFloat(s.outlineWidth)};})()");assert.equal(focus.style,'solid');assert.ok(focus.width>=2,'visible keyboard focus');
-            if(width<=860){const sizes=await evaluate("Array.from(document.querySelectorAll('#menuToggle,.mobile-shortcuts a,#productGrid .card-add-button')).slice(0,4).map(el=>{const r=el.getBoundingClientRect();return {width:r.width,height:r.height};})");for(const size of sizes){assert.ok(size.height>=44,'44px touch height '+JSON.stringify(size));assert.ok(size.width>=44,'44px touch width '+JSON.stringify(size));}}
+            if(width<=860){const sizes=await evaluate("Array.from(document.querySelectorAll('#menuToggle,.site-header .cart-button,.site-header .profile-button,#productGrid .card-add-button')).slice(0,4).map(el=>{const r=el.getBoundingClientRect();return {width:r.width,height:r.height};})");for(const size of sizes){assert.ok(size.height>=44,'44px touch height '+JSON.stringify(size));assert.ok(size.width>=44,'44px touch width '+JSON.stringify(size));}}
             await evaluate('window.scrollTo({top:0,behavior:"instant"})');
             await capture('visual-home-'+width);
             for (const route of ['/products','/categories/'+encodeURIComponent(available.category)]) {

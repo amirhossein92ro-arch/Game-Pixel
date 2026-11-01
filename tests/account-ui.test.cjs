@@ -94,7 +94,8 @@ test('account and admin DOM flow uses real API, wishlist cart and safe logout',a
         assert.ok(w.document.getElementById('accountSection').textContent.includes('پاسخ مدیر'));
         await section(w,'notifications');assert.ok(w.document.querySelector('[data-account-action="read-all"]'));w.document.querySelector('[data-account-action="read-all"]').click();await until(()=>w.document.getElementById('accountUnread').hidden);
         await section(w,'security');assert.ok(w.document.getElementById('accountPasswordForm'));assert.ok(!w.document.getElementById('accountSection').textContent.includes(adminCsrf));
-        const themeBefore=w.document.body.classList.contains('light-theme');w.document.getElementById('themeBtn').click();assert.notEqual(w.document.body.classList.contains('light-theme'),themeBefore);
+        assert.equal(w.document.querySelector('.market-search input').placeholder,'جستجو در WEB 2');
+        assert.equal(w.document.querySelector('.cart-button').getAttribute('href'),'/cart.html');
         w.document.querySelector('[data-account-action="logout"]').click();await until(()=>w.document.getElementById('profileAuth'));assert.equal(w.document.querySelector('.account-layout'),null);
         assert.equal((await fetch(base+'/api/account/dashboard',{headers:{Cookie:cookie}})).status,401);
         submit(w,fill(w,'profileAuth',{email:fields.email,password:fields.password}));await until(()=>w.document.querySelector('.account-stats'));

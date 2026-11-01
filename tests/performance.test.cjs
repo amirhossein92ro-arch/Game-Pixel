@@ -93,11 +93,12 @@ test('bounded catalog pages load once, keep off-page cart items and render at mo
     const dom=new JSDOM(fs.readFileSync(path.join(root,'index.html'),'utf8'),{url:'http://localhost:3000/',runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:new VirtualConsole()}),w=dom.window,requests=[];
     try{
         const products=Array.from({length:130},(_,i)=>({id:String(i+1),name:'Fixture '+i,price:100,stock:5,shortDescription:'Summary',description:'Full detail',category:'کیبورد گیمینگ'}));
-        w.fetch=async url=>{requests.push(String(url));const parsed=new URL(url,w.location.href),page=Number(parsed.searchParams.get('page')||1);return parsed.search?Response.json({items:products.slice(100),total:130,page,pageSize:100,pages:2}):Response.json(products.slice(0,100),{headers:{'X-Total-Count':'130'}});};
+        w.fetch=async url=>{requests.push(String(url));const parsed=new URL(url,w.location.href),page=Number(parsed.searchParams.get('page')||1);return parsed.search?Response.json({items:products.slice((page-1)*100,page*100),total:130,page,pageSize:100,pages:2}):Response.json(products.slice(0,100),{headers:{'X-Total-Count':'130'}});};
         w.Element.prototype.scrollIntoView=function(){};w.localStorage.setItem('web2_cart',JSON.stringify([{id:'130',quantity:2}]));
         vm.runInContext(fs.readFileSync(path.join(root,'script.js'),'utf8'),dom.getInternalVMContext());vm.runInContext('initializeStore.initialized=true;',dom.getInternalVMContext());
         await Promise.all([vm.runInContext('loadProductsFromApi()',dom.getInternalVMContext()),vm.runInContext('loadProductsFromApi()',dom.getInternalVMContext())]);
-        assert.equal(requests.length,2);assert.equal(vm.runInContext('products.length',dom.getInternalVMContext()),130);
+        // Restart pagination at page one so all pages use the same newest ordering.
+        assert.equal(requests.length,3);assert.equal(vm.runInContext('products.length',dom.getInternalVMContext()),130);
         vm.runInContext('setupProductControls();setupProductControls();renderProducts();',dom.getInternalVMContext());assert.equal(w.document.querySelectorAll('#productGrid .product-card').length,100);
         const image=w.document.querySelector('#productGrid img');assert.equal(image.getAttribute('loading'),'lazy');assert.equal(image.width,480);assert.equal(image.height,360);
         w.document.querySelector('[data-catalog-page="next"]').click();assert.equal(w.document.querySelectorAll('#productGrid .product-card').length,30);assert.equal(vm.runInContext('getCart()[0].id',dom.getInternalVMContext()),'130');assert.equal(vm.runInContext('getCart()[0].quantity',dom.getInternalVMContext()),2);

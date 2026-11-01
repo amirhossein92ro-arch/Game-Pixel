@@ -47,6 +47,24 @@ test('phase 10 shopping UX uses real sessions, server quotes and accessible loca
     const unavailable=(await admin.call('/api/admin/products','POST',{name:'کیبورد تست ناموجود',price:110000,stock:0,category:'کیبورد گیمینگ',status:'active'})).data;
     const catalog=(await buyer.call('/api/products')).data,product=catalog.find(p=>p.stock>=3);
 
+    await t.test('marketplace discovery, safe suggestions, category links and brand filters use the API catalog',async()=>{
+        const {w,run}=await page('/');await until(()=>w.document.querySelector('#marketCollections .product-card'));
+        assert.equal(run('productsSource'),'api');
+        assert.equal(w.document.getElementById('homeProductCount').textContent,run('formatNumber(products.length)'));
+        assert.ok(w.document.querySelector('#categoryGrid a[href^="/categories/"]'));
+        assert.equal(w.document.querySelectorAll('[data-hero]').length,3);
+        w.document.querySelector('[data-hero="1"]').click();assert.equal(w.document.querySelector('[data-hero="1"]').getAttribute('aria-pressed'),'true');
+        const input=w.document.getElementById('marketSearch');input.value=product.name;input.dispatchEvent(new w.Event('input',{bubbles:true}));
+        const box=w.document.getElementById('searchSuggestions');assert.equal(box.hidden,false);assert.ok(box.querySelector('a[href="/product.html?id='+product.id+'"]'));assert.ok(box.querySelectorAll('a').length<=6);
+        const suggestionImage=box.querySelector('img');assert.equal(suggestionImage.getAttribute('src').startsWith('/'),true);
+        suggestionImage.dispatchEvent(new w.Event('error'));assert.equal(suggestionImage.dataset.fallbackApplied,'true');assert.match(suggestionImage.src,/product-placeholder\.svg$/);
+        input.value='<img src=x onerror=alert(1)>';input.dispatchEvent(new w.Event('input',{bubbles:true}));assert.equal(box.querySelectorAll('img').length,0);assert.equal(box.querySelectorAll('script').length,0);
+        input.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert.equal(box.hidden,true);
+        const listing=await page('/products?q='+encodeURIComponent(product.name));await until(()=>listing.w.document.getElementById('productSearch').value===product.name);
+        assert.ok(listing.run('getFilteredProducts().some(p=>p.id==='+JSON.stringify(String(product.id))+')'));
+        const brand=listing.w.document.getElementById('brandFilter');brand.value=product.brand;brand.dispatchEvent(new listing.w.Event('change',{bubbles:true}));assert.ok(listing.run('getFilteredProducts().every(p=>p.brand==='+JSON.stringify(product.brand)+')'));
+        assert.equal(run('productsError'),null);
+    });
     await t.test('cards expose an honest stock label, category, feature and direct add action; double clicks add once',async()=>{
         const p=await page('/products'),{w,run}=p;await until(()=>w.document.querySelector('#productGrid .card-add-button'));
         assert.equal(w.document.querySelectorAll('.product-rating,.detail-rating').length,0);
