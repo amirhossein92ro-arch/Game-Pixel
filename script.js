@@ -1608,14 +1608,14 @@ const PRODUCT_CATEGORY_ALIASES = Object.freeze({
 function normalizeProductCategory(value, name = "") {
     if (String(name).includes("میکروفون")) return "میکروفون";
     const category = String(value || "لوازم جانبی گیمینگ").trim();
-    return Object.hasOwn(PRODUCT_CATEGORY_ALIASES,category) ? PRODUCT_CATEGORY_ALIASES[category] : category;
+    return Object.prototype.hasOwnProperty.call(PRODUCT_CATEGORY_ALIASES,category) ? PRODUCT_CATEGORY_ALIASES[category] : category;
 }
 
 function getProductImage(value, category) {
     const image = String(value || "").trim();
-    if (typeof Web2SafeURL !== 'undefined') return Web2SafeURL.image(image) || (Object.hasOwn(PRODUCT_CATEGORY_IMAGES,category) ? PRODUCT_CATEGORY_IMAGES[category] : PRODUCT_IMAGE_FALLBACK);
+    if (typeof Web2SafeURL !== 'undefined') return Web2SafeURL.image(image) || (Object.prototype.hasOwnProperty.call(PRODUCT_CATEGORY_IMAGES,category) ? PRODUCT_CATEGORY_IMAGES[category] : PRODUCT_IMAGE_FALLBACK);
     if (/^img\/[a-zA-Z0-9_./-]+$/.test(image) && !image.split('/').some(part=>!part||part==='.'||part==='..'||part.startsWith('.')) && /\.(?:png|jpe?g|webp|gif|svg|avif|ico)$/i.test(image)) return image;
-    return Object.hasOwn(PRODUCT_CATEGORY_IMAGES,category) ? PRODUCT_CATEGORY_IMAGES[category] : PRODUCT_IMAGE_FALLBACK;
+    return Object.prototype.hasOwnProperty.call(PRODUCT_CATEGORY_IMAGES,category) ? PRODUCT_CATEGORY_IMAGES[category] : PRODUCT_IMAGE_FALLBACK;
 }
 
 function productImageMarkup(product, className = "product-image") {

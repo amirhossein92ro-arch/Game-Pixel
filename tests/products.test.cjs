@@ -16,6 +16,30 @@ function page(file='product.html',search='?id=1') {
     const run=code=>vm.runInContext(code,dom.getInternalVMContext());
     return {dom,w,run,errors};
 }
+test('catalog normalization works without Object.hasOwn in older storefront browsers',async()=>{
+    const p=page('index.html','');
+    try {
+        const consoleErrors=[];p.w.console.error=(...args)=>consoleErrors.push(args);
+        p.run('Object.hasOwn=undefined');
+        const catalog=JSON.parse(fs.readFileSync(path.join(root,'data.json'),'utf8')).products;
+        p.w.fetch=async()=>({ok:true,json:async()=>catalog});
+        await p.run('loadProductsFromApi()');
+        assert.equal(p.run('productsError?.stack'),undefined);
+        assert.equal(p.run('productsSource'),'api');
+        assert.equal(p.run('products.length'),catalog.filter(p=>p.status!=='inactive').length);
+        p.run('renderHomeDiscovery();setupMarketplace();renderProducts();refreshCartUI()');
+        assert.ok(p.w.document.querySelector('#marketCollections .product-card'));
+        assert.ok(p.w.document.querySelector('a[href^="/product.html?id="]'));
+        assert.equal(p.w.document.getElementById('toastContainer').textContent,'');
+        assert.equal(p.run('getProductImage("", "__proto__")'),'img/product-placeholder.svg');
+        p.w.Web2SafeURL={image:()=>''};
+        assert.equal(p.run('getProductImage("", "__proto__")'),'img/product-placeholder.svg');
+        assert.equal(p.run('normalizeProductCategory("constructor")'),'constructor');
+        assert.deepEqual(consoleErrors,[]);
+        assert.deepEqual(p.errors,[]);
+    } finally {p.w.close();}
+});
+
 test('large catalogs load every product with consistent ordering across real API pages',async()=>{
     const temp=fs.mkdtempSync(path.join(os.tmpdir(),'web2-products-pagination-'));
     const seed=JSON.parse(fs.readFileSync(path.join(root,'data.json'),'utf8'));
