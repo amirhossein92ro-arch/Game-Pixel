@@ -4427,3 +4427,36 @@ body:has(.market-search) :is(.detail-rating, .product-rating) { color: #79520d; 
 @media (forced-colors: active) {
     body:has(.market-search) :is(.primary-button, .secondary-button, .card-add-button) { border: 1px solid ButtonText; }
 }
+
+/* Keep merchandise crisp and floating UI legible across user preferences. */
+body:has(.market-search) :is(.product-card, .product-art, .product-body) {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+body:has(.market-search) .search-suggestions :is(a, small) {
+    color: var(--cream-text);
+}
+body:has(.market-search) :is(.product-toolbar, .auth-card, .account-dialog) :is(input, select, textarea) {
+    background: var(--cream-surface);
+    color: var(--cream-text);
+    border-color: var(--cream-border);
+}
+body:has(.market-search) .search-suggestions a:hover {
+    background: var(--cream-hover);
+}
+body:has(.market-search) .product-card:focus-within {
+    border-color: var(--cream-accent);
+}
+@media (prefers-reduced-transparency: reduce) {
+    body:has(.market-search) :is(.site-header, .search-suggestions, .auth-card, .account-dialog, .product-toolbar, .glass-floating, .glass-surface, .back-to-top, .main-nav.open, .main-nav.is-open) {
+        background: var(--cream-surface);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        border-color: var(--cream-border);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    html:has(body .market-search) { scroll-behavior: auto; }
+}
+
+body:has(.market-search) .storefront-glass-header { border-bottom-color: var(--cream-border); }
