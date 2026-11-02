@@ -10,6 +10,7 @@ function page(file='product.html',search='?id=1') {
     const errors=[],dom=new JSDOM(fs.readFileSync(path.join(root,file),'utf8'),{url:'http://localhost/'+file+search,runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:new VirtualConsole()});
     const w=dom.window;
     w.addEventListener('error',e=>errors.push(e.message));
+    vm.runInContext(fs.readFileSync(path.join(root,'js/product-pricing.js'),'utf8'),dom.getInternalVMContext());
     vm.runInContext(source,dom.getInternalVMContext());
     // Explicit initialization below lets tests control response timing and failures.
     vm.runInContext('initializeStore.initialized=true;',dom.getInternalVMContext());
@@ -352,7 +353,7 @@ test('all database products: API, home/search/category links, detail, cart and p
     try {
         await start();
         const catalog=await request('/api/products');
-        assert.equal(catalog.length,71);
+        assert.equal(catalog.length,seed.products.length);
         assert.equal(catalog[0].id,'1');
         assert.ok(catalog.every(p=>typeof p.id==='string'));
         console.log(`Real API first ID: ${JSON.stringify(catalog[0].id)}; direct URL: ${base}/product.html?id=${catalog[0].id}`);

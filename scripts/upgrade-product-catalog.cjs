@@ -22,7 +22,7 @@ const categoryMap = new Map([
     ['تجهیزات استریم', 'تجهیزات استریم'],
     ['وبکم', 'تجهیزات استریم'],
     ['حافظه گیمینگ', 'قطعات کامپیوتر'],
-    ['خنک‌کننده', 'قطعات کامپیوتر'],
+    ['خنک‌کننده', 'خنک‌کننده'],
     ['گیمینگ', 'لوازم جانبی گیمینگ'],
     ['اسپیکر گیمینگ', 'لوازم جانبی گیمینگ'],
     ['موسپد گیمینگ', 'لوازم جانبی گیمینگ'],
@@ -31,6 +31,15 @@ const categoryMap = new Map([
 ]);
 
 const images = {
+    'پردازنده':'img/hardware/cpu.svg',
+    'مادربرد':'img/hardware/motherboard.svg',
+    'رم':'img/hardware/ram.svg',
+    'کارت گرافیک':'img/hardware/gpu.svg',
+    'SSD و حافظه':'img/hardware/ssd.svg',
+    'خنک‌کننده':'img/hardware/cooler.svg',
+    'پاور':'img/hardware/psu.svg',
+    'کیس':'img/hardware/pc.svg',
+    'سیستم کامل گیمینگ':'img/hardware/pc.svg',
     'موس گیمینگ': 'img/products/mouse.svg',
     'کیبورد گیمینگ': 'img/products/keyboard.svg',
     'هدست': 'img/products/headset.svg',

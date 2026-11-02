@@ -19,7 +19,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=980e9e871b7b3cfe">
+    <link rel="stylesheet" href="style.css?v=f7d1c2f00cad229c">
+    <link rel="stylesheet" href="css/storefront-pc.css?v=9c036e007ee20289">
+    <link rel="stylesheet" href="css/storefront-motion.css?v=def06339ff72a2c2">
 </head>
 <body data-page="home">
     <a class="skip-link" href="#main-content">رفتن به محتوای اصلی</a>
@@ -30,11 +32,11 @@
 <form class="market-search" role="search" action="/products"><label class="sr-only" for="marketSearch">جستجو در WEB 2</label><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="marketSearch" name="q" type="search" placeholder="جستجو در WEB 2" autocomplete="off" aria-controls="searchSuggestions" aria-expanded="false"><div id="searchSuggestions" class="search-suggestions" hidden></div></form>
 <div class="nav-actions"><a class="cart-button" href="/cart.html" aria-label="سبد خرید"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i><span id="cart-count" class="cart-count" aria-live="polite">۰</span></a></div>
 <button class="menu-toggle" id="menuToggle" type="button" aria-controls="mainNav" aria-expanded="false" aria-label="منوی فروشگاه"><span></span><span></span><span></span></button>
-<nav class="main-nav" id="mainNav" aria-label="ناوبری فروشگاه"><a class="category-nav" href="/#categories">☰ دسته‌بندی کالاها</a><a href="/#featured">پیشنهادهای ویژه</a><a href="/#popular">محبوب‌ترین‌ها</a><a href="/#newest">جدیدترین‌ها</a><a href="/products">محصولات</a><a href="/#about">درباره ما</a><a href="/#contact">تماس با ما</a></nav>
+<nav class="main-nav" id="mainNav" aria-label="ناوبری فروشگاه"><a class="category-nav" href="/#categories">☰ دسته‌بندی کالاها</a><a href="/#featuredPC">سیستم ویژه WEB 2</a><a href="/#featured">پیشنهادهای ویژه</a><a href="/#popular">محبوب‌ترین‌ها</a><a href="/#newest">جدیدترین‌ها</a><a href="/products">محصولات</a><a href="/#about">درباره ما</a><a href="/#contact">تماس با ما</a></nav>
 </div></header>
 
     <main id="main-content">
-        <section class="container market-hero" aria-label="پیشنهادهای WEB 2"><span class="hero-halo" aria-hidden="true"></span><div class="hero-content"><span class="eyebrow">انتخاب امروز، برای ستاپ فردا</span><h1>هر آنچه ستاپ شما کم دارد.</h1><p>تجهیزات بازی، کار و استریم را کنار هم ببینید و با اطمینان انتخاب کنید.</p><a class="primary-button" href="/products">کشف محصولات ←</a><p class="hero-catalog"><strong id="homeProductCount">—</strong> محصول در کاتالوگ WEB 2</p></div><div id="heroProducts" class="hero-products"></div><div class="hero-tabs" aria-label="انتخاب پیشنهاد"><button type="button" data-hero="0" aria-pressed="true">تجهیزات گیمینگ</button><button type="button" data-hero="1" aria-pressed="false">تجهیزات استریم</button><button type="button" data-hero="2" aria-pressed="false">ارتقای سیستم</button></div></section>
+        <section class="container market-hero" aria-label="پیشنهادهای WEB 2"><span class="hero-halo" aria-hidden="true"></span><div class="hero-content"><span class="eyebrow">انتخاب امروز، برای ستاپ فردا</span><h1>قدرت، به انتخاب شما.</h1><p>از اولین قطعه تا سیستم کامل؛ قطعات هماهنگ برای بازی، کار و خلاقیت.</p><a class="primary-button" href="/products">کشف محصولات ←</a><p class="hero-catalog"><strong id="homeProductCount">—</strong> محصول در کاتالوگ WEB 2</p></div><div id="heroProducts" class="hero-products"></div><div class="hero-tabs" aria-label="انتخاب پیشنهاد"><button type="button" data-hero="0" aria-pressed="true">سیستم کامل گیمینگ</button><button type="button" data-hero="1" aria-pressed="false">تجهیزات استریم</button><button type="button" data-hero="2" aria-pressed="false">ارتقای سیستم</button></div></section>
 
         <section class="section categories-section" id="categories">
             <div class="container glass-surface">
@@ -47,6 +49,10 @@
                 </div>
                 <div class="category-grid" id="categoryGrid" aria-label="دسته‌بندی محصولات"><!-- SEO:CATEGORIES --></div>
             </div>
+        </section>
+
+        <section class="container pc-campaign" id="featuredPC" aria-labelledby="featuredPCTitle" aria-busy="true">
+            <div class="pc-loading" role="status"><h2 id="featuredPCTitle">سیستم کامل ویژه WEB 2</h2><p>در حال دریافت پیکربندی و قیمت از کاتالوگ…</p><span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span></div>
         </section>
 
         <section class="section spotlight-section" id="featured">
@@ -188,6 +194,9 @@
     <link rel="stylesheet" href="css/admin.css?v=44042935bb379399">
     <script src="js/site.js?v=6cf24f98869fd3c2"></script>
     <script src="js/wishlist.js?v=82b037d2da2f8760"></script>
-    <script src="script.js?v=a95f68e47bc96aa0"></script>
+    <script src="js/product-pricing.js?v=6d4a769b285af732"></script>
+    <script src="script.js?v=0e95e3e178d0527d"></script>
+    <script src="js/storefront-pc.js?v=a1c1884054dc0c65"></script>
+    <script src="js/storefront-motion.js?v=1921767263698109"></script>
 </body>
 </html>

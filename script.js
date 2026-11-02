@@ -1599,7 +1599,7 @@ const PRODUCT_CATEGORY_IMAGES = Object.freeze({
 });
 const PRODUCT_CATEGORY_ALIASES = Object.freeze({
     "هدست گیمینگ": "هدست", "مانیتور گیمینگ": "مانیتور", "کنترلر گیمینگ": "دسته بازی",
-    "وبکم": "تجهیزات استریم", "حافظه گیمینگ": "قطعات کامپیوتر", "خنک‌کننده": "قطعات کامپیوتر",
+    "وبکم": "تجهیزات استریم", "حافظه گیمینگ": "قطعات کامپیوتر",
     "گیمینگ": "لوازم جانبی گیمینگ", "اسپیکر گیمینگ": "لوازم جانبی گیمینگ",
     "موسپد گیمینگ": "لوازم جانبی گیمینگ", "هاب و تجهیزات USB": "لوازم جانبی گیمینگ",
     "لوازم ستاپ": "لوازم جانبی گیمینگ"
@@ -1638,9 +1638,13 @@ function setupProductImageFallback() {
 
 // ساختار یکنواخت محصول: هر رکورد (حتی با ساختار قدیمی) را به شکل استاندارد تبدیل می‌کند.
 function getUnitPrice(product) {
+    if (typeof Web2ProductPricing !== 'undefined') return Web2ProductPricing.unitPrice(product);
     const discount = Number(product.discount);
     const percent = Number.isFinite(discount) ? Math.min(99, Math.max(0, discount)) : 0;
     return Math.round(Number(product.price) * (100 - percent) / 100);
+}
+function getProductDiscount(product) {
+    return typeof Web2ProductPricing !== 'undefined' ? Web2ProductPricing.effectiveDiscount(product) : Number(product.discount) || 0;
 }
 function cacheProducts(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
 // IDs are opaque keys. Never infer identity from a number or generate it here.
@@ -1677,6 +1681,8 @@ function normalizeProduct(item) {
     return {
         id,
         featured:item.featured,isNew:item.isNew,bestSeller:item.bestSeller,
+        campaign: typeof Web2ProductPricing !== 'undefined' ? Web2ProductPricing.normalizeCampaign(item.campaign) : null,
+        components: Array.isArray(item.components) ? item.components.map(component => ({label:String(component.label || ''),value:String(component.value || ''),productId:String(component.productId || '')})) : [],
         name,
         image: getProductImage(item.image, category),
         brand: String(item.brand ?? "WEB 2").trim(),
@@ -2011,6 +2017,11 @@ function refreshCartUI() {
     renderCart();
     renderCheckout();
     renderInvoiceReview();
+    if (window.Web2PC) window.Web2PC.renderHeaderPreviews({
+        items: productsSource === 'api' ? getCart().map(item => { const product = getProduct(item.id); return {id: item.id, name: product.name, quantity: item.quantity, unitPrice: getUnitPrice(product)}; }) : [],
+        isVerified: productsSource === 'api' && !productsError,
+        signedIn: !!getCurrentUser()
+    });
 }
 
 let serverCartQuote = null;
@@ -2069,6 +2080,7 @@ function getProductStock(product, verified = productsSource === 'api') {
 
 function createProductCard(product, compact = false) {
     const accent = normalizeAccent(product.accent);
+    const discount = getProductDiscount(product);
     const stock = getProductStock(product);
     const feature = product.features?.[0] || product.shortDescription || '';
     return `
@@ -2080,11 +2092,11 @@ function createProductCard(product, compact = false) {
                     ${productImageMarkup(product, "product-card-image")}
                 </div>
                 <div class="product-body">
-                    <span class="product-brand">${escapeHTML(product.brand)}</span>${product.reviews>0?`<small class="market-rating">★ امتیاز کاتالوگ: ${formatNumber(product.rating)}</small>`:""}${product.discount>0?`<span class="market-discount">${formatNumber(product.discount)}٪</span>`:""}<span class="product-category">${escapeHTML(product.category)}</span>
+                    <span class="product-brand">${escapeHTML(product.brand)}</span>${product.reviews>0?`<small class="market-rating">★ امتیاز کاتالوگ: ${formatNumber(product.rating)}</small>`:""}${discount>0?`<span class="market-discount">${formatNumber(discount)}٪</span>`:""}<span class="product-category">${escapeHTML(product.category)}</span>
                     <h3>${escapeHTML(product.name)}</h3>
                     <p class="product-description">${escapeHTML(feature)}</p>
                     <div class="product-footer">
-                        <span class="product-price"><span>قیمت</span>${Number(product.discount)>0?`<del class="product-old-price">${formatPrice(product.price)}</del>`:''}<strong>${formatPrice(getUnitPrice(product))}</strong></span>
+                        <span class="product-price"><span>قیمت</span>${Number(discount)>0?`<del class="product-old-price">${formatPrice(product.price)}</del>`:''}<strong>${formatPrice(getUnitPrice(product))}</strong></span>
                         <span class="view-product">مشاهده مشخصات <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></span>
                     </div>
                 </div>
@@ -2109,7 +2121,9 @@ function renderHomeDiscovery() {
     });
 
     if (categoryGrid) {
-        categoryGrid.innerHTML = [...categoryMap.entries()].slice(0, 8).map(([category, meta]) => `
+        const order = ['سیستم کامل گیمینگ','پردازنده','کارت گرافیک','مادربرد','رم','SSD و حافظه','خنک‌کننده','پاور','کیس','مانیتور','کیبورد گیمینگ','موس گیمینگ','هدست','تجهیزات استریم'];
+        const rank = category => order.includes(category) ? order.indexOf(category) : order.length;
+        categoryGrid.innerHTML = [...categoryMap.entries()].sort(([a],[b]) => rank(a)-rank(b)).map(([category, meta]) => `
             <a class="category-card" href="/categories/${encodeURIComponent(category)}" data-category-select="${escapeHTML(category)}" style="--category-accent:${normalizeAccent(meta.accent)}">
                 <span><i class="fa-solid ${normalizeIcon(meta.icon)}" aria-hidden="true"></i></span>
                 <strong>${escapeHTML(category)}</strong>
@@ -2445,6 +2459,7 @@ function renderProductDetail() {
     const accent = normalizeAccent(product.accent);
     const stock = getProductStock(product);
     const inStock = stock.available;
+    const discount = getProductDiscount(product);
 
     container.innerHTML = `
         <article class="product-detail-grid" style="--accent:${accent};--accent-soft:${accent}18;--accent-soft-strong:${accent}66">
@@ -2455,7 +2470,7 @@ function renderProductDetail() {
             <div class="detail-info">
                 <span class="detail-brand">${escapeHTML(product.brand)} / <a href="/categories/${encodeURIComponent(product.category)}">${escapeHTML(product.category)}</a></span>
                 <h1 class="rgb-text">${escapeHTML(product.name)}</h1>${product.reviews>0?`<p class="market-rating">★ امتیاز کاتالوگ: ${formatNumber(product.rating)}</p>`:""}
-                <div class="detail-purchase"><span class="detail-price"><span>قیمت محصول</span>${product.discount>0?`<del>${formatPrice(product.price)}</del><small class="market-discount">${formatNumber(product.discount)}٪</small>`:""}<strong>${formatPrice(getUnitPrice(product))}</strong></span><span class="detail-stock-badge ${inStock ? '' : 'out-of-stock'}">${stock.label}</span></div>
+                <div class="detail-purchase"><span class="detail-price"><span>قیمت محصول</span>${discount>0?`<del>${formatPrice(product.price)}</del><small class="market-discount">${formatNumber(discount)}٪</small>`:""}<strong>${formatPrice(getUnitPrice(product))}</strong></span><span class="detail-stock-badge ${inStock ? '' : 'out-of-stock'}">${stock.label}</span></div>
                 <div class="detail-buttons">
                     <button class="primary-button" type="button" data-add-to-cart="${escapeHTML(product.id)}" ${inStock ? '' : 'disabled'}><i class="fa-solid fa-cart-plus" aria-hidden="true"></i> ${inStock ? 'افزودن به سبد خرید' : 'ناموجود'}</button>
                     <button class="secondary-button wishlist-detail${typeof Web2Wishlist !== 'undefined' && Web2Wishlist.has(product.id) ? ' is-favorite' : ''}" type="button" data-wishlist-product="${escapeHTML(product.id)}" aria-label="افزودن به علاقه‌مندی‌ها" aria-pressed="${typeof Web2Wishlist !== 'undefined' && Web2Wishlist.has(product.id)}"><i class="fa-solid fa-heart" aria-hidden="true"></i> علاقه‌مندی</button>
@@ -3631,6 +3646,7 @@ async function initializeStore() {
     setupContactForm(); setupAdminPanel(); setupProductControls(); setupDiscountForm(); setupBackToTop();
     setupCheckoutSteps(); setupCheckoutForm();
     renderHomeDiscovery(); setupMarketplace(); renderProducts(); renderProductDetail(); refreshCartUI();
+    window.Web2PC?.render(products, productsSource === 'api' && !productsError);
     const page=document.body.dataset.page;
     if(['home','catalog','product','cart','checkout'].includes(page))trackEvent('page_view');
     if(page==='catalog'&&document.body.dataset.category)trackEvent('category_view',{category:document.body.dataset.category});
@@ -3638,37 +3654,67 @@ async function initializeStore() {
     if(page==='cart')trackEvent('cart_view');
     if(page==='checkout'&&getCart().length)trackEvent('checkout_started');
 }
+document.addEventListener('web2:campaign-change', () => { renderHomeDiscovery(); renderMarketplaceCollections(); renderProducts(); renderProductDetail(); refreshCartUI(); });
 document.addEventListener('DOMContentLoaded',()=>initializeStore().catch(error=>{console.error('Store initialization failed');showToast('بارگذاری فروشگاه انجام نشد؛ صفحه را تازه کنید.','error');}));
 /* Short, fail-safe transition for real same-origin page navigations. */
 (()=>{
     if(typeof document?.createElement!=='function'||typeof document?.addEventListener!=='function')return;
-    let overlay,watchdog,navigating=false;
+    let overlay,watchdog,navigating=false,navigationTimer;
+    const reduced=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches===true;
+    const protectedPath=path=>/^\/(?:admin(?:[-/.]|$)|api(?:\/|$)|checkout(?:[/.]|$)|profile(?:[/.]|$)|auth(?:\/|$)|login(?:[/.]|$)|logout(?:[/.]|$)|payment(?:[/.]|$))/i.test(path);
     const build=()=>{
         if(overlay)return overlay;
         overlay=document.createElement('div');overlay.className='page-transition-overlay';overlay.setAttribute('aria-hidden','true');
         const current=document.querySelector('.brand-icon');
-        const logo=current?current.cloneNode(true):Object.assign(document.createElement('span'),{innerHTML:'<i class="fa-solid fa-gamepad" aria-hidden="true"></i>'});
+        const logo=current?current.cloneNode(true):Object.assign(document.createElement('span'),{innerHTML:'<i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>'});
         logo.className='page-transition-logo';
         const card=document.createElement('div');card.className='page-transition-card';card.setAttribute('role','status');card.setAttribute('aria-label','در حال بارگذاری صفحه');
         const name=document.createElement('span');name.className='page-transition-name';name.textContent=document.querySelector('.brand strong')?.textContent?.trim()||'WEB 2';
         const dots=document.createElement('span');dots.className='page-transition-dots';dots.setAttribute('aria-hidden','true');dots.innerHTML='<i></i><i></i><i></i>';
         card.append(logo,name,dots);overlay.append(card);document.body.append(overlay);return overlay;
     };
-    const show=()=>{build().classList.add('is-visible');clearTimeout(watchdog);watchdog=setTimeout(hide,1200);};
-    const hide=()=>{clearTimeout(watchdog);navigating=false;if(overlay)overlay.classList.remove('is-visible');};
-    const ready=()=>{build();requestAnimationFrame(()=>requestAnimationFrame(hide));};
+    const show=()=>{build().classList.add('is-visible');if(!reduced())document.body.classList.add('storefront-leaving');clearTimeout(watchdog);watchdog=setTimeout(hide,1200);};
+    const hide=()=>{clearTimeout(watchdog);clearTimeout(navigationTimer);navigating=false;document.body.classList.remove('storefront-leaving');if(overlay)overlay.classList.remove('is-visible');};
+    const ready=()=>{
+        build();requestAnimationFrame(()=>requestAnimationFrame(hide));
+        // Cross-document transitions are progressive enhancement; HTTP navigation stays native.
+        if(!protectedPath(location.pathname)&&!reduced()&&'onpageswap' in window){
+            const style=document.createElement('style');style.textContent='@view-transition { navigation: auto; }';document.head.append(style);
+        }
+    };
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
     document.addEventListener('click',event=>{
-        const link=event.target.closest?.('a[href]');if(!link||event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||link.hasAttribute('download')||link.target&&link.target!=='_self')return;
+        const link=event.target.closest?.('a[href]');if(!link||event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||link.hasAttribute('download')||link.target&&link.target!=='_self'||link.hasAttribute('data-no-transition'))return;
         let target;try{target=new URL(link.href,location.href);}catch{return;}
-        if(!['http:','https:'].includes(target.protocol)||target.origin!==location.origin)return;
+        if(!['http:','https:'].includes(target.protocol)||target.origin!==location.origin||link.getAttribute('href')?.startsWith('#'))return;
         const here=new URL(location.href);if(target.pathname===here.pathname&&target.search===here.search)return;
-        if(navigating)return;navigating=true;show();
+        if(protectedPath(target.pathname)||protectedPath(here.pathname)||reduced())return;
+        if(navigating)return;
+        navigating=true;
+        // Native navigation preserves history and back/forward caching. No route interception.
+        show();
     });
-    window.addEventListener('pagehide',show);window.addEventListener('pageshow',hide);window.addEventListener('load',hide);
+    window.addEventListener('pageswap',event=>{
+        let target;try{target=new URL(event.activation?.entry?.url||location.href);}catch{return;}
+        const traversing=event.activation?.navigationType==='traverse';
+        if(reduced()||protectedPath(target.pathname)||protectedPath(location.pathname)||(!navigating&&!traversing))event.viewTransition?.skipTransition();
+        // Let the browser's shared snapshot provide the depth effect, without a second overlay.
+        if(event.viewTransition)hide();
+    });
+    window.addEventListener('pagehide',()=>{if(navigating&&!protectedPath(location.pathname)&&!reduced())show();});
+    window.addEventListener('pageshow',hide);window.addEventListener('load',hide);
 })();
 
 // Marketplace discovery uses only the loaded authoritative catalog and shared card helpers.
+function renderMarketplaceCollections() {
+    const host=document.getElementById('marketCollections');
+    if(host){
+        const groups=[['popular','محبوب‌ترین محصولات',[...products].sort((a,b)=>b.rating-a.rating||b.reviews-a.reviews)],['newest','جدیدترین محصولات',[...products].sort((a,b)=>(Date.parse(b.createdAt)||0)-(Date.parse(a.createdAt)||0))]];
+        for(const category of ['کارت گرافیک','پردازنده','مادربرد','رم'].filter(c=>products.some(p=>p.category===c)))groups.push(['collection-'+groups.length,category,products.filter(p=>p.category===category)]);
+        host.innerHTML=groups.map(([id,title,list])=>`<section id="${id}" class="market-collection"><div class="section-heading"><h2>${escapeHTML(title)}</h2><a href="/products">مشاهده همه ←</a></div><div class="market-rail">${list.slice(0,8).map(p=>createProductCard(p,true)).join('')}</div></section>`).join('');
+    }
+}
+
 function setupMarketplace() {
     if (!['home','catalog','product','cart','checkout','profile'].includes(document.body.dataset.page)) return;
     const input=document.getElementById('marketSearch'), suggestions=document.getElementById('searchSuggestions');
@@ -3697,16 +3743,11 @@ function setupMarketplace() {
     document.querySelector('.market-search')?.addEventListener('focusout',e=>{if(!e.currentTarget.contains(e.relatedTarget))close();});
     const brand=document.getElementById('brandFilter');
     if(brand){const current=brand.value;brand.innerHTML='<option value="all">همه برندها</option>'+[...new Set(products.map(p=>p.brand))].map(b=>'<option value="'+escapeHTML(b)+'">'+escapeHTML(b)+'</option>').join('');brand.value=current;}
-    const host=document.getElementById('marketCollections');
-    if(host){
-        const groups=[['popular','محبوب‌ترین محصولات',[...products].sort((a,b)=>b.rating-a.rating||b.reviews-a.reviews)],['newest','جدیدترین محصولات',[...products].sort((a,b)=>(Date.parse(b.createdAt)||0)-(Date.parse(a.createdAt)||0))]];
-        for(const category of [...new Set(products.map(p=>p.category))].filter(c=>/استریم|حافظه|لوازم/.test(c)).slice(0,3))groups.push(['collection-'+groups.length,category,products.filter(p=>p.category===category)]);
-        host.innerHTML=groups.map(([id,title,list])=>`<section id="${id}" class="market-collection"><div class="section-heading"><h2>${escapeHTML(title)}</h2><a href="/products">مشاهده همه ←</a></div><div class="market-rail">${list.slice(0,8).map(p=>createProductCard(p,true)).join('')}</div></section>`).join('');
-    }
+    renderMarketplaceCollections();
     const hero=document.querySelector('.market-hero');
     if(hero){
-        const slides=[['هر آنچه ستاپ شما کم دارد.','تجهیزات بازی را مقایسه کنید و انتخاب مناسب خود را پیدا کنید.','گیمینگ'],['صدای حرفه‌ای، شروع یک ایده.','میکروفون و تجهیزات استریم برای تولید محتوای شما.','استریم'],['یک قدم سریع‌تر.','حافظه و تجهیزات کاربردی برای ارتقای سیستم شما.','حافظه']];
-        const show=index=>{const [title,description,q]=slides[index];hero.querySelector('h1').textContent=title;hero.querySelector('.hero-content > p').textContent=description;hero.querySelector('.primary-button').href='/products?q='+encodeURIComponent(q);const selected=products.filter(p=>p.category.includes(q)).slice(0,2);document.getElementById('heroProducts').innerHTML=selected.map(p=>`<a href="/product.html?id=${encodeURIComponent(p.id)}">${productImageMarkup(p,'hero-product-image')}<span>${escapeHTML(p.name)}</span></a>`).join('');hero.querySelectorAll('[data-hero]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.hero)===index)));};
+        const slides=[['قدرت، به انتخاب شما.','از اولین قطعه تا سیستم کامل؛ قطعات هماهنگ برای بازی، کار و خلاقیت.','سیستم کامل گیمینگ'],['صدای حرفه‌ای، شروع یک ایده.','میکروفون و تجهیزات استریم برای تولید محتوای شما.','استریم'],['یک قدم سریع‌تر.','حافظه و تجهیزات کاربردی برای ارتقای سیستم شما.','حافظه']];
+        const show=index=>{const [title,description,q]=slides[index];hero.querySelector('h1').textContent=title;hero.querySelector('.hero-content > p').textContent=description;hero.querySelector('.primary-button').href='/products?q='+encodeURIComponent(q);const selected=products.filter(p=>p.category.includes(q)).slice(0,q===slides[0][2]?1:2);document.getElementById('heroProducts').innerHTML=selected.map(p=>`<a href="/product.html?id=${encodeURIComponent(p.id)}">${productImageMarkup(p,'hero-product-image')}<span>${escapeHTML(p.name)}</span></a>`).join('');hero.querySelectorAll('[data-hero]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.hero)===index)));};
         hero.addEventListener('click',e=>{const b=e.target.closest('[data-hero]');if(b)show(Number(b.dataset.hero));});show(0);
     }
 }

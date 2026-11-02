@@ -16,7 +16,8 @@ test('navigation overlay handles real links and browser history without getting 
     window.document.getElementById('hash').dispatchEvent(new window.MouseEvent('click',{bubbles:true,cancelable:true,button:0}));assert.equal(overlay.classList.contains('is-visible'),false);
     window.document.getElementById('page').dispatchEvent(new window.MouseEvent('click',{bubbles:true,cancelable:true,button:0}));assert.equal(overlay.classList.contains('is-visible'),true);
     window.dispatchEvent(new window.Event('pageshow'));assert.equal(overlay.classList.contains('is-visible'),false);
-    window.dispatchEvent(new window.Event('pagehide'));assert.equal(overlay.classList.contains('is-visible'),true);
+    // A form, external link or unclassified departure must not acquire a navigation overlay.
+    window.dispatchEvent(new window.Event('pagehide'));assert.equal(overlay.classList.contains('is-visible'),false);
     window.dispatchEvent(new window.Event('pageshow'));assert.equal(overlay.classList.contains('is-visible'),false);assert.deepEqual(errors,[]);window.close();
 });
 

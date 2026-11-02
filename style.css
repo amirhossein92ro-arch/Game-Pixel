@@ -3525,6 +3525,16 @@ body.tab-hidden *,body.tab-hidden *::before,body.tab-hidden *::after{animation-p
 /* Storefront design tokens; legacy aliases preserve existing component contracts. */
 :root {
     --cream-bg: #f7f2e9;
+    --cream-bg-secondary: #f0e6d6;
+    --cream-surface-elevated: #fffdf8;
+    --cream-text-muted: #6c5e50;
+    --cream-gold: #9a702d;
+    --shadow-soft: 0 8px 28px rgba(80, 60, 35, .07);
+    --shadow-elevated: 0 18px 48px rgba(80, 60, 35, .13);
+    --radius-md: 14px;
+    --transition-fast: 160ms ease;
+    --transition-normal: 280ms cubic-bezier(.2, .7, .2, 1);
+    --transition-cinematic: 480ms cubic-bezier(.2, .7, .2, 1);
     --cream-surface: #fffcf6;
     --cream-surface-soft: #f0e7d9;
     --cream-border: #dfd1bd;
@@ -4460,3 +4470,15 @@ body:has(.market-search) .product-card:focus-within {
 }
 
 body:has(.market-search) .storefront-glass-header { border-bottom-color: var(--cream-border); }
+
+/* Grab-friendly storefront scrollbars, including product rails and suggestions. */
+html:has(.market-search), body:has(.market-search) * {
+    scrollbar-color: var(--cream-accent) var(--cream-bg-secondary);
+    scrollbar-width: auto;
+}
+html:has(.market-search)::-webkit-scrollbar, body:has(.market-search) *::-webkit-scrollbar { width: 12px; height: 12px; }
+html:has(.market-search)::-webkit-scrollbar-track, body:has(.market-search) *::-webkit-scrollbar-track { background: var(--cream-bg-secondary); border-radius: 10px; }
+html:has(.market-search)::-webkit-scrollbar-thumb, body:has(.market-search) *::-webkit-scrollbar-thumb { background: var(--cream-accent); border: 3px solid var(--cream-bg-secondary); border-radius: 10px; }
+html:has(.market-search)::-webkit-scrollbar-thumb:hover, body:has(.market-search) *::-webkit-scrollbar-thumb:hover { background: var(--cream-accent-dark); }
+body:has(.market-search) .site-header.is-scrolled { background: rgba(255,250,240,.96); box-shadow: 0 8px 28px rgba(80,60,35,.12); }
+body:has(.market-search) .toast { background: var(--cream-surface-elevated); color: var(--cream-text); border: 1px solid var(--cream-border); box-shadow: var(--glass-shadow); }

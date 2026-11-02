@@ -1,0 +1,74 @@
+﻿/* Native, bounded storefront motion. All information remains visible without JavaScript. */
+:root {
+    --transition-fast: 160ms;
+    --transition-normal: 340ms;
+    --transition-cinematic: 480ms;
+    --motion-ease: cubic-bezier(.2, .75, .2, 1);
+}
+body:has(.market-search) .header-scroll-sentinel { display: block; height: 1px; margin-bottom: -1px; pointer-events: none; }
+body:has(.market-search) .site-header { transition: background-color var(--transition-normal), box-shadow var(--transition-normal); }
+body:has(.market-search) .site-header.is-scrolled { background: rgba(255, 250, 240, .95); box-shadow: 0 8px 26px rgba(80,60,35,.1); }
+body:has(.market-search) #main-content { transform-origin: center 18vh; }
+body:has(.market-search).storefront-entering #main-content { animation: storefront-enter var(--transition-cinematic) var(--motion-ease) both; }
+body:has(.market-search).storefront-leaving #main-content { animation: storefront-leave 380ms var(--motion-ease) both; pointer-events: none; }
+body:has(.market-search) .page-transition-overlay { background: rgba(247,242,233,.2); transition: opacity 180ms; }
+body:has(.market-search) .page-transition-card { animation: depth-panel 380ms var(--motion-ease) both; }
+body:has(.market-search) .page-transition-logo { animation: none; background: var(--cream-surface-soft); color: var(--cream-accent); }
+body:has(.market-search) .page-transition-dots i { background: var(--cream-accent); }
+body:has(.market-search) :is(.reveal, .reveal-up, .reveal-scale, .reveal-left, .reveal-right, .product-card, .category-card, .market-banners>a, .section-heading, .pc-component) {
+    transition: opacity 480ms var(--motion-ease), transform 480ms var(--motion-ease), border-color var(--transition-fast), background-color var(--transition-fast);
+}
+body:has(.market-search) .motion-pending { opacity: 0; transform: translate3d(0,18px,0); }
+body:has(.market-search) .reveal-scale.motion-pending { transform: scale(.97); }
+body:has(.market-search) .reveal-left.motion-pending { transform: translate3d(-18px,0,0); }
+body:has(.market-search) .reveal-right.motion-pending { transform: translate3d(18px,0,0); }
+body:has(.market-search) .motion-delay-1 { transition-delay: 45ms; }
+body:has(.market-search) .motion-delay-2 { transition-delay: 90ms; }
+body:has(.market-search) .motion-delay-3 { transition-delay: 135ms; }
+body:has(.market-search) :is(.primary-button, .secondary-button, .card-add-button, .icon-button, .wishlist-heart) { transition: transform var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast); }
+body:has(.market-search) :is(.primary-button, .secondary-button, .card-add-button, .icon-button):active { transform: scale(.98); }
+body:has(.market-search) :is(.primary-button, .secondary-button) i { transition: transform var(--transition-fast); }
+body:has(.market-search) .market-search { transition: border-color var(--transition-fast), box-shadow var(--transition-normal); }
+body:has(.market-search) .main-nav>a::after { transform-origin: right; transition: transform var(--transition-normal); }
+body:has(.market-search) .search-suggestions:not([hidden]) { animation: floating-open 240ms var(--motion-ease) both; transform-origin: top center; }
+body:has(.market-search) :is(.auth-modal:not([hidden]) .auth-card, .account-dialog[open]) { animation: depth-panel 340ms var(--motion-ease) both; }
+body:has(.market-search) :is(.main-nav.open, .main-nav.is-open, .product-toolbar.filters-open) { animation: floating-open 280ms var(--motion-ease) both; }
+body:has(.market-search) .wishlist-heart.is-favorite [data-wishlist-icon] { animation: favorite-confirm 340ms var(--motion-ease); }
+body:has(.market-search) .hero-content { animation: hero-arrive 550ms var(--motion-ease) both; }
+body:has(.market-search) .hero-products { animation: hero-arrive 650ms var(--motion-ease) 90ms both; }
+body:has(.market-search) .market-discount { animation: badge-arrive 400ms var(--motion-ease) both; }
+body:has(.market-search) .toast { animation: floating-open 260ms var(--motion-ease) both; }
+body:has(.market-search) .toast.removing { animation: toast-out 220ms ease both; }
+body:has(.market-search) .skeleton-card::after { animation: cream-shimmer 1500ms linear infinite; }
+@media (hover: hover) and (pointer: fine) {
+    body:has(.market-search) .product-card:not(.motion-pending):hover { transform: translate3d(0,-3px,0); border-color: var(--cream-border-hover, #cdbba3); }
+    body:has(.market-search) .product-card-image { transition: transform 380ms var(--motion-ease); }
+    body:has(.market-search) .product-card:hover .product-card-image { transform: translate3d(0,-3px,0) scale(1.025); }
+    body:has(.market-search) .category-card>span { transition: transform var(--transition-normal), background-color var(--transition-normal); }
+    body:has(.market-search) .category-card:hover>span { transform: translateY(-3px) rotate(-3deg); background: #ead9bf; }
+    body:has(.market-search) :is(.primary-button, .secondary-button):hover i { transform: translateX(-3px); }
+    body:has(.market-search) .hero-products a:nth-child(1) { animation: component-float 6s ease-in-out 700ms 3; }
+}
+@keyframes storefront-enter { from { opacity: 0; transform: perspective(1400px) translate3d(0,12px,-35px) rotateX(1.2deg) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes storefront-leave { to { opacity: .45; transform: perspective(1400px) translate3d(0,-8px,-80px) rotateY(-1.4deg) scale(.975); } }
+@keyframes depth-panel { from { opacity: 0; transform: perspective(900px) translate3d(0,12px,-25px) rotateX(3deg) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes floating-open { from { opacity: 0; transform: translate3d(0,-7px,0) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes hero-arrive { from { opacity: 0; transform: translate3d(0,16px,0); } to { opacity: 1; transform: none; } }
+@keyframes favorite-confirm { 50% { transform: scale(1.22); } }
+@keyframes badge-arrive { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes component-float { 50% { transform: translate3d(0,-7px,0); } }
+@keyframes cream-shimmer { from { transform: translateX(110%); } to { transform: translateX(-110%); } }
+::view-transition-old(root) { animation: storefront-leave 420ms var(--motion-ease) both; }
+::view-transition-new(root) { animation: storefront-enter 480ms var(--motion-ease) both; }
+@media (max-width: 768px) {
+    body:has(.market-search).storefront-entering #main-content { animation-name: hero-arrive; }
+    body:has(.market-search).storefront-leaving #main-content { animation: hero-arrive 200ms ease reverse both; }
+    body:has(.market-search) .hero-products a { animation: none; }
+    ::view-transition-old(root), ::view-transition-new(root) { animation-name: hero-arrive; animation-duration: 300ms; }
+}
+@media (prefers-reduced-motion: reduce) {
+    body:has(.market-search) *, body:has(.market-search) *::before, body:has(.market-search) *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    body:has(.market-search) .motion-pending { opacity: 1; transform: none; }
+    body:has(.market-search).storefront-leaving #main-content { opacity: 1; transform: none; pointer-events: auto; }
+    ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; }
+}

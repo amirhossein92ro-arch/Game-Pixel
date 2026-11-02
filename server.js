@@ -395,8 +395,8 @@ const staticOptions = {
         else if (ext === ".svg") res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
     }
 };
-const publicStyleFiles = new Set(['/account.css','/admin.css','/commerce.css','/intro.css','/rgb-text.css']);
-const publicScriptFiles = new Set(['admin.js','admin-actions.js','admin-console.js','admin-inventory.js','admin-support.js','admin-users.js','admin-login.js','api-config.js','intro.js','invoice.js','profile.js','session.js','site.js','wishlist.js','safe-url.js'].map(name=>'/'+name));
+const publicStyleFiles = new Set(['/account.css','/admin.css','/commerce.css','/intro.css','/rgb-text.css','/storefront-pc.css','/storefront-motion.css']);
+const publicScriptFiles = new Set(['admin.js','admin-actions.js','admin-console.js','admin-inventory.js','admin-support.js','admin-users.js','admin-login.js','api-config.js','intro.js','invoice.js','profile.js','session.js','site.js','wishlist.js','safe-url.js','product-pricing.js','storefront-pc.js','storefront-motion.js'].map(name=>'/'+name));
 app.use("/css", publicAsset(path.join(STATIC_ROOT, "css"),['.css'],publicStyleFiles), express.static(path.join(STATIC_ROOT, "css"), staticOptions));
 const setAssetCache=require('./lib/asset-cache.cjs').assetCache(STATIC_ROOT,['style.css','script.js','products.js',...[...publicStyleFiles].map(file=>'css'+file),...[...publicScriptFiles].map(file=>'js'+file)],IS_PRODUCTION);
 const protectedAdminScripts = new Set([
@@ -483,6 +483,8 @@ function normaliseProduct(input, existing = null, forcedId = undefined) {
         : [];
 
     return {
+        ...(existing?.campaign ? {campaign:existing.campaign} : {}),
+        ...(existing?.components ? {components:existing.components} : {}),
         featured:source.featured??false,isNew:source.isNew??false,bestSeller:source.bestSeller??false,
         id: String(id),
         name,
@@ -657,7 +659,7 @@ function getProductById(req, res) {
 function publicProduct(product) {
     const allowed=['id','name','title','price','discount','stock','rating','reviews','brand','icon','accent','tag',
         'shortDescription','description','features','guarantee','category','image','status','featured','isNew',
-        'bestSeller','discontinued','createdAt','updatedAt','revision'];
+        'bestSeller','discontinued','createdAt','updatedAt','revision','campaign','components'];
     return Object.fromEntries(allowed.filter(key=>Object.hasOwn(product,key)).map(key=>[key,key==='image'?safeProductImage(product[key]):product[key]]));
 }
 

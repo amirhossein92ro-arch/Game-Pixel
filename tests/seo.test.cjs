@@ -103,7 +103,7 @@ test('storefront SEO, dynamic discovery and private indexing protections over re
             if (p.brand) assert.equal(schema.brand.name,p.brand);
             else assert.equal(schema.brand,undefined);
             assert.equal(schema.description,(p.description || p.shortDescription).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim());
-            const price = Math.round(p.price * (100 - Math.min(99,Math.max(0,Number(p.discount) || 0))) / 100);
+            const price = require('../js/product-pricing.js').unitPrice(p);
             assert.equal(schema.offers.price,price * 10); assert.equal(schema.offers.priceCurrency,'IRR');
             assert.equal(schema.offers.availability,'https://schema.org/' + (p.stock > 0 ? 'InStock' : 'OutOfStock'));
             assert.ok(doc.querySelector('.detail-price').textContent.includes(new Intl.NumberFormat('fa-IR').format(price) + ' تومان'));

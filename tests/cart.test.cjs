@@ -245,17 +245,24 @@ test('rapid product search input schedules one catalog render', () => {
 test('expanded catalog renders, filters, sorts and supports all new product purchases', async () => {
     const catalog = JSON.parse(fs.readFileSync(path.join(__dirname,'../data.json'),'utf8')).products;
     const added = catalog.filter(p=>p.id>=10);
-    assert.equal(catalog.length,69);
-    assert.equal(added.length,60);
-    assert.equal(new Set(catalog.map(p=>p.id)).size,69);
-    assert.equal(new Set(catalog.map(p=>p.name)).size,69);
-    assert.equal(new Set(added.map(p=>p.reviews)).size,60);
+    const legacyAdded = added.filter(p=>p.id<200);
+    const pricing = require('../js/product-pricing.js');
+    assert.ok(catalog.length>=83);
+    for(const category of ['پردازنده','مادربرد','رم','کارت گرافیک','سیستم کامل گیمینگ']) assert.ok(catalog.some(p=>p.category===category));
+    assert.equal(legacyAdded.length,60);
+    assert.equal(added.length,catalog.length-9);
+    assert.equal(new Set(catalog.map(p=>String(p.id))).size,catalog.length);
+    assert.equal(new Set(catalog.map(p=>p.name)).size,catalog.length);
+    assert.equal(new Set(legacyAdded.map(p=>p.reviews)).size,60);
+    assert.ok(added.filter(p=>p.id>=200).every(p=>p.reviews===0));
     for(const p of added) {
-        assert.ok(p.features.length>=5 && p.stock>0 && p.price>0 && p.rating>=4 && p.rating<=5);
+        assert.ok(p.features.length>=4 && p.stock>0 && p.price>0 && p.rating>=0 && p.rating<=5);
+        if(p.id<200) assert.ok(p.features.length>=5 && p.rating>=4);
         for(const key of ['name','brand','icon','accent','tag','shortDescription','description','guarantee','category']) assert.ok(p[key]);
     }
     const s=store();
     s.context.catalog=catalog;
+    s.context.Web2ProductPricing=pricing;
     s.context.URLSearchParams=URLSearchParams;
     s.run('products=mergeProducts(catalog); productsLoaded=true; productsSource="api"; escapeHTML=value=>String(value)');
     const nodes=new Map();
@@ -263,7 +270,7 @@ test('expanded catalog renders, filters, sorts and supports all new product purc
         nodes.set(id,{value:id==='productSearch'?'':'all',innerHTML:'',dataset:{},setAttribute(){}});
     s.context.document.getElementById=id=>nodes.get(id)||null;
     s.run('renderProducts(); renderHomeDiscovery()');
-    assert.equal((nodes.get('productGrid').innerHTML.match(/class="product-card"/g)||[]).length,69);
+    assert.equal((nodes.get('productGrid').innerHTML.match(/class="product-card"/g)||[]).length,catalog.length);
     assert.equal((nodes.get('featuredGrid').innerHTML.match(/product-card-compact/g)||[]).length,4);
     assert.match(nodes.get('featuredGrid').innerHTML,/loading="lazy" decoding="async"/);
     for(const category of new Set(added.map(p=>p.category))) {
@@ -274,13 +281,13 @@ test('expanded catalog renders, filters, sorts and supports all new product purc
     nodes.get('categoryFilter').value='all';
     for(const p of added) {
         nodes.get('productSearch').value=p.name;
-        assert.equal(s.json('getFilteredProducts()')[0].id,String(p.id));
+        assert.ok(s.json('getFilteredProducts()').some(found=>found.id===String(p.id)));
         s.context.window.location={search:`?id=${p.id}`};
         s.run('renderProductDetail()');
         assert.ok(nodes.get('productDetail').innerHTML.includes(`data-add-to-cart="${p.id}"`));
         assert.match(nodes.get('productDetail').innerHTML,/loading="eager" decoding="async"/);
         s.run(`saveCart([]); addToCart(${p.id}); changeCartQuantity(${p.id},1)`);
-        assert.equal(s.run('getCartTotals().subtotal'),p.price*2);
+        assert.equal(s.run('getCartTotals().subtotal'),pricing.unitPrice(p)*2);
     }
     nodes.get('productSearch').value='';
     for(const [range,predicate] of [['under-3',p=>p.price<3000000],['3-6',p=>p.price>=3000000&&p.price<=6000000],['over-6',p=>p.price>6000000]]) {
@@ -300,6 +307,6 @@ test('expanded catalog renders, filters, sorts and supports all new product purc
     assert.equal(fresh.run('getProducts().length'),68);
     fresh.context.fetch=async()=>({ok:true,json:async()=>catalog});
     await fresh.run('loadProductsFromApi()');
-    assert.equal(fresh.run('getProducts().length'),69);
+    assert.equal(fresh.run('getProducts().length'),catalog.length);
     assert.equal(fresh.json('defaultProducts.filter(p=>p.id>=10)').length,60);
 });

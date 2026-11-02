@@ -20,6 +20,7 @@ function openDatabase(filename, seedFile) {
     }
     const db = new DatabaseSync(filename);
     db.function('web2_lower',{deterministic:true},value=>String(value??'').toLowerCase());
+    db.function('web2_unit_price',value=>require('../../js/product-pricing.js').unitPrice(JSON.parse(value)));
     let initialized=false,savepoint=0;
     const snapshots=new WeakMap(),versioned=new Set(['products','orders','discounts']);
     try {
@@ -314,6 +315,21 @@ function openDatabase(filename, seedFile) {
         });
         replace('products',products);
         db.prepare("INSERT INTO settings VALUES('catalog-taxonomy-v3',?)").run(JSON.stringify({updatedAt:new Date().toISOString()}));
+    });
+    // Import the shipped hardware extension once. Existing edits/deletions always win.
+    if(!db.prepare("SELECT 1 FROM settings WHERE id='pc-hardware-catalog-v4'").get()) transaction(()=>{
+        const existing=list('products'),ids=new Set(existing.map(p=>String(p.id)));
+        const deleted=new Set(db.prepare("SELECT target_id FROM audit_logs WHERE action='PRODUCT_DELETED' AND target_type='product'").all().map(r=>String(r.target_id)));
+        const added=[];
+        for(const raw of loadSeed().products||[]) {
+            const id=String(raw.id);
+            if(!/^20[1-9]$|^21[0-4]$/.test(id)||ids.has(id)||deleted.has(id)||existing.some(p=>p.name===raw.name&&p.brand===raw.brand))continue;
+            validation.row('products',raw);
+            const at=new Date().toISOString();
+            added.push({...raw,id,createdAt:raw.createdAt||at,updatedAt:raw.updatedAt||at});ids.add(id);
+        }
+        if(added.length)replace('products',[...existing,...added]);
+        db.prepare("INSERT INTO settings VALUES('pc-hardware-catalog-v4',?)").run(JSON.stringify({added:added.map(p=>p.id)}));
     });
     db.exec(`CREATE INDEX IF NOT EXISTS orders_owner_date ON orders(json_extract(payload,'$.userId'),json_extract(payload,'$.createdAt'));
       CREATE INDEX IF NOT EXISTS products_visibility ON products(json_extract(payload,'$.status'),json_extract(payload,'$.deletedAt'));
