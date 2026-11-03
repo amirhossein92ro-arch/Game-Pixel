@@ -1,0 +1,213 @@
+/* Product photography: stable media boxes, with space for the UI controls above it. */
+.product-grid,
+.market-rail,
+.spotlight-grid,
+.product-card .product-card-link,
+.product-card .product-body,
+.product-card .product-card-actions {
+    min-width: 0;
+    max-width: 100%;
+}
+
+body .product-card .product-art {
+    box-sizing: border-box;
+    width: 100%;
+    height: 236px;
+    padding: 62px 16px 16px;
+    background: var(--cream-surface-soft, #f8f4ed);
+}
+
+.product-card .product-art::before,
+.product-card .product-art::after {
+    display: none;
+}
+
+.product-card .product-art .product-card-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: auto;
+    object-fit: contain;
+    object-position: center;
+    margin: 0;
+    padding: 0;
+}
+
+.product-card .product-art .product-tag {
+    top: 14px;
+    right: 12px;
+    max-width: calc(100% - 78px);
+    box-sizing: border-box;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+body .product-card .wishlist-heart {
+    top: 10px;
+    left: 10px;
+    width: 44px;
+    height: 44px;
+}
+
+.product-card .product-body h3,
+.product-card .product-price,
+.product-card .product-price strong,
+.product-card .card-add-button {
+    overflow-wrap: anywhere;
+}
+
+.product-card .card-add-button {
+    min-height: 44px;
+    white-space: normal;
+}
+
+.detail-visual {
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 0;
+    height: 520px;
+    padding: 24px 24px 76px;
+}
+
+.detail-visual .product-detail-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: 500px;
+    max-height: 420px;
+    aspect-ratio: auto;
+    object-fit: contain;
+    object-position: center;
+}
+
+.detail-visual .detail-stock-badge {
+    right: 16px;
+    bottom: 16px;
+    max-width: calc(100% - 32px);
+    box-sizing: border-box;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.detail-visual .detail-stock-badge i {
+    font-size: 1em;
+}
+
+.cart-item-art {
+    box-sizing: border-box;
+    min-width: 0;
+    overflow: hidden;
+    padding: 6px;
+}
+
+.cart-item-art .cart-product-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: auto;
+    object-fit: contain;
+    object-position: center;
+}
+
+.search-product-art {
+    display: grid;
+    flex: 0 0 44px;
+    place-items: center;
+    box-sizing: border-box;
+    width: 44px;
+    height: 44px;
+    padding: 4px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: var(--cream-surface-soft, #f8f4ed);
+}
+
+.search-product-art .search-product-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: auto;
+    object-fit: contain;
+    object-position: center;
+}
+
+/* Explicit hiding also covers failed image requests in browsers with custom img styling. */
+.product-image[hidden] {
+    display: none !important;
+}
+
+.product-art .product-image-fallback,
+.detail-visual > .product-image-fallback,
+.cart-item-art .product-image-fallback,
+.search-product-art .product-image-fallback {
+    display: none;
+}
+
+.product-art .product-image[hidden] + .product-image-fallback,
+.detail-visual > .product-image[hidden] + .product-image-fallback,
+.cart-item-art .product-image[hidden] + .product-image-fallback,
+.search-product-art .product-image[hidden] + .product-image-fallback {
+    display: block;
+}
+
+@media (max-width: 760px) {
+    body .product-card .product-art {
+        height: 220px;
+        padding: 62px 12px 12px;
+    }
+
+    .market-rail,
+    body[data-page="home"] .spotlight-grid {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    .detail-visual {
+        position: relative;
+        top: auto;
+        height: 340px;
+        padding: 20px 20px 72px;
+    }
+
+    .detail-visual .product-detail-image {
+        max-width: 100%;
+        max-height: 100%;
+    }
+}
+
+/* A single readable card avoids 130px columns on the smallest phone screens. */
+@media (max-width: 460px) {
+    body[data-page] .product-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .product-grid .product-card .product-art {
+        height: 258px;
+        padding: 62px 20px 16px;
+    }
+
+    body[data-page] .product-card .product-body h3 {
+        font-size: 14px;
+        line-height: 1.8;
+    }
+
+    body[data-page] .product-card .product-price strong {
+        font-size: 14px;
+    }
+
+    .product-card .product-card-actions {
+        padding: 0 12px 12px;
+    }
+
+    .detail-visual {
+        height: 300px;
+        padding: 16px 16px 72px;
+    }
+}

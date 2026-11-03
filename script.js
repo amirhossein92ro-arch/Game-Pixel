@@ -1611,29 +1611,63 @@ function normalizeProductCategory(value, name = "") {
     return Object.prototype.hasOwnProperty.call(PRODUCT_CATEGORY_ALIASES,category) ? PRODUCT_CATEGORY_ALIASES[category] : category;
 }
 
+function localProductImage(value) {
+    if (typeof Web2ProductImages !== 'undefined') return Web2ProductImages.local(value);
+    // Keep basic rendering safe even when the optional helper is unavailable.
+    if (typeof value !== 'string' || value.length > 500) return '';
+    const image = value.replace(/^\//, '');
+    if (/^img\/[a-zA-Z0-9_./-]+$/.test(image) && !image.split('/').some(part=>!part||part==='.'||part==='..'||part.startsWith('.')) && /\.(?:png|jpe?g|webp|gif|svg|avif|ico)$/i.test(image)) return '/' + image;
+    return '';
+}
+
 function getProductImage(value, category) {
-    const image = String(value || "").trim();
-    if (typeof Web2SafeURL !== 'undefined') return Web2SafeURL.image(image) || (Object.prototype.hasOwnProperty.call(PRODUCT_CATEGORY_IMAGES,category) ? PRODUCT_CATEGORY_IMAGES[category] : PRODUCT_IMAGE_FALLBACK);
-    if (/^img\/[a-zA-Z0-9_./-]+$/.test(image) && !image.split('/').some(part=>!part||part==='.'||part==='..'||part.startsWith('.')) && /\.(?:png|jpe?g|webp|gif|svg|avif|ico)$/i.test(image)) return image;
+    const image = localProductImage(value);
+    if (image) return image;
     return Object.prototype.hasOwnProperty.call(PRODUCT_CATEGORY_IMAGES,category) ? PRODUCT_CATEGORY_IMAGES[category] : PRODUCT_IMAGE_FALLBACK;
 }
 
 function productImageMarkup(product, className = "product-image") {
-    const priority = className === "product-detail-image" ? 'eager' : 'lazy';
+    const important = className === "product-detail-image";
     const image = getProductImage(product.image, product.category);
-    return `<img class="${className} product-image" src="${escapeHTML(image.startsWith('img/') ? '/' + image : image)}" alt="${escapeHTML(product.name)}" width="480" height="360" loading="${priority}" decoding="async"><i class="fa-solid ${normalizeIcon(product.icon)} product-image-fallback" aria-hidden="true"></i>`;
+    const fallback = localProductImage(product.imageFallback);
+    return `<img class="${escapeHTML(className)} product-image" src="${escapeHTML(image.startsWith('img/') ? '/' + image : image)}" data-image-fallback="${escapeHTML(fallback)}" alt="${escapeHTML(product.name)}" width="640" height="640" loading="${important ? 'eager' : 'lazy'}" decoding="async"${important ? ' fetchpriority="high"' : ''}><i class="fa-solid ${normalizeIcon(product.icon)} product-image-fallback" aria-hidden="true"></i>`;
 }
 
 function setupProductImageFallback() {
     if (setupProductImageFallback.bound) return;
     setupProductImageFallback.bound = true;
+    const isProductImage = image => image instanceof HTMLImageElement && image.classList.contains("product-image");
+    document.addEventListener("load", event => {
+        if (isProductImage(event.target)) event.target.hidden = false;
+    }, true);
+    const recover = image => {
+        if (!isProductImage(image)) return;
+        // Hide the failed request immediately; the sibling icon also covers the
+        // short interval while a replacement loads. Never retry a failed URL.
+        image.hidden = true;
+        const current = localProductImage(image.getAttribute('src'));
+        const category = localProductImage(image.dataset.imageFallback);
+        const placeholder = '/' + PRODUCT_IMAGE_FALLBACK;
+        if (image.dataset.fallbackApplied !== 'true' && category && category !== current) {
+            image.dataset.fallbackApplied = 'true';
+            image.src = category;
+        } else if (image.dataset.placeholderApplied !== 'true' && current !== placeholder) {
+            image.dataset.fallbackApplied = 'true';
+            image.dataset.placeholderApplied = 'true';
+            image.src = placeholder;
+        } else {
+            image.dataset.fallbackApplied = 'true';
+            image.dataset.placeholderApplied = 'true';
+        }
+    };
     document.addEventListener("error", (event) => {
         const image = event.target;
-        if (!(image instanceof HTMLImageElement) || !image.classList.contains("product-image")) return;
-        if (image.dataset.fallbackApplied === "true") { image.hidden = true; return; }
-        image.dataset.fallbackApplied = "true";
-        image.src = '/' + PRODUCT_IMAGE_FALLBACK;
+        recover(image);
     }, true);
+    // SSR images can finish (or fail) before the storefront script executes.
+    document.querySelectorAll('img.product-image').forEach(image => {
+        if (image.complete && image.naturalWidth === 0) recover(image);
+    });
 }
 
 // ساختار یکنواخت محصول: هر رکورد (حتی با ساختار قدیمی) را به شکل استاندارد تبدیل می‌کند.
@@ -1685,6 +1719,7 @@ function normalizeProduct(item) {
         components: Array.isArray(item.components) ? item.components.map(component => ({label:String(component.label || ''),value:String(component.value || ''),productId:String(component.productId || '')})) : [],
         name,
         image: getProductImage(item.image, category),
+        imageFallback: localProductImage(item.imageFallback),
         brand: String(item.brand ?? "WEB 2").trim(),
         icon: normalizeIcon(item.icon ?? item.image),
         accent: normalizeAccent(item.accent),
@@ -3731,10 +3766,10 @@ function setupMarketplace() {
         const matches=products.filter(p=>words.every(w=>normalizeSearchText([p.name,p.brand,p.category,p.tag].join(' ')).includes(w))).slice(0,5);
         for(const p of matches){
             const a=document.createElement('a');a.href='/product.html?id='+encodeURIComponent(p.id);
-            const img=document.createElement('img'),image=getProductImage(p.image,p.category);
-            img.className='product-image';img.src=image.startsWith('img/')?'/'+image:image;img.alt='';img.width=44;img.height=44;
+            const media=document.createElement('span');media.className='search-product-art';
+            media.innerHTML=productImageMarkup(p, 'search-product-image');
             const name=document.createElement('span');name.textContent=p.name;
-            const price=document.createElement('small');price.textContent=formatPrice(getUnitPrice(p));a.append(img,name,price);suggestions.append(a);
+            const price=document.createElement('small');price.textContent=formatPrice(getUnitPrice(p));a.append(media,name,price);suggestions.append(a);
         }
         const all=document.createElement('a');all.href='/products?q='+encodeURIComponent(input.value);all.textContent='مشاهده همه نتایج';suggestions.append(all);suggestions.hidden=false;input.setAttribute('aria-expanded','true');
     });
@@ -3744,10 +3779,4 @@ function setupMarketplace() {
     const brand=document.getElementById('brandFilter');
     if(brand){const current=brand.value;brand.innerHTML='<option value="all">همه برندها</option>'+[...new Set(products.map(p=>p.brand))].map(b=>'<option value="'+escapeHTML(b)+'">'+escapeHTML(b)+'</option>').join('');brand.value=current;}
     renderMarketplaceCollections();
-    const hero=document.querySelector('.market-hero');
-    if(hero){
-        const slides=[['قدرت، به انتخاب شما.','از اولین قطعه تا سیستم کامل؛ قطعات هماهنگ برای بازی، کار و خلاقیت.','سیستم کامل گیمینگ'],['صدای حرفه‌ای، شروع یک ایده.','میکروفون و تجهیزات استریم برای تولید محتوای شما.','استریم'],['یک قدم سریع‌تر.','حافظه و تجهیزات کاربردی برای ارتقای سیستم شما.','حافظه']];
-        const show=index=>{const [title,description,q]=slides[index];hero.querySelector('h1').textContent=title;hero.querySelector('.hero-content > p').textContent=description;hero.querySelector('.primary-button').href='/products?q='+encodeURIComponent(q);const selected=products.filter(p=>p.category.includes(q)).slice(0,q===slides[0][2]?1:2);document.getElementById('heroProducts').innerHTML=selected.map(p=>`<a href="/product.html?id=${encodeURIComponent(p.id)}">${productImageMarkup(p,'hero-product-image')}<span>${escapeHTML(p.name)}</span></a>`).join('');hero.querySelectorAll('[data-hero]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.hero)===index)));};
-        hero.addEventListener('click',e=>{const b=e.target.closest('[data-hero]');if(b)show(Number(b.dataset.hero));});show(0);
-    }
 }

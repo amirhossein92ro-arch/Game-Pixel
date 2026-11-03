@@ -52,8 +52,8 @@ test('phase 10 shopping UX uses real sessions, server quotes and accessible loca
         assert.equal(run('productsSource'),'api');
         assert.equal(w.document.getElementById('homeProductCount').textContent,run('formatNumber(products.length)'));
         assert.ok(w.document.querySelector('#categoryGrid a[href^="/categories/"]'));
-        assert.equal(w.document.querySelectorAll('[data-hero]').length,3);
-        w.document.querySelector('[data-hero="1"]').click();assert.equal(w.document.querySelector('[data-hero="1"]').getAttribute('aria-pressed'),'true');
+        assert.equal(w.document.querySelectorAll('[data-storefront-slider] [data-slide]').length,5);
+        w.document.querySelector('[data-slider-dot="1"]').click();assert.equal(w.document.querySelector('[data-slider-dot="1"]').getAttribute('aria-current'),'true');
         const input=w.document.getElementById('marketSearch');input.value=product.name;input.dispatchEvent(new w.Event('input',{bubbles:true}));
         const box=w.document.getElementById('searchSuggestions');assert.equal(box.hidden,false);assert.ok(box.querySelector('a[href="/product.html?id='+product.id+'"]'));assert.ok(box.querySelectorAll('a').length<=6);
         const suggestionImage=box.querySelector('img');assert.equal(suggestionImage.getAttribute('src').startsWith('/'),true);

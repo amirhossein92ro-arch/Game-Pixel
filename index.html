@@ -22,6 +22,8 @@
     <link rel="stylesheet" href="style.css?v=f7d1c2f00cad229c">
     <link rel="stylesheet" href="css/storefront-pc.css?v=9c036e007ee20289">
     <link rel="stylesheet" href="css/storefront-motion.css?v=def06339ff72a2c2">
+    <link rel="stylesheet" href="css/storefront-slider.css?v=675abfecd4b40bc3">
+    <link rel="stylesheet" href="/css/product-media.css?v=0f38ec1c380c4bed">
 </head>
 <body data-page="home">
     <a class="skip-link" href="#main-content">رفتن به محتوای اصلی</a>
@@ -36,7 +38,38 @@
 </div></header>
 
     <main id="main-content">
-        <section class="container market-hero" aria-label="پیشنهادهای WEB 2"><span class="hero-halo" aria-hidden="true"></span><div class="hero-content"><span class="eyebrow">انتخاب امروز، برای ستاپ فردا</span><h1>قدرت، به انتخاب شما.</h1><p>از اولین قطعه تا سیستم کامل؛ قطعات هماهنگ برای بازی، کار و خلاقیت.</p><a class="primary-button" href="/products">کشف محصولات ←</a><p class="hero-catalog"><strong id="homeProductCount">—</strong> محصول در کاتالوگ WEB 2</p></div><div id="heroProducts" class="hero-products"></div><div class="hero-tabs" aria-label="انتخاب پیشنهاد"><button type="button" data-hero="0" aria-pressed="true">سیستم کامل گیمینگ</button><button type="button" data-hero="1" aria-pressed="false">تجهیزات استریم</button><button type="button" data-hero="2" aria-pressed="false">ارتقای سیستم</button></div></section>
+        <section class="container storefront-slider" id="homePromotions" data-storefront-slider dir="rtl" role="region" aria-roledescription="اسلایدشو" aria-label="پیشنهادهای WEB 2" tabindex="0">
+            <div class="slider-viewport">
+                <article class="banner-slide banner-slide--pc is-active" data-slide="0" data-title="قدرت، به انتخاب شما." role="group" aria-roledescription="اسلاید" aria-label="1 از 5" aria-hidden="false">
+                    <picture><source type="image/webp" data-banner-source="/img/banners/banner-01.webp"><img class="banner-image" src="/img/banners/banner-placeholder-01.svg" data-banner-fallback="/img/banners/banner-placeholder-01.svg" width="1600" height="420" loading="eager" fetchpriority="high" decoding="async" alt="تصویرسازی یک سیستم گیمینگ روشن با قطعات هماهنگ"></picture>
+                    <div class="banner-copy"><span class="banner-badge">سیستم کامل WEB 2</span><h1>قدرت، به انتخاب شما.</h1><p class="banner-description">از اولین قطعه تا یک سیستم کامل؛ ستاپ بعدی شما از اینجا شروع می‌شود.</p><a class="primary-button banner-cta" href="/#featuredPC">مشاهده سیستم ویژه <span aria-hidden="true">←</span></a></div>
+                </article>
+                <article class="banner-slide banner-slide--gpu" data-slide="1" data-title="جزئیات بیشتر. تجربه‌ای روان‌تر." role="group" aria-roledescription="اسلاید" aria-label="2 از 5" aria-hidden="true" inert>
+                    <picture><source type="image/webp" data-banner-source="/img/banners/banner-02.webp"><img class="banner-image" src="/img/banners/banner-placeholder-02.svg" data-banner-fallback="/img/banners/banner-placeholder-02.svg" width="1600" height="420" loading="lazy" decoding="async" alt="تصویرسازی کارت گرافیک دو فن در فضای کرم و طلایی"></picture>
+                    <div class="banner-copy"><span class="banner-badge">کارت گرافیک</span><h2>جزئیات بیشتر. تجربه‌ای روان‌تر.</h2><p class="banner-description">کارت‌های گرافیک را با مشخصات، قیمت و موجودی کاتالوگ مقایسه کنید.</p><a class="primary-button banner-cta" href="/categories/%DA%A9%D8%A7%D8%B1%D8%AA%20%DA%AF%D8%B1%D8%A7%D9%81%DB%8C%DA%A9">مشاهده کارت گرافیک <span aria-hidden="true">←</span></a></div>
+                </article>
+                <article class="banner-slide banner-slide--cpu" data-slide="2" data-title="قلب تپندهٔ سیستم شما." role="group" aria-roledescription="اسلاید" aria-label="3 از 5" aria-hidden="true" inert>
+                    <picture><source type="image/webp" data-banner-source="/img/banners/banner-03.webp"><img class="banner-image" src="/img/banners/banner-placeholder-03.svg" data-banner-fallback="/img/banners/banner-placeholder-03.svg" width="1600" height="420" loading="lazy" decoding="async" alt="تصویرسازی پردازنده و مادربرد برای پیکربندی کامپیوتر"></picture>
+                    <div class="banner-copy"><span class="banner-badge">پردازنده و مادربرد</span><h2>قلب تپندهٔ سیستم شما.</h2><p class="banner-description">پردازنده و مادربرد هماهنگ، نقطهٔ شروع یک انتخاب دقیق.</p><a class="primary-button banner-cta" href="/products?q=AM5">خرید قطعات <span aria-hidden="true">←</span></a></div>
+                </article>
+                <article class="banner-slide banner-slide--memory" data-slide="3" data-title="فضای بیشتر برای ایده‌های بزرگ." role="group" aria-roledescription="اسلاید" aria-label="4 از 5" aria-hidden="true" inert>
+                    <picture><source type="image/webp" data-banner-source="/img/banners/banner-04.webp"><img class="banner-image" src="/img/banners/banner-placeholder-04.svg" data-banner-fallback="/img/banners/banner-placeholder-04.svg" width="1600" height="420" loading="lazy" decoding="async" alt="تصویرسازی ماژول‌های رم و حافظه NVMe"></picture>
+                    <div class="banner-copy"><span class="banner-badge">رم و SSD</span><h2>فضای بیشتر برای ایده‌های بزرگ.</h2><p class="banner-description">از رم تا NVMe؛ حافظهٔ مناسب برای کار، بازی و خلق کردن.</p><a class="primary-button banner-cta" href="/products">مشاهده محصولات <span aria-hidden="true">←</span></a></div>
+                </article>
+                <article class="banner-slide banner-slide--accessories" data-slide="4" data-title="آخرین جزئیاتِ یک ستاپ کامل." role="group" aria-roledescription="اسلاید" aria-label="5 از 5" aria-hidden="true" inert>
+                    <picture><source type="image/webp" data-banner-source="/img/banners/banner-05.webp"><img class="banner-image" src="/img/banners/banner-placeholder-05.svg" data-banner-fallback="/img/banners/banner-placeholder-05.svg" width="1600" height="420" loading="lazy" decoding="async" alt="تصویرسازی کیبورد و موس در یک ستاپ روشن"></picture>
+                    <div class="banner-copy"><span class="banner-badge">لوازم گیمینگ</span><h2>آخرین جزئیاتِ یک ستاپ کامل.</h2><p class="banner-description">کیبورد، موس و لوازم جانبی را متناسب با سبک خود انتخاب کنید.</p><a class="primary-button banner-cta" href="/categories/%D9%84%D9%88%D8%A7%D8%B2%D9%85%20%D8%AC%D8%A7%D9%86%D8%A8%DB%8C%20%DA%AF%DB%8C%D9%85%DB%8C%D9%86%DA%AF">مشاهده لوازم جانبی <span aria-hidden="true">←</span></a></div>
+                </article>
+            </div>
+            <div class="slider-controls" aria-label="کنترل بنرها">
+                <button type="button" data-slider-prev aria-label="بنر قبلی" aria-controls="homePromotions">❯</button>
+                <div class="slider-dots" aria-label="انتخاب بنر"><button type="button" data-slider-dot="0" aria-label="نمایش بنر 1: سیستم کامل WEB 2" aria-current="true" aria-controls="homePromotions"></button><button type="button" data-slider-dot="1" aria-label="نمایش بنر 2: کارت گرافیک" aria-current="false" aria-controls="homePromotions"></button><button type="button" data-slider-dot="2" aria-label="نمایش بنر 3: پردازنده و مادربرد" aria-current="false" aria-controls="homePromotions"></button><button type="button" data-slider-dot="3" aria-label="نمایش بنر 4: رم و SSD" aria-current="false" aria-controls="homePromotions"></button><button type="button" data-slider-dot="4" aria-label="نمایش بنر 5: لوازم گیمینگ" aria-current="false" aria-controls="homePromotions"></button></div>
+                <button type="button" data-slider-next aria-label="بنر بعدی" aria-controls="homePromotions">❮</button>
+                <span class="slider-position" aria-hidden="true">۱ / ۵</span>
+                <button type="button" data-slider-pause aria-label="توقف پخش خودکار بنرها" aria-pressed="false" aria-controls="homePromotions">Ⅱ</button>
+            </div>
+            <span class="sr-only slider-announcement" aria-live="polite" aria-atomic="true"></span>
+        </section>
 
         <section class="section categories-section" id="categories">
             <div class="container glass-surface">
@@ -45,7 +78,7 @@
                         <span class="eyebrow">از کجا شروع می‌کنید؟</span>
                         <h2 class="rgb-text">دسته‌بندی محصولات</h2>
                     </div>
-                    <p>سریع‌تر به تجهیزات موردنیاز ستاپ خود برسید.</p>
+                    <p><strong id="homeProductCount">—</strong> محصول در کاتالوگ WEB 2؛ انتخاب قطعات، ساده‌تر از همیشه.</p>
                 </div>
                 <div class="category-grid" id="categoryGrid" aria-label="دسته‌بندی محصولات"><!-- SEO:CATEGORIES --></div>
             </div>
@@ -192,11 +225,13 @@
     <script src="js/safe-url.js?v=8a4e6ba3632f381b"></script>
     <script src="js/api-config.js?v=a0de1bf4a2df75df"></script><script src="js/session.js?v=eb17a1b68af430c2"></script>
     <link rel="stylesheet" href="css/admin.css?v=44042935bb379399">
-    <script src="js/site.js?v=6cf24f98869fd3c2"></script>
+    <script src="js/site.js?v=295125f31dd1c62d"></script>
     <script src="js/wishlist.js?v=82b037d2da2f8760"></script>
     <script src="js/product-pricing.js?v=6d4a769b285af732"></script>
-    <script src="script.js?v=0e95e3e178d0527d"></script>
+    <script src="/js/product-images.js?v=0f2a7a5d0a35d984"></script>
+    <script src="script.js?v=5c97074cb53c4c79"></script>
     <script src="js/storefront-pc.js?v=a1c1884054dc0c65"></script>
     <script src="js/storefront-motion.js?v=1921767263698109"></script>
+    <script src="js/storefront-slider.js?v=b32acb67b2871636"></script>
 </body>
 </html>

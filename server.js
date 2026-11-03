@@ -8,6 +8,8 @@ const helmet = require("helmet");
 const requestSecurity = require('./lib/request-security.cjs');
 const {publicAsset} = require('./lib/public-assets.cjs');
 const operationalLog = require('./lib/operational-log.cjs');
+const productImages = require('./lib/product-images.cjs').createResolver({root:__dirname});
+const productImagePaths = require('./js/product-images.js');
 
 function fatalProcessError(error,category){
     const reason=typeof error?.message==='string'&&/^Production (?:requires HTTPS APP_ORIGIN|allows HTTPS origins only)/.test(error.message)?'Production requires HTTPS':undefined;
@@ -395,8 +397,8 @@ const staticOptions = {
         else if (ext === ".svg") res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
     }
 };
-const publicStyleFiles = new Set(['/account.css','/admin.css','/commerce.css','/intro.css','/rgb-text.css','/storefront-pc.css','/storefront-motion.css']);
-const publicScriptFiles = new Set(['admin.js','admin-actions.js','admin-console.js','admin-inventory.js','admin-support.js','admin-users.js','admin-login.js','api-config.js','intro.js','invoice.js','profile.js','session.js','site.js','wishlist.js','safe-url.js','product-pricing.js','storefront-pc.js','storefront-motion.js'].map(name=>'/'+name));
+const publicStyleFiles = new Set(['/account.css','/admin.css','/commerce.css','/intro.css','/rgb-text.css','/storefront-pc.css','/storefront-motion.css','/storefront-slider.css','/product-media.css']);
+const publicScriptFiles = new Set(['admin.js','admin-actions.js','admin-console.js','admin-inventory.js','admin-support.js','admin-users.js','admin-login.js','api-config.js','intro.js','invoice.js','profile.js','session.js','site.js','wishlist.js','safe-url.js','product-images.js','product-pricing.js','storefront-pc.js','storefront-motion.js','storefront-slider.js'].map(name=>'/'+name));
 app.use("/css", publicAsset(path.join(STATIC_ROOT, "css"),['.css'],publicStyleFiles), express.static(path.join(STATIC_ROOT, "css"), staticOptions));
 const setAssetCache=require('./lib/asset-cache.cjs').assetCache(STATIC_ROOT,['style.css','script.js','products.js',...[...publicStyleFiles].map(file=>'css'+file),...[...publicScriptFiles].map(file=>'js'+file)],IS_PRODUCTION);
 const protectedAdminScripts = new Set([
@@ -435,18 +437,8 @@ function asTrimmedString(value, fallback = "") {
 
 function safeProductImage(value) {
     const image = String(value || "img/product-placeholder.svg");
-    const dataImage = /^data:image\/(png|jpeg|webp|gif);base64,([a-zA-Z0-9+/=]+)$/.exec(image);
-    if (dataImage) {
-        const bytes = Buffer.from(dataImage[2], 'base64');
-        if (bytes.length < 12 || bytes.length > 700000 || bytes.toString('base64') !== dataImage[2]) return "img/product-placeholder.svg";
-        const type = dataImage[1];
-        const signature = type === 'png' ? bytes.subarray(0,8).equals(Buffer.from('89504e470d0a1a0a','hex'))
-            : type === 'jpeg' ? bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
-            : type === 'gif' ? ['GIF87a','GIF89a'].includes(bytes.toString('ascii',0,6))
-            : bytes.toString('ascii',0,4) === 'RIFF' && bytes.toString('ascii',8,12) === 'WEBP';
-        if (!signature) return "img/product-placeholder.svg";
-    }
-    return require('./js/safe-url.js').image(image) || "img/product-placeholder.svg";
+    if (image.startsWith('data:') && !require('./lib/product-images.cjs').uploaded(image)) return "img/product-placeholder.svg";
+    return productImagePaths.local(image) ? image : require('./js/safe-url.js').image(image) || "img/product-placeholder.svg";
 }
 function normaliseProduct(input, existing = null, forcedId = undefined) {
     const body = input && typeof input === "object" && !Array.isArray(input) ? input : {};
@@ -461,7 +453,7 @@ function normaliseProduct(input, existing = null, forcedId = undefined) {
     const limits={name:200,title:200,brand:100,tag:100,shortDescription:300,description:5000,guarantee:200,category:80,image:900000};
     if(Object.entries(limits).some(([key,max])=>body[key]!==undefined&&(typeof body[key]!=='string'||body[key].length>max)))return null;
     if(body.features!==undefined&&(!Array.isArray(body.features)||body.features.length>40||body.features.some(feature=>typeof feature!=='string'||feature.length>300)))return null;
-    if(body.image&&safeProductImage(body.image)!==body.image)return null;
+    if(body.image&&(!productImagePaths.local(body.image)&&!body.image.startsWith('data:')||safeProductImage(body.image)!==body.image))return null;
     if(price>1e12||Number(source.stock)>1000000)return null;
 
     const stockValue = Number(source.stock);
@@ -481,6 +473,8 @@ function normaliseProduct(input, existing = null, forcedId = undefined) {
     const features = Array.isArray(source.features)
         ? source.features.slice(0,40).map((feature) => String(feature).trim().slice(0,300)).filter(Boolean)
         : [];
+    const localArtwork = productImagePaths.local(source.image) || productImages.materialize(source.image);
+    if (body.image?.startsWith('data:') && !localArtwork) return null;
 
     return {
         ...(existing?.campaign ? {campaign:existing.campaign} : {}),
@@ -502,7 +496,7 @@ function normaliseProduct(input, existing = null, forcedId = undefined) {
         features,
         guarantee: asTrimmedString(source.guarantee).slice(0,200),
         category: asTrimmedString(source.category, "Ù…Ø­ØµÙˆÙ„"),
-        image: safeProductImage(source.image),
+        image: localArtwork || safeProductImage(source.image),
         status: source.discontinued ? 'inactive' : source.status || "active",
         discontinued:source.discontinued??false,
         createdAt: existing?.createdAt || new Date().toISOString(),
@@ -660,7 +654,7 @@ function publicProduct(product) {
     const allowed=['id','name','title','price','discount','stock','rating','reviews','brand','icon','accent','tag',
         'shortDescription','description','features','guarantee','category','image','status','featured','isNew',
         'bestSeller','discontinued','createdAt','updatedAt','revision','campaign','components'];
-    return Object.fromEntries(allowed.filter(key=>Object.hasOwn(product,key)).map(key=>[key,key==='image'?safeProductImage(product[key]):product[key]]));
+    return {...Object.fromEntries(allowed.filter(key=>Object.hasOwn(product,key)).map(key=>[key,product[key]])),...productImages.resolve(product)};
 }
 
 

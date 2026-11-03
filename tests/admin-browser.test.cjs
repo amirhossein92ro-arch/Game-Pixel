@@ -37,12 +37,49 @@ test('storefront and admin retain readable contrast, reduced motion and usable d
         await command('Network.setCookie',{name:'web2_admin',value:cookie,url:base,httpOnly:true,sameSite:'Strict',path:'/'});
         // Storefront checks use the same disposable server and real catalog.
         const catalog=await(await fetch(base+'/api/products')).json(),available=catalog.find(p=>p.stock>0);assert.ok(available);
+        async function productMediaContained(label){
+            const media=await evaluate(`(() => {
+                const rect=el=>el.getBoundingClientRect();
+                const inside=(a,b)=>a.left>=b.left-1&&a.right<=b.right+1&&a.top>=b.top-1&&a.bottom<=b.bottom+1;
+                const overlap=(a,b)=>Math.min(a.right,b.right)-Math.max(a.left,b.left)>1&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1;
+                return Array.from(document.querySelectorAll('.product-card,.detail-visual,.cart-item-art')).slice(0,30).flatMap(host=>{
+                    const area=host.matches('.product-card')?host.querySelector('.product-art'):host;
+                    if(!area)return [];
+                    const bounds=rect(area);if(!bounds.width||!bounds.height)return [];
+                    const heart=host.querySelector('.wishlist-heart'),badge=area.querySelector('.product-tag,.detail-stock-badge');
+                    const image=area.querySelector('img.product-image:not([hidden])');
+                    const result={kind:host.className,width:innerWidth,mediaWidth:bounds.width,controlsOverlap:!!(heart&&badge&&overlap(rect(heart),rect(badge)))};
+                    if(image){const box=rect(image),styles=getComputedStyle(image);result.objectFit=styles.objectFit;result.imageInside=inside(box,bounds);result.imageWidth=box.width;result.imageHeight=box.height;result.imageControlOverlap=!!((heart&&overlap(box,rect(heart)))||(badge&&overlap(box,rect(badge))));}
+                    return [result];
+                });
+            })()`);
+            for(const item of media){
+                assert.ok(item.mediaWidth<=item.width+1,label+' media wider than viewport '+JSON.stringify(item));
+                assert.equal(item.controlsOverlap,false,label+' wishlist/status overlap '+JSON.stringify(item));
+                if(item.objectFit){
+                    assert.equal(item.objectFit,'contain',label+' image fit '+JSON.stringify(item));
+                    assert.equal(item.imageInside,true,label+' image escapes media '+JSON.stringify(item));
+                    assert.equal(item.imageControlOverlap,false,label+' image overlaps controls '+JSON.stringify(item));
+                    assert.ok(item.imageWidth>0&&item.imageHeight>0,label+' image has stable dimensions '+JSON.stringify(item));
+                }
+            }
+        }
         async function noOverflow(label){
-            const original=await evaluate('({width:innerWidth,height:innerHeight,scroll:document.documentElement.scrollWidth})');assert.ok(original.scroll<=original.width+1,label+' '+JSON.stringify(original));
+            // The existing page-entry perspective effect briefly changes transformed
+            // bounds; audit the product layout after that animation has completed.
+            await until(()=>evaluate("document.readyState==='complete'&&(!document.getElementById('main-content')||getComputedStyle(document.getElementById('main-content')).transform==='none')"),'page entry complete '+label);
+            const original=await evaluate('({width:innerWidth,height:innerHeight,scroll:document.documentElement.scrollWidth})');
+            const overflow=original.scroll>original.width+1?await evaluate(`Array.from(document.querySelectorAll('body *')).filter(el=>{const r=el.getBoundingClientRect();return r.width>0&&(r.right>innerWidth+1||r.left< -1)&&getComputedStyle(el).position!=='fixed'&&!el.closest('.market-rail,.spotlight-grid,.category-grid,.catalog-categories,.storefront-slider');}).slice(0,12).map(el=>({tag:el.tagName,class:el.className,width:el.getBoundingClientRect().width,left:el.getBoundingClientRect().left,right:el.getBoundingClientRect().right}))`):[];
+            assert.ok(original.scroll<=original.width+1,label+' '+JSON.stringify(original)+' '+JSON.stringify(overflow));
+            await productMediaContained(label+' '+original.width);
             // Reuse the loaded page for small-phone/tablet layout checks. This
             // tests the real DOM without flooding the application's API budget.
             if(original.width===390){
-                for(const width of [320,360,768]){await command('Emulation.setDeviceMetricsOverride',{width,height:original.height,deviceScaleFactor:1,mobile:width<600});const size=await evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');assert.ok(size.scroll<=size.width+1,label+' resized '+JSON.stringify(size));}
+                for(const width of [320,360,375,390,412,430,768]){
+                    await command('Emulation.setDeviceMetricsOverride',{width,height:original.height,deviceScaleFactor:1,mobile:width<600});const size=await evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth})');assert.ok(size.scroll<=size.width+1,label+' resized '+JSON.stringify(size));await productMediaContained(label+' resized '+width);
+                    if([320,430].includes(width)&&label==='product 390'){await evaluate("document.querySelector('.detail-visual').scrollIntoView({block:'start',behavior:'instant'})");await capture('product-media-detail-'+width);}
+                    if([320,430].includes(width)&&label==='home 390'){await evaluate("document.getElementById('productGrid').scrollIntoView({block:'start',behavior:'instant'})");await capture('product-media-grid-'+width);await evaluate("window.scrollTo({top:0,behavior:'instant'})");}
+                }
                 await command('Emulation.setDeviceMetricsOverride',{width:original.width,height:original.height,deviceScaleFactor:1,mobile:true});
             }
         }
@@ -71,9 +108,13 @@ test('storefront and admin retain readable contrast, reduced motion and usable d
             }
             await command('DOM.enable');await command('CSS.enable');
             const doc=await command('DOM.getDocument'),cardNode=await command('DOM.querySelector',{nodeId:doc.root.nodeId,selector:'#productGrid .product-card'});
+            await evaluate("document.querySelector('#productGrid .product-card').scrollIntoView({block:'center',behavior:'instant'})");
+            await until(()=>evaluate("!document.querySelector('#productGrid .product-card').classList.contains('motion-pending')"),'card reveal complete');
             await command('CSS.forcePseudoState',{nodeId:cardNode.nodeId,forcedPseudoClasses:['hover']});
             await until(()=>evaluate("getComputedStyle(document.querySelector('#productGrid .product-card')).boxShadow!=='none'"),'card hover shadow');
-            assert.equal(await evaluate("getComputedStyle(document.querySelector('#productGrid .product-card')).transform"),'none');await noOverflow('hover '+width);
+            const hoverTransform=await evaluate("getComputedStyle(document.querySelector('#productGrid .product-card')).transform");
+            const hoverMatrix=hoverTransform.match(/^matrix\(([^)]+)\)$/)?.[1].split(',').map(Number);
+            assert.ok(hoverTransform==='none'||(hoverMatrix?.length===6&&Math.abs(hoverMatrix[4])<=4&&Math.abs(hoverMatrix[5])<=4),'hover keeps card in place '+hoverTransform);await noOverflow('hover '+width);
             assert.equal(await evaluate("getComputedStyle(document.querySelector('#productGrid .product-card'),'::after').content"),'none');
             await command('CSS.forcePseudoState',{nodeId:cardNode.nodeId,forcedPseudoClasses:[]});
             await evaluate('document.getElementById("productGrid").scrollIntoView({block:"start",behavior:"instant"})');await capture('visual-products-'+width);
